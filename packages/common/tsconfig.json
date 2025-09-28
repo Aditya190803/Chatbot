@@ -2,7 +2,8 @@
     "extends": "@repo/typescript-config",
     "compilerOptions": {
         "baseUrl": ".",
-        "jsx": "react-jsx"
+        "jsx": "react-jsx",
+        "module": "ESNext"
     },
     "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
     "exclude": ["node_modules"]

@@ -22,7 +22,6 @@
         "@langchain/ollama": "^0.0.2",
         "@langchain/openai": "^0.0.28",
         "@mdx-js/mdx": "^3.1.0",
-        "@mozilla/readability": "^0.5.0",
         "@phosphor-icons/react": "^2.1.5",
         "@radix-ui/react-accordion": "^1.2.0",
         "@radix-ui/react-alert-dialog": "^1.0.5",
@@ -68,6 +67,7 @@
         "clsx": "^2.1.1",
         "cmdk": "^1.0.0",
         "dexie": "^4.0.11",
+        "dotenv": "^16.4.5",
         "duck-duck-scrape": "^2.2.5",
         "embla-carousel-autoplay": "^8.2.1",
         "embla-carousel-react": "^8.2.1",
@@ -80,7 +80,6 @@
         "idb": "^7.1.1",
         "idb-keyval": "^6.2.1",
         "immer": "^10.1.1",
-        "install": "^0.13.0",
         "js-tiktoken": "^1.0.12",
         "jsdom": "^24.1.1",
         "langchain": "^0.2.0",
@@ -92,7 +91,6 @@
         "next": "14.2.3",
         "next-mdx-remote": "^5.0.0",
         "next-themes": "^0.3.0",
-        "npm": "^11.2.0",
         "open-graph-scraper": "^6.9.0",
         "openai": "^4.47.1",
         "pdf-parse": "^1.1.1",
@@ -125,7 +123,6 @@
         "tiptap": "^0.15.0",
         "turndown": "^7.2.0",
         "unified": "^11.0.5",
-        "unist": "^0.0.1",
         "unist-util-visit": "^5.0.0",
         "use-stick-to-bottom": "^1.0.46",
         "vaul": "^0.9.1",
@@ -153,7 +150,6 @@
         "prettier": "^3.3.3",
         "prettier-plugin-tailwindcss": "^0.6.5",
         "tailwindcss": "3",
-        "typescript": "^5",
-        "yarn": "^1.22.22"
+        "typescript": "^5"
     }
 }
