@@ -1,21 +1,27 @@
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createFireworks } from '@ai-sdk/fireworks';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { LanguageModelV1 } from '@ai-sdk/provider';
-import { createTogetherAI } from '@ai-sdk/togetherai';
 import { LanguageModelV1Middleware, wrapLanguageModel } from 'ai';
 import { ModelEnum, models } from './models';
 
 export const Providers = {
-  OPENAI: 'openai',
-  ANTHROPIC: 'anthropic',
-  TOGETHER: 'together',
   GOOGLE: 'google',
-  FIREWORKS: 'fireworks',
+  OPENROUTER: 'openrouter',
 } as const;
 
 export type ProviderEnumType = (typeof Providers)[keyof typeof Providers];
+
+export class MissingProviderKeyError extends Error {
+  constructor(provider: ProviderEnumType) {
+    const providerName = provider === Providers.GOOGLE ? 'Google Gemini' : 'OpenRouter';
+    const envHint =
+      provider === Providers.GOOGLE
+        ? 'Set the GEMINI_API_KEY environment variable or provide a personal key in Settings → API Keys.'
+        : 'Set the OPENROUTER_API_KEY environment variable or provide a personal key in Settings → API Keys.';
+    super(`Missing ${providerName} API credentials. ${envHint}`);
+    this.name = 'MissingProviderKeyError';
+  }
+}
 
 // Define a global type for API keys
 declare global {
@@ -35,20 +41,11 @@ const getApiKey = (provider: ProviderEnumType): string => {
   // For server environments
   if (typeof process !== 'undefined' && process.env) {
     switch (provider) {
-      case Providers.OPENAI:
-        if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
-        break;
-      case Providers.ANTHROPIC:
-        if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
-        break;
-      case Providers.TOGETHER:
-        if (process.env.TOGETHER_API_KEY) return process.env.TOGETHER_API_KEY;
-        break;
       case Providers.GOOGLE:
         if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
         break;
-      case Providers.FIREWORKS:
-        if (process.env.FIREWORKS_API_KEY) return process.env.FIREWORKS_API_KEY;
+      case Providers.OPENROUTER:
+        if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
         break;
     }
   }
@@ -69,36 +66,65 @@ const getApiKey = (provider: ProviderEnumType): string => {
   return '';
 };
 
+const getOpenRouterHeaders = () => {
+  const headers: Record<string, string> = {};
+
+  const referer =
+    (typeof process !== 'undefined' && process.env?.OPENROUTER_SITE_URL) ||
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_APP_URL) ||
+    (typeof window !== 'undefined' && window.NEXT_PUBLIC_APP_URL) ||
+    '';
+
+  const title =
+    (typeof process !== 'undefined' && process.env?.OPENROUTER_APP_TITLE) ||
+    'LLMChat';
+
+  if (referer) {
+    headers['HTTP-Referer'] = referer;
+  }
+
+  if (title) {
+    headers['X-Title'] = title;
+  }
+
+  return headers;
+};
+
 export const getProviderInstance = (provider: ProviderEnumType) => {
   switch (provider) {
-    case Providers.OPENAI:
-      return createOpenAI({
-        apiKey: getApiKey(Providers.OPENAI),
-      });
-    case 'anthropic':
-      return createAnthropic({
-        apiKey: getApiKey(Providers.ANTHROPIC),
-        headers:{
-          "anthropic-dangerous-direct-browser-access": "true"
-        }
-      });
-    case 'together':
-      return createTogetherAI({
-        apiKey: getApiKey(Providers.TOGETHER),
-      });
     case 'google':
+      {
+        const apiKey = getApiKey(Providers.GOOGLE);
+        if (!apiKey) {
+          throw new MissingProviderKeyError(Providers.GOOGLE);
+        }
       return createGoogleGenerativeAI({
-        apiKey: getApiKey(Providers.GOOGLE),
-        
+        apiKey,
       });
-    case 'fireworks':
-      return createFireworks({
-        apiKey: getApiKey(Providers.FIREWORKS),
-      });
-    default:
+      }
+    case Providers.OPENROUTER:
+      {
+        const apiKey = getApiKey(Providers.OPENROUTER);
+        if (!apiKey) {
+          throw new MissingProviderKeyError(Providers.OPENROUTER);
+        }
       return createOpenAI({
-        apiKey: getApiKey(Providers.OPENAI),
+        apiKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+        compatibility: 'strict',
+        headers: getOpenRouterHeaders(),
       });
+      }
+    default:
+      {
+        const apiKey = getApiKey(Providers.OPENROUTER);
+        if (!apiKey) {
+          throw new MissingProviderKeyError(Providers.OPENROUTER);
+        }
+        return createOpenAI({
+          apiKey,
+        });
+      }
   }
 };
 
