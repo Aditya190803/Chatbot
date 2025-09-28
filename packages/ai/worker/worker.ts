@@ -45,11 +45,8 @@ ctx.addEventListener('message', async (event: MessageEvent) => {
                 apiKeys = newApiKeys;
 
                 self.AI_API_KEYS = {
-                    openai: apiKeys.OPENAI_API_KEY,
-                    anthropic: apiKeys.ANTHROPIC_API_KEY,
-                    fireworks: apiKeys.FIREWORKS_API_KEY,
                     google: apiKeys.GEMINI_API_KEY,
-                    together: apiKeys.TOGETHER_API_KEY,
+                    openrouter: apiKeys.OPENROUTER_API_KEY
                 };
 
                 self.LANGSEARCH_API_KEY = apiKeys.LANGSEARCH_API_KEY;

@@ -1,5 +1,8 @@
 export const generateErrorMessage = (error: Error | string) => {
     if (error instanceof Error) {
+        if (error.name === 'MissingProviderKeyError') {
+            return error.message;
+        }
         if (error.message.includes('429')) {
             return 'You have reached the limit of requests per minute. Please try again later.';
         }
