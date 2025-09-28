@@ -59,6 +59,31 @@ export const modelOptions = [
         // webSearch: true,
         icon: undefined,
     },
+    {
+        label: 'Grok 4 Fast (OpenRouter)',
+        value: ChatMode.GROK_4_FAST,
+        icon: undefined,
+    },
+    {
+        label: 'GLM 4.5 Air (OpenRouter)',
+        value: ChatMode.GLM_4_5_AIR,
+        icon: undefined,
+    },
+    {
+        label: 'DeepSeek Chat v3.1 (OpenRouter)',
+        value: ChatMode.DEEPSEEK_CHAT_V3_1,
+        icon: undefined,
+    },
+    {
+        label: 'GPT-OSS 120B (OpenRouter)',
+        value: ChatMode.GPT_OSS_120B,
+        icon: undefined,
+    },
+    {
+        label: 'Dolphin Mistral 24B Venice (OpenRouter)',
+        value: ChatMode.DOLPHIN_MISTRAL_24B_VENICE,
+        icon: undefined,
+    },
 ];
 
 export const AttachmentButton = () => {
