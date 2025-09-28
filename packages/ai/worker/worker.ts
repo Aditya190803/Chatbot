@@ -52,6 +52,7 @@ ctx.addEventListener('message', async (event: MessageEvent) => {
                     together: apiKeys.TOGETHER_API_KEY,
                 };
 
+                self.LANGSEARCH_API_KEY = apiKeys.LANGSEARCH_API_KEY;
                 self.SERPER_API_KEY = apiKeys.SERPER_API_KEY;
                 self.JINA_API_KEY = apiKeys.JINA_API_KEY;
                 self.NEXT_PUBLIC_APP_URL = apiKeys.NEXT_PUBLIC_APP_URL;

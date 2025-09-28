@@ -1,9 +1,10 @@
 import { PostHog } from 'posthog-node';
 import { v4 as uuidv4 } from 'uuid';
 
-const client = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY || '', {
+const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const client = POSTHOG_KEY ? new PostHog(POSTHOG_KEY, {
     host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
-});
+}) : null;
 
 export enum EVENT_TYPES {
     WORKFLOW_SUMMARY = 'workflow_summary',
@@ -17,6 +18,10 @@ export type PostHogEvent = {
 
 export const posthog = {
     capture: (event: PostHogEvent) => {
+        if (!client) {
+            console.log('PostHog not configured, skipping event capture:', event.event);
+            return;
+        }
         client.capture({
             distinctId: event?.userId || uuidv4(),
             event: event.event,
@@ -24,6 +29,9 @@ export const posthog = {
         });
     },
     flush: () => {
+        if (!client) {
+            return;
+        }
         client.flush();
     },
 };

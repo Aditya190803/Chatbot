@@ -23,6 +23,7 @@ declare global {
     AI_API_KEYS?: {
       [key in ProviderEnumType]?: string;
     };
+    LANGSEARCH_API_KEY?: string;
     SERPER_API_KEY?: string;
     JINA_API_KEY?: string;
     NEXT_PUBLIC_APP_URL?: string;
