@@ -39,7 +39,7 @@ export const suggestionsTask = createTask<WorkflowEventSchema, WorkflowContextSc
 
         const object = await generateObject({
             prompt,
-            model: ModelEnum.GPT_4o_Mini,
+            model: ModelEnum.GEMINI_2_5_FLASH,
             schema: SuggestionSchema,
             signal,
         });
