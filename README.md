@@ -381,3 +381,16 @@ yarn dev
 ```
 
 4. Open your browser and navigate to `http://localhost:3000`
+
+### Web Search Configuration
+
+LLMChat ships with LangSearch as the default web search provider used by research workflows. Configure these environment variables (see `apps/web/.env.example`) to enable live search:
+
+- `LANGSEARCH_API_KEY` (required): LangSearch API token. Without this key, web-powered chat modes fall back to static reasoning only.
+- `LANGSEARCH_COUNT` (optional): Override the default number of search results LangSearch returns per query.
+- `LANGSEARCH_FRESHNESS` (optional): Restrict results to a relative time window such as `7d` or `30d`.
+- `LANGSEARCH_ENABLE_SUMMARY` (optional, default `true`): When set to `false`, disables LangSearch server-side summarization.
+- `LANGSEARCH_ENABLE_SERPER_FALLBACK` (optional, default `false`): When `true` and `SERPER_API_KEY` is provided, automatically retries with Serper if LangSearch is unavailable.
+- `SERPER_API_KEY` (optional): API key for the Serper fallback provider.
+
+When running locally, set these variables in `apps/web/.env.local`, then restart the dev server to pick up the changes.
