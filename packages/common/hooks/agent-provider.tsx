@@ -262,8 +262,35 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                                         if (data.threadItemId) {
                                             threadItemMap.delete(data.threadItemId);
                                         }
+
                                         if (data.status === 'error') {
                                             console.error('Stream error:', data.error);
+                                            if (data.threadId && data.threadItemId) {
+                                                updateThreadItem(data.threadId, {
+                                                    id: data.threadItemId,
+                                                    status: 'ERROR',
+                                                    error:
+                                                        data.error ||
+                                                        'Something went wrong. Please try again.',
+                                                    persistToDB: true,
+                                                });
+                                            }
+                                        } else if (data.status === 'aborted') {
+                                            if (data.threadId && data.threadItemId) {
+                                                updateThreadItem(data.threadId, {
+                                                    id: data.threadItemId,
+                                                    status: 'ABORTED',
+                                                    persistToDB: true,
+                                                });
+                                            }
+                                        } else if (data.status === 'complete') {
+                                            if (data.threadId && data.threadItemId) {
+                                                updateThreadItem(data.threadId, {
+                                                    id: data.threadItemId,
+                                                    status: 'COMPLETED',
+                                                    persistToDB: true,
+                                                });
+                                            }
                                         }
                                     }
                                 } catch (jsonError) {
