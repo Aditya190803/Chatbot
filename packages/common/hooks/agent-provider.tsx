@@ -38,7 +38,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
         setCurrentSources,
         updateThread,
         chatMode,
-        fetchRemainingCredits,
         customInstructions,
     } = useChatStore(state => ({
         updateThreadItem: state.updateThreadItem,
@@ -49,7 +48,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
         setCurrentSources: state.setCurrentSources,
         updateThread: state.updateThread,
         chatMode: state.chatMode,
-        fetchRemainingCredits: state.fetchRemainingCredits,
         customInstructions: state.customInstructions,
     }));
     const { push } = useRouter();
@@ -59,10 +57,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
     const hasApiKeyForChatMode = useApiKeysStore(state => state.hasApiKeyForChatMode);
     const setShowSignInModal = useAppStore(state => state.setShowSignInModal);
 
-    // Fetch remaining credits when user changes
-    useEffect(() => {
-        fetchRemainingCredits();
-    }, [user?.id, fetchRemainingCredits]);
+
 
     // In-memory store for thread items
     const threadItemMap = useMemo(() => new Map<string, ThreadItem>(), []);
@@ -144,13 +139,12 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
                 if (data.type === 'done') {
                     setIsGenerating(false);
-                    setTimeout(fetchRemainingCredits, 1000);
                     if (data?.threadItemId) {
                         threadItemMap.delete(data.threadItemId);
                     }
                 }
             },
-            [handleThreadItemUpdate, setIsGenerating, fetchRemainingCredits, threadItemMap]
+            [handleThreadItemUpdate, setIsGenerating, threadItemMap]
         )
     );
 
@@ -265,7 +259,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                                             eventCount,
                                             `Stream duration: ${streamDuration.toFixed(2)}ms`
                                         );
-                                        setTimeout(fetchRemainingCredits, 1000);
                                         if (data.threadItemId) {
                                             threadItemMap.delete(data.threadItemId);
                                         }
@@ -327,7 +320,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             setIsGenerating,
             updateThreadItem,
             handleThreadItemUpdate,
-            fetchRemainingCredits,
             EVENT_TYPES,
             threadItemMap,
         ]

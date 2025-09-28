@@ -41,10 +41,7 @@ export const IntroDialog = () => {
             icon,
             text: `**Comprehensive model support**: Compatible with all mainstream model providers.`,
         },
-        {
-            icon,
-            text: `**BYOK (Bring Your Own Key)**: Use your own API key for unlimited chat.`,
-        },
+
         {
             icon,
             text: `**MCP Compatibility**: Connect with any MCP servers/tools (coming soon).`,
