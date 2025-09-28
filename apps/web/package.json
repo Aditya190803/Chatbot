@@ -1,5 +1,5 @@
 {
-    "name": "llmchat-web",
+    "name": "chatbot-web",
     "version": "0.1.0",
     "private": true,
     "scripts": {
