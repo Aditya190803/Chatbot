@@ -5,13 +5,13 @@ export const ChatFooter = () => {
   return (
     <Flex className="w-full p-2" justify="center" gap="xs">
       <p className="text-xs opacity-50">
-        LLMChat is open source and your data is stored locally. project by{' '}
+        Chatbot is open source and your data is stored locally. project by{' '}
         <Link
-          href="https://trendy.design"
+          href="https://Adityamer.live"
           target="_blank"
           className="text-brand decoration-brand inline-block underline underline-offset-2"
         >
-          trendy.design
+          Adityamer.live
         </Link>
       </p>
     </Flex>

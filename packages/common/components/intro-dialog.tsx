@@ -80,7 +80,7 @@ export const IntroDialog = () => {
                         >
                             <Logo className="text-brand size-5" />
                             <p className="font-clash text-foreground text-lg font-bold tracking-wide">
-                                llmchat.co
+                                Chatbot
                             </p>
                         </div>
                         <p className="text-base font-semibold">

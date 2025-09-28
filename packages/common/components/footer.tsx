@@ -3,15 +3,15 @@ import Link from 'next/link';
 export const Footer = () => {
     const links = [
         {
-            href: 'https://git.new/llmchat',
+            href: 'https://github.com/Aditya190803/chatbot',
             label: 'Star us on GitHub',
         },
         {
-            href: 'https://github.com',
+            href: 'https://github.com/Aditya190803/chatbot',
             label: 'Changelog',
         },
         {
-            href: '',
+            href: 'mailto:aditya.mer@somaiya.edu',
             label: 'Feedback',
         },
         {
