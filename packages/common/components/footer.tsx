@@ -27,7 +27,7 @@ export const Footer = () => {
         <div className="flex w-full flex-row items-center justify-center gap-4 p-3">
             {links.map(link => (
                 <Link
-                    key={link.href}
+                    key={link.label}
                     href={link.href}
                     className="text-muted-foreground text-xs opacity-50 hover:opacity-100"
                 >
