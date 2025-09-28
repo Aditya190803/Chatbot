@@ -15,12 +15,8 @@ Chatbot stands out with its workflow orchestration system and focus on privacy, 
 - **Pro Search**: Enhanced search with web integration for real-time information
 
 **Multiple LLM Provider Support**
-- OpenAI
-- Anthropic
 - Google
-- Fireworks
-- Together AI
-- xAI
+- Open Router
 
 **Privacy-Focused**
 

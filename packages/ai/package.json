@@ -28,7 +28,6 @@
         "langfuse": "^3.36.0",
         "node-html-parser": "^7.0.1",
         "openai": "^4.24.1",
-        "together-ai": "^0.13.0",
         "turndown": "^7.2.0",
         "uuid": "^11.0.5",
         "zod": "^3.23.8",

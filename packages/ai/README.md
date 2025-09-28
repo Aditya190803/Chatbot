@@ -96,18 +96,8 @@ The system provides comprehensive event handling:
 
 Environment variables (see `.env.example`):
 
-- `OPENAI_API_KEY` (required)
-- `OPENAI_MODEL` (default: gpt-4)
-- `ANTHROPIC_API_KEY` (optional)
-- `ANTHROPIC_MODEL` (optional)
-- `TOGETHER_API_KEY` (optional)
-- `TOGETHER_MODEL` (optional)
-- `GEMINI_API_KEY` (optional)
-- `OPENROUTER_API_KEY` (optional)
-- `OPENROUTER_SITE_URL` (optional, sets HTTP-Referer header for OpenRouter)
-- `OPENROUTER_APP_TITLE` (optional, sets X-Title header for OpenRouter)
-- `TEMPERATURE` (default: 0.7)
-- `MAX_TOKENS` (default: 4000)
+- `GEMINI_API_KEY` (required)
+- `OPENROUTER_API_KEY`
 
 ## Contributing
 
