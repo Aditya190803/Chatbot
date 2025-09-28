@@ -24,6 +24,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+clerk-dns*
+DEPLOYMENT.md
+
 # local env files
 .env
 .env.local
