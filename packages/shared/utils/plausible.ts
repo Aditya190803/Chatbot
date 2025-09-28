@@ -1,7 +1,7 @@
 import Plausible from 'plausible-tracker';
 
 const plausibleTracker = Plausible({
-  domain: 'llmchat.co',
+  domain: 'chatbot.adityamer.live',
 });
 
 const plausible = {
