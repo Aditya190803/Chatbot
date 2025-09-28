@@ -103,7 +103,7 @@ export default function ParentLayout({
             </head>
             <body>
                 {/* <PostHogProvider> */}
-                <ClerkProvider logLevel="error">
+                <ClerkProvider>
                     <RootProvider>
                         {/* <ThemeProvider
             attribute="class"
