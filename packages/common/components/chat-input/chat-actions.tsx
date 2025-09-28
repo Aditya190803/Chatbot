@@ -2,7 +2,7 @@
 import { useUser } from '@clerk/nextjs';
 import { DotSpinner } from '@repo/common/components';
 import { useApiKeysStore, useChatStore } from '@repo/common/store';
-import { CHAT_MODE_CREDIT_COSTS, ChatMode, ChatModeConfig } from '@repo/shared/config';
+import { ChatMode, ChatModeConfig } from '@repo/shared/config';
 import {
     Button,
     cn,
@@ -26,7 +26,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { BYOKIcon, NewIcon } from '../icons';
+import { NewIcon } from '../icons';
 
 export const chatOptions = [
     {
@@ -34,92 +34,30 @@ export const chatOptions = [
         description: 'In depth research on complex topic',
         value: ChatMode.Deep,
         icon: <IconAtom size={16} className="text-muted-foreground" strokeWidth={2} />,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.Deep],
+
     },
     {
         label: 'Pro Search',
         description: 'Pro search with web search',
         value: ChatMode.Pro,
         icon: <IconNorthStar size={16} className="text-muted-foreground" strokeWidth={2} />,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.Pro],
+
     },
 ];
 
 export const modelOptions = [
     {
-        label: 'Llama 4 Scout',
-        value: ChatMode.LLAMA_4_SCOUT,
+        label: 'Gemini 2.5 Flash',
+        value: ChatMode.GEMINI_2_5_FLASH,
         // webSearch: true,
         icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.LLAMA_4_SCOUT],
+
     },
     {
-        label: 'GPT 4.1',
-        value: ChatMode.GPT_4_1,
-        // webSearch: true,
-        icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.GPT_4_1],
-    },
-    {
-        label: 'GPT 4.1 Mini',
-        value: ChatMode.GPT_4_1_Mini,
-        // webSearch: true,
-        icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.GPT_4_1_Mini],
-    },
-    {
-        label: 'GPT 4.1 Nano',
-        value: ChatMode.GPT_4_1_Nano,
-        // webSearch: true,
-        icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.GPT_4_1_Nano],
-    },
-    {
-        label: 'Gemini Flash 2.0',
+        label: 'Gemini 2 Flash',
         value: ChatMode.GEMINI_2_FLASH,
         // webSearch: true,
         icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.GEMINI_2_FLASH],
-    },
-
-    {
-        label: 'GPT 4o Mini',
-        value: ChatMode.GPT_4o_Mini,
-        // webSearch: true,
-        icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.GPT_4o_Mini],
-    },
-
-    {
-        label: 'O4 Mini',
-        value: ChatMode.O4_Mini,
-        // webSearch: true,
-        icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.O4_Mini],
-    },
-
-    {
-        label: 'Claude 3.5 Sonnet',
-        value: ChatMode.CLAUDE_3_5_SONNET,
-        // webSearch: true,
-        icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.CLAUDE_3_5_SONNET],
-    },
-
-    {
-        label: 'Deepseek R1',
-        value: ChatMode.DEEPSEEK_R1,
-        // webSearch: true,
-        icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.DEEPSEEK_R1],
-    },
-
-    {
-        label: 'Claude 3.7 Sonnet',
-        value: ChatMode.CLAUDE_3_7_SONNET,
-        // webSearch: true,
-        icon: undefined,
-        creditCost: CHAT_MODE_CREDIT_COSTS[ChatMode.CLAUDE_3_7_SONNET],
     },
 ];
 
@@ -168,9 +106,8 @@ export const WebSearchButton = () => {
     const useWebSearch = useChatStore(state => state.useWebSearch);
     const setUseWebSearch = useChatStore(state => state.setUseWebSearch);
     const chatMode = useChatStore(state => state.chatMode);
-    const hasApiKeyForChatMode = useApiKeysStore(state => state.hasApiKeyForChatMode);
 
-    if (!ChatModeConfig[chatMode]?.webSearch && !hasApiKeyForChatMode(chatMode)) return null;
+    if (!ChatModeConfig[chatMode]?.webSearch) return null;
 
     return (
         <Button
@@ -221,7 +158,6 @@ export const ChatModeOptions = ({
     isRetry?: boolean;
 }) => {
     const { isSignedIn } = useUser();
-    const hasApiKeyForChatMode = useApiKeysStore(state => state.hasApiKeyForChatMode);
     const isChatPage = usePathname().startsWith('/chat');
     const { push } = useRouter();
     return (
@@ -284,7 +220,7 @@ export const ChatModeOptions = ({
                             <div className="flex-1" />
                             {ChatModeConfig[option.value]?.isNew && <NewIcon />}
 
-                            {hasApiKeyForChatMode(option.value) && <BYOKIcon />}
+
                         </div>
                     </DropdownMenuItem>
                 ))}
