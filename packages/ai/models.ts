@@ -5,6 +5,11 @@ import { ProviderEnumType } from './providers';
 export enum ModelEnum {
     GEMINI_2_FLASH = 'gemini-2.0-flash',
     GEMINI_2_5_FLASH = 'gemini-2.5-flash',
+    GROK_4_FAST = 'x-ai/grok-4-fast:free',
+    GLM_4_5_AIR = 'z-ai/glm-4.5-air:free',
+    DEEPSEEK_CHAT_V3_1 = 'deepseek/deepseek-chat-v3.1:free',
+    GPT_OSS_120B = 'openai/gpt-oss-120b:free',
+    DOLPHIN_MISTRAL_24B_VENICE = 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
 }
 
 export type Model = {
@@ -30,6 +35,41 @@ export const models: Model[] = [
         maxTokens: 200000,
         contextWindow: 200000,
     },
+    {
+        id: ModelEnum.GROK_4_FAST,
+        name: 'Grok 4 Fast (OpenRouter Free)',
+        provider: 'openrouter',
+        maxTokens: 8000,
+        contextWindow: 128000,
+    },
+    {
+        id: ModelEnum.GLM_4_5_AIR,
+        name: 'GLM 4.5 Air (OpenRouter Free)',
+        provider: 'openrouter',
+        maxTokens: 8000,
+        contextWindow: 128000,
+    },
+    {
+        id: ModelEnum.DEEPSEEK_CHAT_V3_1,
+        name: 'DeepSeek Chat v3.1 (OpenRouter Free)',
+        provider: 'openrouter',
+        maxTokens: 8000,
+        contextWindow: 128000,
+    },
+    {
+        id: ModelEnum.GPT_OSS_120B,
+        name: 'GPT-OSS 120B (OpenRouter Free)',
+        provider: 'openrouter',
+        maxTokens: 8000,
+        contextWindow: 128000,
+    },
+    {
+        id: ModelEnum.DOLPHIN_MISTRAL_24B_VENICE,
+        name: 'Dolphin Mistral 24B Venice (OpenRouter Free)',
+        provider: 'openrouter',
+        maxTokens: 8000,
+        contextWindow: 128000,
+    },
 ];
 
 export const getModelFromChatMode = (mode?: string): ModelEnum => {
@@ -38,6 +78,16 @@ export const getModelFromChatMode = (mode?: string): ModelEnum => {
             return ModelEnum.GEMINI_2_FLASH;
         case ChatMode.GEMINI_2_5_FLASH:
             return ModelEnum.GEMINI_2_5_FLASH;
+        case ChatMode.GROK_4_FAST:
+            return ModelEnum.GROK_4_FAST;
+        case ChatMode.GLM_4_5_AIR:
+            return ModelEnum.GLM_4_5_AIR;
+        case ChatMode.DEEPSEEK_CHAT_V3_1:
+            return ModelEnum.DEEPSEEK_CHAT_V3_1;
+        case ChatMode.GPT_OSS_120B:
+            return ModelEnum.GPT_OSS_120B;
+        case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
+            return ModelEnum.DOLPHIN_MISTRAL_24B_VENICE;
         default:
             return ModelEnum.GEMINI_2_5_FLASH;
     }
@@ -49,6 +99,12 @@ export const getChatModeMaxTokens = (mode: ChatMode) => {
             return 500000;
         case ChatMode.GEMINI_2_5_FLASH:
             return 500000;
+        case ChatMode.GROK_4_FAST:
+        case ChatMode.GLM_4_5_AIR:
+        case ChatMode.DEEPSEEK_CHAT_V3_1:
+        case ChatMode.GPT_OSS_120B:
+        case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
+            return 128000;
         case ChatMode.Deep:
             return 500000;
         case ChatMode.Pro:
