@@ -7,6 +7,7 @@ export type ApiKeys = {
     JINA_API_KEY?: string;
     LANGSEARCH_API_KEY?: string;
     SERPER_API_KEY?: string;
+    OPENROUTER_API_KEY?: string;
 };
 
 type ApiKeysState = {
@@ -40,6 +41,12 @@ export const useApiKeysStore = create<ApiKeysState>()(
                     case ChatMode.GEMINI_2_FLASH:
                     case ChatMode.GEMINI_2_5_FLASH:
                         return !!apiKeys['GEMINI_API_KEY'];
+                    case ChatMode.GROK_4_FAST:
+                    case ChatMode.GLM_4_5_AIR:
+                    case ChatMode.DEEPSEEK_CHAT_V3_1:
+                    case ChatMode.GPT_OSS_120B:
+                    case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
+                        return !!apiKeys['OPENROUTER_API_KEY'];
                     default:
                         return false;
                 }
