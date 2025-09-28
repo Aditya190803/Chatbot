@@ -1,6 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "GEMINI_API_KEY",
+    "LANGSEARCH_API_KEY", 
+    "SERPER_API_KEY",
+    "JINA_API_KEY",
+    "CLERK_SECRET_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
