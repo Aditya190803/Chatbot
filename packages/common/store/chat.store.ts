@@ -39,9 +39,9 @@ const loadInitialData = async () => {
               model: models[0].id,
               useWebSearch: false,
               showSuggestions: true,
-              chatMode: ChatMode.GEMINI_2_FLASH,
+              chatMode: ChatMode.GEMINI_2_5_FLASH,
           };
-    const chatMode = config.chatMode || ChatMode.GEMINI_2_FLASH;
+    const chatMode = config.chatMode || ChatMode.GEMINI_2_5_FLASH;
     const useWebSearch = typeof config.useWebSearch === 'boolean' ? config.useWebSearch : false;
     const customInstructions = config.customInstructions || '';
 
@@ -79,20 +79,12 @@ type State = {
     isLoadingThreads: boolean;
     isLoadingThreadItems: boolean;
     currentSources: string[];
-    creditLimit: {
-        remaining: number | undefined;
-        maxLimit: number | undefined;
-        reset: string | undefined;
-        isAuthenticated: boolean;
-        isFetched: boolean;
-    };
 };
 
 type Actions = {
     setModel: (model: Model) => void;
     setEditor: (editor: any) => void;
     setContext: (context: string) => void;
-    fetchRemainingCredits: () => Promise<void>;
     setImageAttachment: (imageAttachment: { base64?: string; file?: File }) => void;
     clearImageAttachment: () => void;
     setIsGenerating: (isGenerating: boolean) => void;
@@ -234,9 +226,10 @@ const initializeWorker = () => {
     if (typeof window === 'undefined') return;
 
     try {
-        // Create a shared worker
-        dbWorker = new SharedWorker(new URL('./db-sync.worker.ts', import.meta?.url), {
+        // Create a shared worker using a bundler-managed URL so the asset is emitted
+        dbWorker = new SharedWorker(new URL('./db-sync.worker.ts', import.meta.url), {
             type: 'module',
+            name: 'db-sync',
         });
 
         // Set up message handler
@@ -439,7 +432,7 @@ export const useChatStore = create(
         editor: undefined,
         context: '',
         threads: [],
-        chatMode: ChatMode.GEMINI_2_FLASH,
+        chatMode: ChatMode.GEMINI_2_5_FLASH,
         threadItems: [],
         useWebSearch: false,
         customInstructions: '',
@@ -453,13 +446,6 @@ export const useChatStore = create(
         isLoadingThreads: false,
         isLoadingThreadItems: false,
         currentSources: [],
-        creditLimit: {
-            remaining: undefined,
-            maxLimit: undefined,
-            reset: undefined,
-            isAuthenticated: false,
-            isFetched: false,
-        },
         showSuggestions: true,
 
         setCustomInstructions: (customInstructions: string) => {
@@ -533,23 +519,6 @@ export const useChatStore = create(
                         : thread
                 );
             });
-        },
-
-        fetchRemainingCredits: async () => {
-            try {
-                const response = await fetch('/api/messages/remaining');
-                if (!response.ok) throw new Error('Failed to fetch credit info');
-
-                const data = await response.json();
-                set({
-                    creditLimit: {
-                        ...data,
-                        isFetched: true,
-                    },
-                });
-            } catch (error) {
-                console.error('Error fetching remaining credits:', error);
-            }
         },
 
         getPinnedThreads: async () => {
@@ -772,23 +741,6 @@ export const useChatStore = create(
                     }
                 });
 
-                // // Determine if this is a critical update that should bypass throttling
-                // const isCriticalUpdate =
-                //     !existingItem || // New items
-                //     threadItem.status === 'COMPLETED' || // Final updates
-                //     threadItem.status === 'ERROR' || // Error states
-                //     threadItem.status === 'ABORTED' || // Aborted states
-                //     threadItem.error !== undefined; // Any error information
-
-                // // Always persist final updates - this fixes the issue with missing updates at stream completion
-                // if (
-                //     threadItem.persistToDB === true ||
-                //     isCriticalUpdate ||
-                //     timeSinceLastUpdate > DB_UPDATE_THROTTLE
-                // ) {
-                //     // For critical updates or if enough time has passed, queue for immediate update
-                //     queueThreadItemForUpdate(updatedItem);
-
                 queueThreadItemForUpdate(updatedItem);
 
                 // Notify other tabs about the update
@@ -797,12 +749,6 @@ export const useChatStore = create(
                     id: threadItem.id,
                 });
 
-                // if (isCriticalUpdate) {
-                //     lastItemUpdateTime[threadItem.id] = now;
-                // }
-                // }
-                // Non-critical updates that are too soon after the last update
-                // won't be persisted yet, but will be in the UI state
             } catch (error) {
                 console.error('Error in updateThreadItem:', error);
 
