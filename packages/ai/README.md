@@ -12,9 +12,8 @@ A flexible and powerful system for building AI agent workflows using a graph-bas
   - Observer Node: For monitoring and analysis
 - Event-driven architecture
 - Support for multiple LLM providers:
-  - OpenAI
-  - Anthropic
-  - Together AI
+  - Google Gemini
+  - OpenRouter (community models)
 
 ## Getting Started
 
@@ -103,6 +102,10 @@ Environment variables (see `.env.example`):
 - `ANTHROPIC_MODEL` (optional)
 - `TOGETHER_API_KEY` (optional)
 - `TOGETHER_MODEL` (optional)
+- `GEMINI_API_KEY` (optional)
+- `OPENROUTER_API_KEY` (optional)
+- `OPENROUTER_SITE_URL` (optional, sets HTTP-Referer header for OpenRouter)
+- `OPENROUTER_APP_TITLE` (optional, sets X-Title header for OpenRouter)
 - `TEMPERATURE` (default: 0.7)
 - `MAX_TOKENS` (default: 4000)
 
