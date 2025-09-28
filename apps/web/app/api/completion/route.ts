@@ -1,16 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
-import { CHAT_MODE_CREDIT_COSTS, ChatModeConfig } from '@repo/shared/config';
+import { ChatModeConfig } from '@repo/shared/config';
 import { Geo, geolocation } from '@vercel/functions';
 import { NextRequest } from 'next/server';
-import {
-    DAILY_CREDITS_AUTH,
-    DAILY_CREDITS_IP,
-    deductCredits,
-    getRemainingCredits,
-} from './credit-service';
 import { executeStream, sendMessage } from './stream-handlers';
 import { completionRequestSchema, SSE_HEADERS } from './types';
-import { getIp } from './utils';
 
 export async function POST(request: NextRequest) {
     if (request.method === 'OPTIONS') {
@@ -35,25 +28,8 @@ export async function POST(request: NextRequest) {
         }
 
         const { data } = validatedBody;
-        const creditCost = CHAT_MODE_CREDIT_COSTS[data.mode];
-        const ip = getIp(request);
 
-        if (!ip) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        console.log('ip', ip);
-
-        const remainingCredits = await getRemainingCredits({
-            userId: userId ?? undefined,
-            ip,
-        });
-
-        console.log('remainingCredits', remainingCredits, creditCost, process.env.NODE_ENV);
-
+        // Check if authentication is required for this chat mode
         if (!!ChatModeConfig[data.mode]?.isAuthRequired && !userId) {
             return new Response(JSON.stringify({ error: 'Authentication required' }), {
                 status: 401,
@@ -61,20 +37,8 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        if (remainingCredits < creditCost && process.env.NODE_ENV !== 'development') {
-            return new Response(
-                'You have reached the daily limit of requests. Please try again tomorrow or Use your own API key.',
-                { status: 429, headers: { 'Content-Type': 'application/json' } }
-            );
-        }
-
         const enhancedHeaders = {
             ...SSE_HEADERS,
-            'X-Credits-Available': remainingCredits.toString(),
-            'X-Credits-Cost': creditCost.toString(),
-            'X-Credits-Daily-Allowance': userId
-                ? DAILY_CREDITS_AUTH.toString()
-                : DAILY_CREDITS_IP.toString(),
         };
 
         const encoder = new TextEncoder();
@@ -91,7 +55,6 @@ export async function POST(request: NextRequest) {
         const stream = createCompletionStream({
             data,
             userId,
-            ip,
             abortController,
             gl,
         });
@@ -109,13 +72,11 @@ export async function POST(request: NextRequest) {
 function createCompletionStream({
     data,
     userId,
-    ip,
     abortController,
     gl,
 }: {
     data: any;
     userId?: string;
-    ip?: string;
     abortController: AbortController;
     gl: Geo;
 }) {
@@ -137,22 +98,6 @@ function createCompletionStream({
                     abortController,
                     gl,
                     userId: userId ?? undefined,
-                    onFinish: async () => {
-                        // if (process.env.NODE_ENV === 'development') {
-                        //     return;
-                        // }
-                        const creditCost =
-                            CHAT_MODE_CREDIT_COSTS[
-                                data.mode as keyof typeof CHAT_MODE_CREDIT_COSTS
-                            ];
-                        await deductCredits(
-                            {
-                                userId: userId ?? undefined,
-                                ip: ip ?? undefined,
-                            },
-                            creditCost
-                        );
-                    },
                 });
             } catch (error) {
                 if (abortController.signal.aborted) {

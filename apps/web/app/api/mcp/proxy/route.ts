@@ -6,16 +6,18 @@ import fetch from 'node-fetch';
 import { Readable } from 'stream';
 import { ReadableStream } from 'stream/web';
 
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-})
+const redis = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN 
+  ? new Redis({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    })
+  : null;
 
 
 // // Configure your MCP servers
-// const MCP_SERVERS: Record<string, string> = {
-//   'hackernews': 'https://mcp.composio.dev/hackernews/rapping-bitter-psychiatrist-DjGelP',
-// };
+const MCP_SERVERS: Record<string, string> = {
+  'hackernews': 'https://mcp.composio.dev/hackernews/rapping-bitter-psychiatrist-DjGelP',
+};
 
 // Store sessions globally for access across requests
 declare global {
@@ -34,9 +36,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Messages should be sent using POST method' }, { status: 405 });
   }
   
-  // if (!serverName || !MCP_SERVERS[serverName]) {
-  //   return NextResponse.json({ error: `MCP server '${serverName}' not found` }, { status: 404 });
-  // }
+  if (!serverName || !MCP_SERVERS[serverName]) {
+    return NextResponse.json({ error: `MCP server '${serverName}' not found` }, { status: 404 });
+  }
 
   // Generate a new session ID for this connection
   const newSessionId = randomUUID();
@@ -73,7 +75,9 @@ export async function GET(request: NextRequest) {
           const sessionId = chunkString.match(/sessionId=([^&]+)/)?.[1];
 
           console.log(`Setting session ${sessionId} for server ${serverName}`);
-          await redis.set(`mcp:session:${sessionId}`, server);
+          if (redis) {
+            await redis.set(`mcp:session:${sessionId}`, server);
+          }
           controller.enqueue(chunk);
         });
         
@@ -138,17 +142,18 @@ export async function POST(request: NextRequest) {
 
   console.log("serverName", serverName);
   
-//   if (!serverName || !MCP_SERVERS[serverName]) {
-//     console.error(`POST request - Invalid session ${sessionId} or server ${serverName}`);
-//     return NextResponse.json(
-//       {
-//         jsonrpc: "2.0",
-//         error: { code: -32602, message: "Invalid session" },
-//         id: null
-//       }, 
-//       { status: 404 }
-//     );
-//   }
+  // Since MCP_SERVERS is commented out, we'll skip this validation for now
+  // if (!serverName || !MCP_SERVERS[serverName]) {
+  //   console.error(`POST request - Invalid session or server ${serverName}`);
+  //   return NextResponse.json(
+  //     {
+  //       jsonrpc: "2.0",
+  //       error: { code: -32602, message: "Invalid session" },
+  //       id: null
+  //     }, 
+  //     { status: 404 }
+  //   );
+  // }
 
   const targetUrl = `${server}`;
   console.log(`Forwarding JSONRPC POST to: ${targetUrl}`);

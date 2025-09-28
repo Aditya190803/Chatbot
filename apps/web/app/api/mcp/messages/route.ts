@@ -3,10 +3,12 @@ import { Redis } from '@upstash/redis';
 import { NextRequest, NextResponse } from 'next/server';
 import fetch from 'node-fetch';
 
-const redis = new Redis({
-    url: process.env.KV_REST_API_URL,
-    token: process.env.KV_REST_API_TOKEN,
-});
+const redis = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN 
+    ? new Redis({
+        url: process.env.KV_REST_API_URL,
+        token: process.env.KV_REST_API_TOKEN,
+      })
+    : null;
 
 export async function POST(request: NextRequest) {
     try {
