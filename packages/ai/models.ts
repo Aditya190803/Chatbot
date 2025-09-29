@@ -3,7 +3,7 @@ import { CoreMessage } from 'ai';
 import { ProviderEnumType } from './providers';
 
 export enum ModelEnum {
-    GEMINI_2_FLASH = 'gemini-2.0-flash',
+    GEMINI_2_5_PRO = 'gemini-2.5-pro',
     GEMINI_2_5_FLASH = 'gemini-2.5-flash',
     GROK_4_FAST = 'x-ai/grok-4-fast:free',
     GLM_4_5_AIR = 'z-ai/glm-4.5-air:free',
@@ -29,8 +29,8 @@ export const models: Model[] = [
         contextWindow: 200000,
     },
     {
-        id: ModelEnum.GEMINI_2_FLASH,
-        name: 'Gemini 2 Flash',
+        id: ModelEnum.GEMINI_2_5_PRO,
+        name: 'Gemini 2.5 Pro',
         provider: 'google',
         maxTokens: 200000,
         contextWindow: 200000,
@@ -74,8 +74,8 @@ export const models: Model[] = [
 
 export const getModelFromChatMode = (mode?: string): ModelEnum => {
     switch (mode) {
-        case ChatMode.GEMINI_2_FLASH:
-            return ModelEnum.GEMINI_2_FLASH;
+        case ChatMode.GEMINI_2_5_PRO:
+            return ModelEnum.GEMINI_2_5_PRO;
         case ChatMode.GEMINI_2_5_FLASH:
             return ModelEnum.GEMINI_2_5_FLASH;
         case ChatMode.GROK_4_FAST:
@@ -95,7 +95,7 @@ export const getModelFromChatMode = (mode?: string): ModelEnum => {
 
 export const getChatModeMaxTokens = (mode: ChatMode) => {
     switch (mode) {
-        case ChatMode.GEMINI_2_FLASH:
+        case ChatMode.GEMINI_2_5_PRO:
             return 500000;
         case ChatMode.GEMINI_2_5_FLASH:
             return 500000;
