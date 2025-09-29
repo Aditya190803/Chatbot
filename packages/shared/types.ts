@@ -79,6 +79,7 @@ export type ThreadItem = {
     sources?: Source[];
     object?: Record<string, any>;
     imageAttachment?: string;
+    thinkingProcess?: string;
 };
 
 export type MessageGroup = {

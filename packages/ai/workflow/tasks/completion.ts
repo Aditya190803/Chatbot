@@ -49,12 +49,26 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
 
         let prompt = `You are a helpful assistant that can answer questions and help with tasks.
         Today is ${getHumanizedDate()}.
+        
+        Before providing your final answer, please think through the problem step by step inside <think> tags. This thinking process helps you reason through complex problems and provide better responses.
+        
+        Use <think> tags like this:
+        <think>
+        Let me think about this step by step:
+        1. First, I need to understand what the user is asking...
+        2. Then I should consider...
+        3. Finally, I can conclude...
+        </think>
+        
+        After your thinking process, provide your clear, well-structured answer.
         `;
 
+        let reasoningText = '';
         const reasoningBuffer = new ChunkBuffer({
             threshold: 120,
             breakOn: ['\n\n'],
             onFlush: (_chunk: string, fullText: string) => {
+                reasoningText = fullText;
                 events?.update('steps', prev => ({
                     ...prev,
                     0: {
@@ -107,6 +121,7 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
             ...prev,
             text: '',
             fullText: response,
+            thinkingProcess: reasoningText,
             status: 'COMPLETED',
         }));
 

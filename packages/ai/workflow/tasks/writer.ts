@@ -24,6 +24,8 @@ export const writerTask = createTask<WorkflowEventSchema, WorkflowContextSchema>
 You are a Comprehensive Research Writer tasked with providing an extremely detailed and thorough writing about "${question}".
 Your goal is to create a comprehensive report based on the research information provided.
 
+IMPORTANT: Before writing your report, please think through your analysis and structure inside <think> tags. This helps you organize your thoughts and create a better response.
+
 First, carefully read and analyze the following research information:
 
 <research_findings>
@@ -79,6 +81,16 @@ Your report should demonstrate subject matter expertise while remaining intellec
                 },
             });
         }
+        
+        let reasoningText = '';
+        const reasoningBuffer = new ChunkBuffer({
+            threshold: 150,
+            breakOn: ['\n\n'],
+            onFlush: (_chunk: string, fullText: string) => {
+                reasoningText = fullText;
+            },
+        });
+
         const chunkBuffer = new ChunkBuffer({
             threshold: 150,
             breakOn: ['\n\n', '.', '!', '?'],
@@ -95,17 +107,22 @@ Your report should demonstrate subject matter expertise while remaining intellec
             model: ModelEnum.GEMINI_2_5_FLASH,
             messages,
             signal,
+            onReasoning: (chunk, fullText) => {
+                reasoningBuffer.add(chunk);
+            },
             onChunk: (chunk, fullText) => {
                 chunkBuffer.add(chunk);
             },
         });
 
         // Make sure to flush any remaining content
+        reasoningBuffer.flush();
         chunkBuffer.flush();
 
         updateAnswer({
             text: '',
             finalText: answer,
+            thinkingProcess: reasoningText,
             status: 'COMPLETED',
         });
 

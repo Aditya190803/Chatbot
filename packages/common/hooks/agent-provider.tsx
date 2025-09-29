@@ -106,9 +106,11 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 ...(eventType === 'answer'
                     ? {
                           answer: {
+                              ...prevItem.answer,
                               ...eventData.answer,
-                              text: (prevItem.answer?.text || '') + eventData.answer.text,
+                              text: (prevItem.answer?.text || '') + (eventData.answer.text || ''),
                           },
+                          thinkingProcess: eventData.answer.thinkingProcess || prevItem.thinkingProcess,
                       }
                     : { [eventType]: eventData[eventType] }),
             };

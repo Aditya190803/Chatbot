@@ -50,6 +50,7 @@ export type WorkflowEventSchema = {
         objectType?: string;
         finalText?: string;
         status: Status;
+        thinkingProcess?: string;
     };
     sources?: {
         index: number;
