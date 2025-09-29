@@ -183,15 +183,19 @@ export const Sidebar = () => {
     }) => {
         if (threads.length === 0 && !renderEmptyState) return null;
         return (
-            <Flex direction="col" items="start" className="w-full gap-0.5">
-                <div className="text-muted-foreground/70 flex flex-row items-center gap-1 px-2 py-1 text-xs font-medium opacity-70">
+            <Flex direction="col" items="start" className="w-full gap-1.5">
+                <div className="text-muted-foreground/70 flex w-full items-center gap-1 px-1.5 text-[11px] font-semibold uppercase tracking-wide">
                     {groupIcon}
                     {title}
                 </div>
                 {threads.length === 0 && renderEmptyState ? (
                     <div>{renderEmptyState()}</div>
                 ) : (
-                    <Flex className="border-border/50 w-full gap-0.5" gap="none" direction="col">
+                    <Flex
+                        className="bg-background/70 border-border/40 w-full gap-0.5 rounded-md border px-1.5 py-1"
+                        gap="none"
+                        direction="col"
+                    >
                         {threads.map(thread => (
                             <HistoryItem
                                 thread={thread}
@@ -214,12 +218,12 @@ export const Sidebar = () => {
     return (
         <div
             className={cn(
-                'relative bottom-0 left-0 top-0 z-[50] flex h-[100dvh] flex-shrink-0 flex-col  py-2 transition-all duration-200',
-                isSidebarOpen ? 'top-0 h-full w-[230px]' : 'w-[50px]'
+                'relative z-[50] flex h-[100dvh] flex-shrink-0 flex-col border-r border-border/70 bg-background/95 px-3 py-4 shadow-subtle-sm backdrop-blur transition-all duration-200',
+                isSidebarOpen ? 'w-[260px]' : 'w-[60px] px-2'
             )}
         >
-            <Flex direction="col" className="w-full flex-1 items-start overflow-hidden">
-                <div className="mb-3 flex w-full flex-row items-center justify-between">
+            <Flex direction="col" className="w-full flex-1 overflow-hidden" gap="md">
+                <div className="flex w-full flex-row items-center justify-between gap-2">
                     <Link href="/chat" className="w-full">
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -254,10 +258,9 @@ export const Sidebar = () => {
                 <Flex
                     direction="col"
                     className={cn(
-                        'w-full items-end px-3 ',
-                        !isSidebarOpen && 'items-center justify-center px-0'
+                        'w-full gap-2',
+                        isSidebarOpen ? 'items-stretch' : 'items-center justify-center'
                     )}
-                    gap="xs"
                 >
                     {!isChatPage ? (
                         <Link href="/chat" className={isSidebarOpen ? 'w-full' : ''}>
@@ -323,8 +326,8 @@ export const Sidebar = () => {
                     direction="col"
                     gap="xs"
                     className={cn(
-                        'border-hard mt-3 w-full  justify-center border-t border-dashed px-3 py-2',
-                        !isSidebarOpen && 'items-center justify-center px-0'
+                        'border-hard mt-2 w-full justify-center border-t border-dashed pt-3',
+                        !isSidebarOpen && 'items-center justify-center'
                     )}
                 >
                     {/* <Link href="/recent" className={isSidebarOpen ? 'w-full' : ''}>
@@ -354,7 +357,7 @@ export const Sidebar = () => {
                         direction="col"
                         gap="md"
                         className={cn(
-                            'no-scrollbar w-full flex-1 overflow-y-auto px-3 pb-[100px]',
+                            'no-scrollbar w-full flex-1 overflow-y-auto pb-[100px]',
                             isSidebarOpen ? 'flex' : 'hidden'
                         )}
                     >
@@ -385,7 +388,7 @@ export const Sidebar = () => {
 
                 <Flex
                     className={cn(
-                        'from-tertiary via-tertiary/95 absolute bottom-0 mt-auto w-full items-center bg-gradient-to-t via-60% to-transparent p-2 pt-12',
+                        'from-tertiary via-tertiary/95 absolute bottom-0 mt-auto w-full items-center bg-gradient-to-t via-60% to-transparent px-1.5 pb-4 pt-10',
                         isSidebarOpen && 'items-start justify-between'
                     )}
                     gap="xs"

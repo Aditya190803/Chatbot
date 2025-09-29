@@ -39,12 +39,24 @@ export const HistoryItem = ({
     const historyInputRef = useRef<HTMLInputElement>(null);
     const switchThread = useChatStore(state => state.switchThread);
     const [openOptions, setOpenOptions] = useState(false);
+    const itemRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (isEditing) {
             historyInputRef.current?.focus();
         }
     }, [isEditing]);
+
+    useEffect(() => {
+        if (!openOptions) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (itemRef.current && !itemRef.current.contains(event.target as Node)) {
+                setOpenOptions(false);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [openOptions]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setTitle(e.target.value);
@@ -88,7 +100,7 @@ export const HistoryItem = ({
     };
 
     return (
-        <div key={thread.id} className={containerClasses}>
+        <div key={thread.id} className={containerClasses} ref={itemRef}>
             {isEditing ? (
                 <Input
                     variant="ghost"
@@ -117,13 +129,17 @@ export const HistoryItem = ({
                     </Flex>
                 </Link>
             )}
-            <div className="relative">
+            <div className="relative flex items-center">
                 <Button
                     variant="ghost"
                     size="icon-xs"
-                    className="bg-quaternary invisible absolute right-1 shrink-0 group-hover:visible group-hover:w-6"
+                    className={cn(
+                        'bg-quaternary h-6 w-6 rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-100',
+                        openOptions && 'opacity-100'
+                    )}
                     onClick={e => {
                         e.stopPropagation();
+                        e.preventDefault();
                         setOpenOptions(!openOptions);
                     }}
                 >
@@ -135,7 +151,7 @@ export const HistoryItem = ({
                 </Button>
                 
                 {openOptions && (
-                    <div className="bg-background border-border absolute right-0 top-8 z-50 min-w-32 rounded-md border p-1 shadow-lg">
+                    <div className="bg-background border-border absolute right-0 top-7 z-50 min-w-32 rounded-md border p-1 shadow-lg">
                         <button
                             onClick={e => {
                                 e.stopPropagation();
