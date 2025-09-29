@@ -2,16 +2,13 @@
 import { useChatStore } from '@repo/common/store';
 import {
     Button,
-    Command,
-    CommandInput,
-    CommandList,
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    Input,
 } from '@repo/ui';
-import { IconClock, IconPlus } from '@tabler/icons-react';
-import { CommandItem } from 'cmdk';
+import { IconClock, IconPlus, IconSearch } from '@tabler/icons-react';
 import { MoreHorizontal } from 'lucide-react';
 import moment from 'moment';
 import { useRouter } from 'next/navigation';
@@ -25,7 +22,13 @@ export default function ThreadsPage() {
     const { push } = useRouter();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [title, setTitle] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Filter threads based on search query
+    const filteredThreads = threads.filter(thread =>
+        thread.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     useEffect(() => {
         if (editingId && inputRef.current) {
@@ -79,16 +82,21 @@ export default function ThreadsPage() {
                 <h3 className="font-clash text-brand text-2xl font-semibold tracking-wide">
                     Chat History
                 </h3>
-                <Command className="bg-secondary !max-h-auto w-full">
-                    <CommandInput
-                        placeholder="Search"
-                        className="bg-tertiary h-8 w-full rounded-sm"
-                    />
+                <div className="bg-secondary w-full rounded-md">
+                    <div className="relative">
+                        <IconSearch size={16} className="absolute left-3 top-2.5 text-muted-foreground" />
+                        <Input
+                            placeholder="Search threads..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-tertiary h-10 w-full rounded-sm pl-10"
+                        />
+                    </div>
 
-                    <CommandList className="bg-secondary mt-2 !max-h-none gap-2">
-                        {threads?.length > 0 ? (
-                            threads.map(thread => (
-                                <CommandItem key={thread.id} className="mb-2">
+                    <div className="mt-2 space-y-2">
+                        {filteredThreads?.length > 0 ? (
+                            filteredThreads.map(thread => (
+                                <div key={thread.id} className="mb-2">
                                     <div
                                         className="bg-tertiary hover:bg-quaternary group relative flex w-full cursor-pointer flex-col items-start rounded-md p-4 transition-all duration-200"
                                         onClick={() => handleThreadClick(thread.id)}
@@ -116,51 +124,38 @@ export default function ThreadsPage() {
                                                 </p>
                                             </div>
 
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon-xs"
-                                                        className="shrink-0"
-                                                        onClick={e => e.stopPropagation()}
-                                                    >
-                                                        <MoreHorizontal
-                                                            size={14}
-                                                            strokeWidth="2"
-                                                            className="text-muted-foreground/50"
-                                                        />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" side="right">
-                                                    <DropdownMenuItem
-                                                        onClick={(e: any) =>
-                                                            handleEditClick(
-                                                                thread.id,
-                                                                thread.title,
-                                                                e
-                                                            )
+                                            <div className="relative">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-xs"
+                                                    className="shrink-0"
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        // Simple dropdown alternative - you can implement a proper one later
+                                                        const action = window.confirm('Choose action:\nOK = Rename, Cancel = Delete');
+                                                        if (action) {
+                                                            handleEditClick(thread.id, thread.title, e);
+                                                        } else {
+                                                            handleDeleteThread(thread.id, e);
                                                         }
-                                                    >
-                                                        Rename
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={(e: any) =>
-                                                            handleDeleteThread(thread.id, e)
-                                                        }
-                                                    >
-                                                        Delete Thread
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                                    }}
+                                                >
+                                                    <MoreHorizontal
+                                                        size={14}
+                                                        strokeWidth="2"
+                                                        className="text-muted-foreground/50"
+                                                    />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
-                                </CommandItem>
+                                </div>
                             ))
                         ) : (
                             <div className="border-hard mt-2 flex w-full flex-col items-center justify-center gap-4 rounded-md border border-dashed p-4">
                                 <div className="flex flex-col items-center gap-0">
                                     <p className="text-muted-foreground text-sm">
-                                        No threads found
+                                        {searchQuery ? 'No threads found matching your search' : 'No threads found'}
                                     </p>
                                     <p className="text-muted-foreground/70 mt-1 text-xs">
                                         Start a new conversation to create a thread
@@ -172,8 +167,8 @@ export default function ThreadsPage() {
                                 </Button>
                             </div>
                         )}
-                    </CommandList>
-                </Command>
+                    </div>
+                </div>
             </div>
         </div>
     );

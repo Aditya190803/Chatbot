@@ -3,12 +3,12 @@ import { useRootContext } from '@repo/common/context';
 import { useAppStore, useChatStore } from '@repo/common/store';
 import {
     cn,
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    Input,
+    Button,
     Kbd,
 } from '@repo/ui';
 import {
@@ -17,11 +17,12 @@ import {
     IconMessageCircleFilled,
     IconPlus,
     IconTrash,
+    IconSearch,
 } from '@tabler/icons-react';
 import moment from 'moment';
 import { useTheme } from 'next-themes';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export const CommandSearch = () => {
     const { threadId: currentThreadId } = useParams();
@@ -35,6 +36,7 @@ export const CommandSearch = () => {
     const clearThreads = useChatStore(state => state.clearAllThreads);
     const setIsSettingsOpen = useAppStore(state => state.setIsSettingsOpen);
     const setSettingTab = useAppStore(state => state.setSettingTab);
+    const [searchQuery, setSearchQuery] = useState('');
     const groupedThreads: Record<string, typeof threads> = {
         today: [],
         yesterday: [],
@@ -130,74 +132,115 @@ export const CommandSearch = () => {
         },
     ];
 
+    // Filter threads and actions based on search
+    const filteredThreads = threads.filter(thread =>
+        thread.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const filteredActions = actions.filter(action =>
+        action.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
-        <CommandDialog open={isCommandSearchOpen} onOpenChange={setIsCommandSearchOpen}>
-            <div className="flex w-full flex-row items-center gap-2 p-0.5">
-                <CommandInput placeholder="Search..." className="w-full" />
-                <div className="flex shrink-0 items-center gap-1 px-2">
-                    <Kbd className="h-5 w-5">
-                        <IconCommand size={12} strokeWidth={2} className="shrink-0" />
-                    </Kbd>
-                    <Kbd className="h-5 w-5">K</Kbd>
-                </div>
-            </div>
-            <div className="w-full">
-                <div className="border-border h-[1px] w-full border-b" />
-            </div>
-            <CommandList className="max-h-[420px] overflow-y-auto p-0.5 pt-1.5">
-                <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup>
-                    {actions.map(action => (
-                        <CommandItem
-                            key={action.name}
-                            className="gap-"
-                            value={action.name}
-                            onSelect={action.action}
-                        >
-                            <action.icon
-                                size={14}
-                                strokeWidth="2"
-                                className="text-muted-foreground flex-shrink-0"
-                            />
-                            {action.name}
-                        </CommandItem>
-                    ))}
-                </CommandGroup>
-                {Object.entries(groupedThreads).map(
-                    ([key, threads]) =>
-                        threads.length > 0 && (
-                            <CommandGroup
-                                key={key}
-                                heading={groupsNames[key as keyof typeof groupsNames]}
+        <>
+            {isCommandSearchOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-background border-border w-full max-w-2xl rounded-lg border p-6 shadow-lg">
+                        <div className="flex items-center gap-2 mb-4">
+                            <IconSearch size={20} />
+                            <h2 className="text-lg font-semibold">Search</h2>
+                            <div className="flex shrink-0 items-center gap-1 ml-auto">
+                                <Kbd className="h-5 w-5">
+                                    <IconCommand size={12} strokeWidth={2} className="shrink-0" />
+                                </Kbd>
+                                <Kbd className="h-5 w-5">K</Kbd>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setIsCommandSearchOpen(false)}
+                                className="ml-2"
                             >
-                                {threads.map(thread => (
-                                    <CommandItem
-                                        key={thread.id}
-                                        value={`${thread.id}/${thread.title}`}
-                                        className={cn('w-full gap-3')}
-                                        onSelect={() => {
-                                            switchThread(thread.id);
-                                            router.push(`/chat/${thread.id}`);
-                                            onClose();
-                                        }}
-                                    >
-                                        <IconMessageCircleFilled
-                                            size={16}
-                                            strokeWidth={2}
-                                            className="text-muted-foreground/50"
-                                        />
-                                        <span className="w-full truncate font-normal">
-                                            {thread.title}
-                                        </span>
-                                        {/* <span className="text-muted-foreground flex-shrink-0 pl-4 text-xs !font-normal">
-                                            {moment(thread.createdAt).fromNow(true)}
-                                        </span> */}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        )
-                )}
-            </CommandList>
-        </CommandDialog>
+                                ×
+                            </Button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <IconSearch size={16} className="absolute left-3 top-2.5 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search threads and actions..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10"
+                                />
+                            </div>
+
+                            <div className="max-h-96 overflow-y-auto space-y-4">
+                                {/* Actions */}
+                                {filteredActions.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Actions</h3>
+                                        <div className="space-y-1">
+                                            {filteredActions.map(action => (
+                                                <Button
+                                                    key={action.name}
+                                                    variant="ghost"
+                                                    className="w-full justify-start gap-3"
+                                                    onClick={action.action}
+                                                >
+                                                    <action.icon
+                                                        size={14}
+                                                        strokeWidth="2"
+                                                        className="text-muted-foreground flex-shrink-0"
+                                                    />
+                                                    {action.name}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Threads */}
+                                {filteredThreads.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Threads</h3>
+                                        <div className="space-y-1">
+                                            {filteredThreads.map(thread => (
+                                                <Button
+                                                    key={thread.id}
+                                                    variant="ghost"
+                                                    className="w-full justify-start gap-3"
+                                                    onClick={() => {
+                                                        switchThread(thread.id);
+                                                        router.push(`/chat/${thread.id}`);
+                                                        onClose();
+                                                    }}
+                                                >
+                                                    <IconMessageCircleFilled
+                                                        size={16}
+                                                        strokeWidth={2}
+                                                        className="text-muted-foreground/50 flex-shrink-0"
+                                                    />
+                                                    <span className="w-full truncate text-left font-normal">
+                                                        {thread.title}
+                                                    </span>
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {searchQuery && filteredActions.length === 0 && filteredThreads.length === 0 && (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        No results found for "{searchQuery}"
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
