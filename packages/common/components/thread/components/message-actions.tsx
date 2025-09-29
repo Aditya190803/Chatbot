@@ -4,9 +4,12 @@ import { useAgentStream, useCopyText } from '@repo/common/hooks';
 import { useChatStore } from '@repo/common/store';
 import { ChatMode, getChatModeName } from '@repo/shared/config';
 import { ThreadItem } from '@repo/shared/types';
-import { Button, DropdownMenu, DropdownMenuTrigger } from '@repo/ui';
+import { Button } from '@repo/ui';
+import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
 import { IconCheck, IconCopy, IconMarkdown, IconRefresh, IconTrash } from '@tabler/icons-react';
 import { forwardRef, useState } from 'react';
+
+const { DropdownMenu, DropdownMenuTrigger } = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
 type MessageActionsProps = {
     threadItem: ThreadItem;
     isLast: boolean;
