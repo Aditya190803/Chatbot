@@ -11,6 +11,7 @@ import { Langfuse } from 'langfuse';
 import {
     analysisTask,
     completionTask,
+    documentQATask,
     modeRoutingTask,
     plannerTask,
     proSearchTask,
@@ -211,6 +212,7 @@ export const runWorkflow = ({
         suggestionsTask,
         quickSearchTask,
         proSearchTask,
+        documentQATask,
     ]);
 
     return builder.build();

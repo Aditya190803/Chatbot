@@ -23,6 +23,8 @@ export const modeRoutingTask = createTask<WorkflowEventSchema, WorkflowContextSc
             redirectTo('refine-query');
         } else if (mode === ChatMode.Pro) {
             redirectTo('pro-search');
+        } else if (mode === ChatMode.DOCUMENT_QA) {
+            redirectTo('documentQA');
         } else {
             redirectTo('completion');
         }

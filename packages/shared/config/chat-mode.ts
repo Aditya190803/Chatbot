@@ -11,6 +11,7 @@ export enum ChatMode {
     CLAUDE_3_5_SONNET = 'claude-3-5-sonnet',
     GPT_4O_MINI = 'gpt-4o-mini',
     LLAMA_3_2_3B = 'llama-3-2-3b',
+    DOCUMENT_QA = 'document-qa',
 }
 
 export const ChatModeConfig: Record<
@@ -103,6 +104,13 @@ export const ChatModeConfig: Record<
         isNew: true,
         isAuthRequired: false,
     },
+    [ChatMode.DOCUMENT_QA]: {
+        webSearch: false,
+        imageUpload: false,
+        retry: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
 };
 
 
@@ -133,5 +141,7 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'GPT-4o Mini';
         case ChatMode.LLAMA_3_2_3B:
             return 'Llama 3.2 3B';
+        case ChatMode.DOCUMENT_QA:
+            return 'Document Q&A';
     }
 };

@@ -1,6 +1,7 @@
 export * from './analysis';
 export * from './chat-mode-router';
 export * from './completion';
+export * from './document-qa';
 export * from './planner';
 export * from './pro-search';
 export * from './quick-search';

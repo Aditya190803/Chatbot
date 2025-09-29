@@ -57,6 +57,14 @@ export const chatOptions: ChatModeOption[] = [
         iconClassName: 'text-sky-600',
         badge: 'Web',
     },
+    {
+        label: 'Document Q&A',
+        description: 'Ask questions about your uploaded documents',
+        value: ChatMode.DOCUMENT_QA,
+        icon: IconBook,
+        iconClassName: 'text-green-600',
+        badge: 'RAG',
+    },
 ];
 
 export const modelOptions: ChatModeOption[] = [
