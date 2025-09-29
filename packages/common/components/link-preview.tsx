@@ -18,24 +18,35 @@ export const LinkPreviewPopover = memo(({ source, children }: LinkPreviewType) =
         return null;
     }
 
+    const [showPreview, setShowPreview] = useState(false);
+
     return (
-        <HoverCard openDelay={200} closeDelay={100}>
-            <HoverCardTrigger className="cursor-pointer">{children}</HoverCardTrigger>
-            <HoverCardContent
-                className="bg-background prose-none hover:border-hard group isolate z-[100] w-[400px] cursor-pointer rounded-xl p-0 shadow-2xl"
-                onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    window.open(source.link, '_blank');
-                }}
+        <div className="relative inline-block">
+            <div 
+                className="cursor-pointer"
+                onMouseEnter={() => setShowPreview(true)}
+                onMouseLeave={() => setShowPreview(false)}
             >
-                <IconExternalLink
-                    className="text-muted-foreground group-hover:text-brand absolute right-3 top-3"
-                    size={14}
-                />
-                <LinkPreview source={source} />
-            </HoverCardContent>
-        </HoverCard>
+                {children}
+            </div>
+            
+            {showPreview && (
+                <div 
+                    className="bg-background prose-none hover:border-hard group isolate z-[100] w-[400px] cursor-pointer rounded-xl p-0 shadow-2xl absolute top-full left-0 mt-2 border"
+                    onClick={e => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        window.open(source.link, '_blank');
+                    }}
+                >
+                    <IconExternalLink
+                        className="text-muted-foreground group-hover:text-brand absolute right-3 top-3"
+                        size={14}
+                    />
+                    <LinkPreview source={source} />
+                </div>
+            )}
+        </div>
     );
 });
 

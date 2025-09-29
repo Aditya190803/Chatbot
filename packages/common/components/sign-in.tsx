@@ -1,6 +1,6 @@
 import { useSignIn, useSignUp } from '@clerk/nextjs';
 import { isClerkAPIResponseError } from '@clerk/nextjs/errors';
-import { Button, InputOTP, InputOTPGroup, InputOTPSlot } from '@repo/ui';
+import { Button, Input } from '@repo/ui';
 import { IconX } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -279,22 +279,19 @@ export const CustomSignIn = ({
                         to continue.
                     </p>
                 </div>
-                <InputOTP
+                <Input
                     maxLength={6}
                     autoFocus
                     value={code}
-                    onChange={setCode}
-                    onComplete={handleVerify}
-                >
-                    <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                </InputOTP>
+                    onChange={(e) => {
+                        setCode(e.target.value);
+                        if (e.target.value.length === 6) {
+                            handleVerify();
+                        }
+                    }}
+                    placeholder="Enter 6-digit code"
+                    className="text-center text-lg tracking-widest"
+                />
                 <p className="text-muted-foreground text-center text-sm">
                     Didn't receive an email?{' '}
                     <span
