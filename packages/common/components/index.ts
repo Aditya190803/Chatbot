@@ -24,6 +24,7 @@ export * from './search-results';
 export * from './settings-modal';
 export * from './side-bar';
 export * from './sign-in';
+export * from './sign-up';
 export * from './sources-stack';
 export * from './table-of-messages';
 export * from './text-shimmer';
