@@ -94,7 +94,8 @@ export default function ParentLayout({
             suppressHydrationWarning
         >
             <head>
-                <link rel="icon" href="/favicon.ico" sizes="any" />
+                <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+                <link rel="icon" href="/favicon.ico" sizes="32x32" />
 
                 {/* <script
                     crossOrigin="anonymous"
