@@ -1,15 +1,6 @@
 import { useChatStore } from '@repo/common/store';
 import { Thread } from '@repo/shared/types';
-import {
-    Button,
-    cn,
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    Flex,
-    Input,
-} from '@repo/ui';
+import { Button, Flex, Input, cn } from '@repo/ui';
 import { MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -115,7 +106,10 @@ export const HistoryItem = ({
                 <Link
                     href={`/chat/${thread.id}`}
                     className="flex flex-1 items-center"
-                    onClick={() => switchThread(thread.id)}
+                    onClick={() => {
+                        switchThread(thread.id);
+                        dismiss();
+                    }}
                 >
                     <Flex
                         direction="col"

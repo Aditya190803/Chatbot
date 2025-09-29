@@ -5,17 +5,8 @@ import { FullPageLoader, HistoryItem, Logo } from '@repo/common/components';
 import { useRootContext } from '@repo/common/context';
 import { useAppStore, useChatStore } from '@repo/common/store';
 import { Thread } from '@repo/shared/types';
-import {
-    Badge,
-    Button,
-    cn,
-    Flex,
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@repo/ui';
+import { Badge, Button, cn, Flex } from '@repo/ui';
+import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
 import {
     IconArrowBarLeft,
     IconArrowBarRight,
@@ -34,11 +25,19 @@ import moment from 'moment';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 
-const AccountMenuRoot: any = DropdownMenu;
-const AccountMenuTrigger: any = DropdownMenuTrigger;
-const AccountMenuContent: any = DropdownMenuContent;
-const AccountMenuItem: any = DropdownMenuItem;
-const AccountMenuSeparator: any = DropdownMenuSeparator;
+const {
+    DropdownMenu: DropdownMenuRoot,
+    DropdownMenuTrigger: DropdownMenuTriggerComponent,
+    DropdownMenuContent: DropdownMenuContentComponent,
+    DropdownMenuItem: DropdownMenuItemComponent,
+    DropdownMenuSeparator: DropdownMenuSeparatorComponent,
+} = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
+
+const MenuRoot = DropdownMenuRoot as unknown as React.ComponentType<any>;
+const MenuTrigger = DropdownMenuTriggerComponent as unknown as React.ComponentType<any>;
+const MenuContent = DropdownMenuContentComponent as unknown as React.ComponentType<any>;
+const MenuItem = DropdownMenuItemComponent as unknown as React.ComponentType<any>;
+const MenuSeparator = DropdownMenuSeparatorComponent as unknown as React.ComponentType<any>;
 
 const UserMenu: React.FC<{
     user: any;
@@ -50,8 +49,8 @@ const UserMenu: React.FC<{
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <AccountMenuRoot open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <AccountMenuTrigger asChild>
+        <MenuRoot open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <MenuTrigger asChild>
                 <Button
                     variant="ghost"
                     className={cn(
@@ -111,14 +110,14 @@ const UserMenu: React.FC<{
                         />
                     )}
                 </Button>
-            </AccountMenuTrigger>
-            <AccountMenuContent
+            </MenuTrigger>
+            <MenuContent
                 align="start"
                 className="min-w-[220px]"
                 side={isSidebarOpen ? 'top' : 'right'}
                 sideOffset={isSidebarOpen ? 12 : 8}
             >
-                <AccountMenuItem
+                <MenuItem
                     className="flex w-full items-center gap-2 text-sm"
                     onSelect={() => {
                         setIsSettingsOpen(true);
@@ -126,8 +125,8 @@ const UserMenu: React.FC<{
                 >
                     <IconSettings size={16} strokeWidth={2} />
                     Settings
-                </AccountMenuItem>
-                <AccountMenuItem
+                </MenuItem>
+                <MenuItem
                     className="flex w-full items-center gap-2 text-sm"
                     onSelect={() => {
                         openUserProfile();
@@ -135,9 +134,9 @@ const UserMenu: React.FC<{
                 >
                     <IconUser size={16} strokeWidth={2} />
                     Profile
-                </AccountMenuItem>
-                <AccountMenuSeparator />
-                <AccountMenuItem
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem
                     className="flex w-full items-center gap-2 text-sm text-destructive"
                     onSelect={() => {
                         signOut();
@@ -145,16 +144,16 @@ const UserMenu: React.FC<{
                 >
                     <IconLogout size={16} strokeWidth={2} />
                     Log out
-                </AccountMenuItem>
-            </AccountMenuContent>
-        </AccountMenuRoot>
+                </MenuItem>
+            </MenuContent>
+        </MenuRoot>
     );
 };
 
 export const Sidebar = () => {
     const { threadId: currentThreadId } = useParams();
     const pathname = usePathname();
-    const { setIsCommandSearchOpen } = useRootContext();
+    const { setIsCommandSearchOpen, setIsMobileSidebarOpen } = useRootContext();
     const isChatPage = pathname === '/chat';
     const threads = useChatStore(state => state.threads);
     const pinThread = useChatStore(state => state.pinThread);
@@ -232,7 +231,11 @@ export const Sidebar = () => {
                                 isPinned={thread.pinned}
                                 key={thread.id}
                                 dismiss={() => {
-                                    setIsSidebarOpen(prev => false);
+                                    // Keep sidebar open on desktop when navigating to a chat
+                                    // Only close the mobile drawer to reveal content
+                                    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                        setIsMobileSidebarOpen(false);
+                                    }
                                 }}
                                 isActive={thread.id === currentThreadId}
                             />
@@ -247,7 +250,8 @@ export const Sidebar = () => {
         <div
             className={cn(
                 'relative z-[50] flex h-[100dvh] flex-shrink-0 flex-col border-r border-border/70 bg-background/95 px-3 py-4 shadow-subtle-sm backdrop-blur transition-all duration-200',
-                isSidebarOpen ? 'w-[288px] px-4' : 'w-[64px] px-2'
+                isSidebarOpen ? 'w-[288px] px-4' : 'w-[64px] px-2',
+                'lg:flex' // Always visible on desktop
             )}
         >
             <Flex direction="col" className="w-full flex-1 overflow-hidden" gap="md">
@@ -276,7 +280,15 @@ export const Sidebar = () => {
                             tooltip="Close Sidebar"
                             tooltipSide="right"
                             size="icon-sm"
-                            onClick={() => setIsSidebarOpen(prev => !prev)}
+                            onClick={() => {
+                                // On mobile, close the mobile drawer instead of collapsing sidebar
+                                if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                    setIsMobileSidebarOpen(false);
+                                } else {
+                                    // On desktop, toggle sidebar collapse/expand
+                                    setIsSidebarOpen(prev => !prev);
+                                }
+                            }}
                             className="mr-1"
                         >
                             <IconArrowBarLeft size={16} strokeWidth={2} />
@@ -299,6 +311,12 @@ export const Sidebar = () => {
                                 tooltip={isSidebarOpen ? undefined : 'New Thread'}
                                 tooltipSide="right"
                                 className={cn(isSidebarOpen && 'relative w-full', 'justify-center')}
+                                onClick={() => {
+                                    // Close mobile sidebar when creating new thread
+                                    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                        setIsMobileSidebarOpen(false);
+                                    }
+                                }}
                             >
                                 <IconPlus size={16} strokeWidth={2} className={cn(isSidebarOpen)} />
                                 {isSidebarOpen && 'New'}
@@ -312,6 +330,12 @@ export const Sidebar = () => {
                             tooltip={isSidebarOpen ? undefined : 'New Thread'}
                             tooltipSide="right"
                             className={cn(isSidebarOpen && 'relative w-full', 'justify-center')}
+                            onClick={() => {
+                                // Close mobile sidebar when creating new thread
+                                if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                    setIsMobileSidebarOpen(false);
+                                }
+                            }}
                         >
                             <IconPlus size={16} strokeWidth={2} className={cn(isSidebarOpen)} />
                             {isSidebarOpen && 'New Thread'}
@@ -327,7 +351,13 @@ export const Sidebar = () => {
                             isSidebarOpen && 'relative w-full justify-between',
                             'text-muted-foreground px-2'
                         )}
-                        onClick={() => setIsCommandSearchOpen(true)}
+                        onClick={() => {
+                            setIsCommandSearchOpen(true);
+                            // Close mobile sidebar when opening search
+                            if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                setIsMobileSidebarOpen(false);
+                            }
+                        }}
                     >
                         <IconSearch size={14} strokeWidth={2} className={cn(isSidebarOpen)} />
                         {isSidebarOpen && <span className="text-sm font-medium">Search</span>}
