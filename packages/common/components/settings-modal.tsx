@@ -1,10 +1,10 @@
 'use client';
 import { useMcpToolsStore } from '@repo/common/store';
-import { DialogFooter } from '@repo/ui';
+
 import { Button } from '@repo/ui/src/components/button';
 import { IconSettings2, IconTrash } from '@tabler/icons-react';
 
-import { Badge, Dialog, DialogContent, Input } from '@repo/ui';
+import { Badge, Input } from '@repo/ui';
 
 import { useChatEditor } from '@repo/common/hooks';
 
@@ -37,36 +37,43 @@ export const SettingsModal = () => {
         },
     ];
 
+    if (!isSettingOpen) return null;
+
     return (
-        <Dialog open={isSettingOpen} onOpenChange={() => setIsSettingOpen(false)}>
-            <DialogContent
-                ariaTitle="Settings"
-                className="h-full max-h-[600px] !max-w-[760px] overflow-x-hidden rounded-xl p-0"
-            >
-                <div className="no-scrollbar relative max-w-full overflow-y-auto overflow-x-hidden">
-                    <h3 className="border-border mx-5 border-b py-4 text-lg font-bold">Settings</h3>
-                    <div className="flex flex-row gap-6 p-4">
-                        <div className="flex w-[160px] shrink-0 flex-col gap-1">
-                            {settingMenu.map(setting => (
-                                <Button
-                                    key={setting.key}
-                                    rounded="full"
-                                    className="justify-start"
-                                    variant={settingTab === setting.key ? 'secondary' : 'ghost'}
-                                    onClick={() => setSettingTab(setting.key)}
-                                >
-                                    {setting.icon}
-                                    {setting.title}
-                                </Button>
-                            ))}
-                        </div>
-                        <div className="flex flex-1 flex-col overflow-hidden px-4">
-                            {settingMenu.find(setting => setting.key === settingTab)?.component}
+        <>
+            {/* Backdrop */}
+            <div 
+                className="fixed inset-0 z-40 bg-black/50" 
+                onClick={() => setIsSettingOpen(false)}
+            />
+            {/* Modal */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-lg h-full max-h-[600px] max-w-[760px] w-full overflow-x-hidden p-0">
+                    <div className="no-scrollbar relative max-w-full overflow-y-auto overflow-x-hidden h-full">
+                        <h3 className="border-border mx-5 border-b py-4 text-lg font-bold">Settings</h3>
+                        <div className="flex flex-row gap-6 p-4">
+                            <div className="flex w-[160px] shrink-0 flex-col gap-1">
+                                {settingMenu.map(setting => (
+                                    <Button
+                                        key={setting.key}
+                                        rounded="full"
+                                        className="justify-start"
+                                        variant={settingTab === setting.key ? 'secondary' : 'ghost'}
+                                        onClick={() => setSettingTab(setting.key)}
+                                    >
+                                        {setting.icon}
+                                        {setting.title}
+                                    </Button>
+                                ))}
+                            </div>
+                            <div className="flex flex-1 flex-col overflow-hidden px-4">
+                                {settingMenu.find(setting => setting.key === settingTab)?.component}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </DialogContent>
-        </Dialog>
+            </div>
+        </>
     );
 };
 
@@ -219,63 +226,73 @@ const AddToolDialog = ({ isOpen, onOpenChange, onAddTool }: AddToolDialogProps) 
         onOpenChange(open);
     };
 
+    if (!isOpen) return null;
+
     return (
-        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogContent ariaTitle="Add MCP Tool" className="!max-w-md">
-                <div className="flex flex-col gap-4">
-                    <h3 className="text-lg font-bold">Add New MCP Tool</h3>
+        <>
+            {/* Backdrop */}
+            <div 
+                className="fixed inset-0 z-50 bg-black/50" 
+                onClick={() => handleOpenChange(false)}
+            />
+            {/* Modal */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
+                    <div className="flex flex-col gap-4">
+                        <h3 className="text-lg font-bold">Add New MCP Tool</h3>
 
-                    {error && <p className="text-destructive text-sm font-medium">{error}</p>}
+                        {error && <p className="text-destructive text-sm font-medium">{error}</p>}
 
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium">Tool Name</label>
-                        <Input
-                            placeholder="Tool Name"
-                            value={mcpToolName}
-                            onChange={e => {
-                                const key = e.target.value?.trim().toLowerCase().replace(/ /g, '-');
-                                setMcpToolName(key);
-                                // Clear error when user types
-                                if (error) setError('');
-                            }}
-                        />
-                        <p className="text-muted-foreground text-xs">
-                            Will be automatically converted to lowercase with hyphens
-                        </p>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium">Tool Name</label>
+                            <Input
+                                placeholder="Tool Name"
+                                value={mcpToolName}
+                                onChange={e => {
+                                    const key = e.target.value?.trim().toLowerCase().replace(/ /g, '-');
+                                    setMcpToolName(key);
+                                    // Clear error when user types
+                                    if (error) setError('');
+                                }}
+                            />
+                            <p className="text-muted-foreground text-xs">
+                                Will be automatically converted to lowercase with hyphens
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium">Tool Server URL</label>
+                            <Input
+                                placeholder="https://your-mcp-server.com"
+                                value={mcpToolUrl}
+                                onChange={e => {
+                                    setMcpToolUrl(e.target.value);
+                                    // Clear error when user types
+                                    if (error) setError('');
+                                }}
+                            />
+                            <p className="text-muted-foreground text-xs">
+                                Example: https://your-mcp-server.com
+                            </p>
+                        </div>
                     </div>
-
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium">Tool Server URL</label>
-                        <Input
-                            placeholder="https://your-mcp-server.com"
-                            value={mcpToolUrl}
-                            onChange={e => {
-                                setMcpToolUrl(e.target.value);
-                                // Clear error when user types
-                                if (error) setError('');
-                            }}
-                        />
-                        <p className="text-muted-foreground text-xs">
-                            Example: https://your-mcp-server.com
-                        </p>
+                    <div className="border-border mt-4 border-t pt-4">
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="bordered"
+                                rounded={'full'}
+                                onClick={() => handleOpenChange(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button onClick={handleAddTool} rounded="full">
+                                Add Tool
+                            </Button>
+                        </div>
                     </div>
                 </div>
-                <DialogFooter className="border-border mt-4 border-t pt-4">
-                    <div className="flex justify-end gap-2">
-                        <Button
-                            variant="bordered"
-                            rounded={'full'}
-                            onClick={() => handleOpenChange(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button onClick={handleAddTool} rounded="full">
-                            Add Tool
-                        </Button>
-                    </div>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+            </div>
+        </>
     );
 };
 

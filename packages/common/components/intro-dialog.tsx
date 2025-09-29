@@ -57,20 +57,16 @@ export const IntroDialog = () => {
     }
 
     return (
-        <Dialog
-            open={isOpen}
-            onOpenChange={open => {
-                if (open) {
-                    setIsOpen(true);
-                } else {
-                    handleClose();
-                }
-            }}
-        >
-            <DialogContent
-                ariaTitle="Introduction"
-                className="flex max-w-[420px] flex-col gap-0 overflow-hidden p-0"
-            >
+        <>
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-background border-border flex max-w-[420px] flex-col gap-0 overflow-hidden rounded-lg border p-0 shadow-lg">
+                        <button
+                            onClick={handleClose}
+                            className="absolute right-2 top-2 z-10 text-muted-foreground hover:text-foreground"
+                        >
+                            ×
+                        </button>
                 <div className="flex flex-col gap-8 p-5">
                     <div className="flex flex-col gap-2">
                         <div
@@ -117,7 +113,9 @@ export const IntroDialog = () => {
                         </div>
                     </div>
                 </div>
-            </DialogContent>
-        </Dialog>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
