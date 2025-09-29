@@ -105,6 +105,29 @@ export const proSearchTask = createTask<WorkflowEventSchema, WorkflowContextSche
                 throw new Error('No question provided for search');
             }
 
+            // Check if web search was auto-enabled and show notification
+            const autoWebSearchEnabled = context?.get('autoWebSearchEnabled');
+            const autoWebSearchReason = context?.get('autoWebSearchReason');
+            
+            let stepOffset = 0;
+            if (autoWebSearchEnabled && autoWebSearchReason) {
+                // Add a notification step to inform the user
+                updateStep({
+                    stepId: 0,
+                    stepStatus: 'COMPLETED',
+                    subSteps: {
+                        autoEnabled: { 
+                            status: 'COMPLETED', 
+                            data: {
+                                message: `🔍 Web search automatically enabled: ${autoWebSearchReason}`,
+                                type: 'info'
+                            }
+                        },
+                    },
+                });
+                stepOffset = 1;
+            }
+
             const messages =
                 context
                     ?.get('messages')
@@ -159,7 +182,7 @@ export const proSearchTask = createTask<WorkflowEventSchema, WorkflowContextSche
             }
 
             updateStep({
-                stepId: 0,
+                stepId: 0 + stepOffset,
                 stepStatus: 'PENDING',
                 subSteps: {
                     search: { status: 'COMPLETED', data: [query.query] },
@@ -173,7 +196,7 @@ export const proSearchTask = createTask<WorkflowEventSchema, WorkflowContextSche
             }));
 
             updateStep({
-                stepId: 0,
+                stepId: 0 + stepOffset,
                 stepStatus: 'PENDING',
                 subSteps: {
                     read: {
@@ -209,7 +232,7 @@ export const proSearchTask = createTask<WorkflowEventSchema, WorkflowContextSche
             // Update event with read status
 
             updateStep({
-                stepId: 0,
+                stepId: 0 + stepOffset,
                 stepStatus: 'COMPLETED',
                 subSteps: {
                     read: { status: 'COMPLETED' },

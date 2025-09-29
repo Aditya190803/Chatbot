@@ -81,6 +81,27 @@ export const quickSearchTask = createTask<WorkflowEventSchema, WorkflowContextSc
         const { updateStep, updateStatus, addSources, updateAnswer, nextStepId } =
             sendEvents(events);
 
+        // Check if web search was auto-enabled and show notification
+        const autoWebSearchEnabled = context?.get('autoWebSearchEnabled');
+        const autoWebSearchReason = context?.get('autoWebSearchReason');
+        
+        if (autoWebSearchEnabled && autoWebSearchReason) {
+            // Add a notification step to inform the user
+            updateStep({
+                stepId: 0,
+                stepStatus: 'COMPLETED',
+                subSteps: {
+                    autoEnabled: { 
+                        status: 'COMPLETED', 
+                        data: {
+                            message: `🔍 Web search automatically enabled: ${autoWebSearchReason}`,
+                            type: 'info'
+                        }
+                    },
+                },
+            });
+        }
+
         let messages =
             context
                 ?.get('messages')
@@ -123,8 +144,9 @@ export const quickSearchTask = createTask<WorkflowEventSchema, WorkflowContextSc
         }
 
         // Update search step with query and PENDING status
+        const searchStepId = autoWebSearchEnabled ? 1 : 0;
         updateStep({
-            stepId: 0,
+            stepId: searchStepId,
             stepStatus: 'PENDING',
             subSteps: {
                 search: { status: 'COMPLETED', data: [query.query] },
@@ -145,7 +167,7 @@ export const quickSearchTask = createTask<WorkflowEventSchema, WorkflowContextSc
         }));
 
         updateStep({
-            stepId: 0,
+            stepId: searchStepId,
             stepStatus: 'PENDING',
             subSteps: {
                 search: { status: 'COMPLETED' },
@@ -168,7 +190,7 @@ export const quickSearchTask = createTask<WorkflowEventSchema, WorkflowContextSc
 
         // Mark read as COMPLETED and wrapup as PENDING
         updateStep({
-            stepId: 0,
+            stepId: searchStepId,
             stepStatus: 'COMPLETED',
             subSteps: {
                 read: { status: 'COMPLETED' },
