@@ -7,11 +7,11 @@ export * from './cost-tracker';
 export enum ModelEnum {
     GEMINI_2_5_PRO = 'gemini-2.5-pro',
     GEMINI_2_5_FLASH = 'gemini-2.5-flash',
-    GROK_4_FAST = 'x-ai/grok-4-fast:free',
-    GLM_4_5_AIR = 'z-ai/glm-4.5-air:free',
-    DEEPSEEK_CHAT_V3_1 = 'deepseek/deepseek-chat-v3.1:free',
-    GPT_OSS_120B = 'openai/gpt-oss-120b:free',
-    DOLPHIN_MISTRAL_24B_VENICE = 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
+    GROK_4_FAST = 'meta-llama/llama-3.2-3b-instruct:free',
+    GLM_4_5_AIR = 'microsoft/phi-3-mini-128k-instruct:free',
+    DEEPSEEK_CHAT_V3_1 = 'qwen/qwen-2-7b-instruct:free',
+    GPT_OSS_120B = 'huggingfaceh4/zephyr-7b-beta:free',
+    DOLPHIN_MISTRAL_24B_VENICE = 'mistralai/mistral-7b-instruct:free',
 }
 
 export type Model = {
@@ -46,42 +46,42 @@ export const models: Model[] = [
     },
     {
         id: ModelEnum.GROK_4_FAST,
-        name: 'Grok 4 Fast (OpenRouter Free)',
+        name: 'Llama 3.2 3B Instruct (OpenRouter Free)',
         provider: 'openrouter',
-        maxTokens: 8000,
-        contextWindow: 128000,
+        maxTokens: 131072,
+        contextWindow: 131072,
         isFree: true,
     },
     {
         id: ModelEnum.GLM_4_5_AIR,
-        name: 'GLM 4.5 Air (OpenRouter Free)',
+        name: 'Phi 3 Mini 128K Instruct (OpenRouter Free)',
         provider: 'openrouter',
-        maxTokens: 8000,
+        maxTokens: 128000,
         contextWindow: 128000,
         isFree: true,
     },
     {
         id: ModelEnum.DEEPSEEK_CHAT_V3_1,
-        name: 'DeepSeek Chat v3.1 (OpenRouter Free)',
+        name: 'Qwen 2 7B Instruct (OpenRouter Free)',
         provider: 'openrouter',
-        maxTokens: 8000,
-        contextWindow: 128000,
+        maxTokens: 32768,
+        contextWindow: 32768,
         isFree: true,
     },
     {
         id: ModelEnum.GPT_OSS_120B,
-        name: 'GPT-OSS 120B (OpenRouter Free)',
+        name: 'Zephyr 7B Beta (OpenRouter Free)',
         provider: 'openrouter',
-        maxTokens: 8000,
-        contextWindow: 128000,
+        maxTokens: 32768,
+        contextWindow: 32768,
         isFree: true,
     },
     {
         id: ModelEnum.DOLPHIN_MISTRAL_24B_VENICE,
-        name: 'Dolphin Mistral 24B Venice (OpenRouter Free)',
+        name: 'Mistral 7B Instruct (OpenRouter Free)',
         provider: 'openrouter',
-        maxTokens: 8000,
-        contextWindow: 128000,
+        maxTokens: 32768,
+        contextWindow: 32768,
         isFree: true,
     },
 ];
@@ -113,11 +113,13 @@ export const getChatModeMaxTokens = (mode: ChatMode) => {
         case ChatMode.GEMINI_2_5_FLASH:
             return 500000;
         case ChatMode.GROK_4_FAST:
+            return 131072;
         case ChatMode.GLM_4_5_AIR:
+            return 128000;
         case ChatMode.DEEPSEEK_CHAT_V3_1:
         case ChatMode.GPT_OSS_120B:
         case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
-            return 128000;
+            return 32768;
         case ChatMode.Deep:
         case ChatMode.Pro:
             return 500000;

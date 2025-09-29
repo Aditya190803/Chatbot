@@ -120,15 +120,15 @@ export const getChatModeName = (mode: ChatMode) => {
         case ChatMode.GEMINI_2_5_FLASH:
             return 'Gemini 2.5 Flash';
         case ChatMode.GROK_4_FAST:
-            return 'Grok 4 Fast';
+            return 'Llama 3.2 3B Instruct';
         case ChatMode.GLM_4_5_AIR:
-            return 'GLM 4.5 Air';
+            return 'Phi 3 Mini 128K';
         case ChatMode.DEEPSEEK_CHAT_V3_1:
-            return 'DeepSeek Chat v3.1';
+            return 'Qwen 2 7B Instruct';
         case ChatMode.GPT_OSS_120B:
-            return 'GPT-OSS 120B';
+            return 'Zephyr 7B Beta';
         case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
-            return 'Dolphin Mistral 24B Venice';
+            return 'Mistral 7B Instruct';
         case ChatMode.DOCUMENT_QA:
             return 'Document Q&A';
     }
