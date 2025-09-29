@@ -7,6 +7,7 @@ import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo } from 'react';
 import { useApiKeysStore, useAppStore, useChatStore, useMcpToolsStore } from '../store';
+import { useTitleGeneration } from './use-title-generation';
 
 export type AgentContextType = {
     runAgent: (body: any) => Promise<void>;
@@ -56,8 +57,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
     const apiKeys = useApiKeysStore(state => state.getAllKeys);
     const hasApiKeyForChatMode = useApiKeysStore(state => state.hasApiKeyForChatMode);
     const setShowSignInModal = useAppStore(state => state.setShowSignInModal);
-
-
+    const { generateAndUpdateTitle } = useTitleGeneration();
 
     // In-memory store for thread items
     const threadItemMap = useMemo(() => new Map<string, ThreadItem>(), []);
@@ -292,6 +292,26 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                                                     status: 'COMPLETED',
                                                     persistToDB: true,
                                                 });
+
+                                                // Generate title after the first conversation turn
+                                                // Check if this is the first response in the thread
+                                                const threadItems = useChatStore.getState().threadItems.filter(
+                                                    item => item.threadId === data.threadId
+                                                );
+                                                
+                                                if (threadItems.length <= 2) { // User message + AI response
+                                                    const userItem = threadItems.find(item => item.query && !item.answer);
+                                                    const aiItem = threadItemMap.get(data.threadItemId);
+                                                    
+                                                    if (userItem && aiItem && aiItem.answer?.finalText) {
+                                                        // Generate title asynchronously
+                                                        generateAndUpdateTitle(
+                                                            data.threadId,
+                                                            userItem.query,
+                                                            aiItem.answer.finalText
+                                                        ).catch(console.error);
+                                                    }
+                                                }
                                             }
                                         }
                                     }
