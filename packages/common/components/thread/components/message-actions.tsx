@@ -70,6 +70,7 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                         </DropdownMenuTrigger>
                         <ChatModeOptions
                             chatMode={chatMode}
+                            isRetry
                             setChatMode={async mode => {
                                 setChatMode(mode);
                                 const formData = new FormData();

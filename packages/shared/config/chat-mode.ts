@@ -1,7 +1,7 @@
 export enum ChatMode {
     Pro = 'pro',
     Deep = 'deep',
-    GEMINI_2_FLASH = 'gemini-flash-2.0',
+    GEMINI_2_5_PRO = 'gemini-pro-2.5',
     GEMINI_2_5_FLASH = 'gemini-flash-2.5',
     GROK_4_FAST = 'grok-4-fast',
     GLM_4_5_AIR = 'glm-4-5-air',
@@ -32,7 +32,7 @@ export const ChatModeConfig: Record<
         retry: false,
         isAuthRequired: true,
     },
-    [ChatMode.GEMINI_2_FLASH]: {
+    [ChatMode.GEMINI_2_5_PRO]: {
         webSearch: true,
         imageUpload: true,
         retry: true,
@@ -89,8 +89,8 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'Deep Research';
         case ChatMode.Pro:
             return 'Pro Search';
-        case ChatMode.GEMINI_2_FLASH:
-            return 'Gemini 2 Flash';
+        case ChatMode.GEMINI_2_5_PRO:
+            return 'Gemini 2.5 Pro';
         case ChatMode.GEMINI_2_5_FLASH:
             return 'Gemini 2.5 Flash';
         case ChatMode.GROK_4_FAST:

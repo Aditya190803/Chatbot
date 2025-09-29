@@ -1,22 +1,23 @@
 'use client';
 import { useUser } from '@clerk/nextjs';
 import { DotSpinner } from '@repo/common/components';
-import { useApiKeysStore, useChatStore } from '@repo/common/store';
+import { useChatStore } from '@repo/common/store';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
 import {
     Button,
     cn,
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
     Kbd,
 } from '@repo/ui';
 import {
     IconArrowUp,
     IconAtom,
+    IconCheck,
     IconChevronDown,
     IconNorthStar,
     IconPaperclip,
@@ -28,63 +29,73 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { NewIcon } from '../icons';
 
-export const chatOptions = [
+type IconComponent = typeof IconAtom;
+
+type ChatModeOption = {
+    label: string;
+    description?: string;
+    value: ChatMode;
+    icon?: IconComponent;
+    iconClassName?: string;
+    badge?: string;
+};
+
+export const chatOptions: ChatModeOption[] = [
     {
         label: 'Deep Research',
         description: 'In depth research on complex topic',
         value: ChatMode.Deep,
-        icon: <IconAtom size={16} className="text-muted-foreground" strokeWidth={2} />,
-
+        icon: IconAtom,
+        iconClassName: 'text-purple-600',
+        badge: 'Workflow',
     },
     {
         label: 'Pro Search',
         description: 'Pro search with web search',
         value: ChatMode.Pro,
-        icon: <IconNorthStar size={16} className="text-muted-foreground" strokeWidth={2} />,
-
+        icon: IconNorthStar,
+        iconClassName: 'text-sky-600',
+        badge: 'Web',
     },
 ];
 
-export const modelOptions = [
+export const modelOptions: ChatModeOption[] = [
     {
         label: 'Gemini 2.5 Flash',
         value: ChatMode.GEMINI_2_5_FLASH,
-        // webSearch: true,
-        icon: undefined,
-
+        badge: 'Default',
     },
     {
-        label: 'Gemini 2 Flash',
-        value: ChatMode.GEMINI_2_FLASH,
-        // webSearch: true,
-        icon: undefined,
+        label: 'Gemini 2.5 Pro',
+        value: ChatMode.GEMINI_2_5_PRO,
+        badge: 'Multimodal',
     },
     {
-        label: 'Grok 4 Fast (OpenRouter)',
+        label: 'Grok 4 Fast',
         value: ChatMode.GROK_4_FAST,
-        icon: undefined,
     },
     {
-        label: 'GLM 4.5 Air (OpenRouter)',
+        label: 'GLM 4.5 Air',
         value: ChatMode.GLM_4_5_AIR,
-        icon: undefined,
     },
     {
-        label: 'DeepSeek Chat v3.1 (OpenRouter)',
+        label: 'DeepSeek Chat v3.1',
         value: ChatMode.DEEPSEEK_CHAT_V3_1,
-        icon: undefined,
     },
     {
-        label: 'GPT-OSS 120B (OpenRouter)',
+        label: 'GPT-OSS 120B',
         value: ChatMode.GPT_OSS_120B,
-        icon: undefined,
     },
     {
-        label: 'Dolphin Mistral 24B Venice (OpenRouter)',
+        label: 'Dolphin Mistral 24B Venice',
         value: ChatMode.DOLPHIN_MISTRAL_24B_VENICE,
-        icon: undefined,
     },
 ];
+
+const MenuContent: any = DropdownMenuContent;
+const MenuItem: any = DropdownMenuItem;
+const MenuLabel: any = DropdownMenuLabel;
+const MenuSeparator: any = DropdownMenuSeparator;
 
 export const AttachmentButton = () => {
     return (
@@ -105,24 +116,36 @@ export const ChatModeButton = () => {
     const chatMode = useChatStore(state => state.chatMode);
     const setChatMode = useChatStore(state => state.setChatMode);
     const [isChatModeOpen, setIsChatModeOpen] = useState(false);
-    const hasApiKeyForChatMode = useApiKeysStore(state => state.hasApiKeyForChatMode);
     const isChatPage = usePathname().startsWith('/chat');
 
     const selectedOption =
         (isChatPage
             ? [...chatOptions, ...modelOptions].find(option => option.value === chatMode)
             : [...modelOptions].find(option => option.value === chatMode)) ?? modelOptions[0];
+    const SelectedIcon = (selectedOption?.icon as IconComponent | undefined) ?? undefined;
 
     return (
         <DropdownMenu open={isChatModeOpen} onOpenChange={setIsChatModeOpen}>
             <DropdownMenuTrigger asChild>
                 <Button variant={'secondary'} size="xs">
-                    {selectedOption?.icon}
+                    {SelectedIcon && (
+                        <span className="mr-1 flex size-5 items-center justify-center rounded-full bg-muted/60">
+                            <SelectedIcon
+                                size={14}
+                                strokeWidth={2}
+                                className={selectedOption.iconClassName ?? 'text-muted-foreground'}
+                            />
+                        </span>
+                    )}
                     {selectedOption?.label}
                     <IconChevronDown size={14} strokeWidth={2} />
                 </Button>
             </DropdownMenuTrigger>
-            <ChatModeOptions chatMode={chatMode} setChatMode={setChatMode} />
+            <ChatModeOptions
+                chatMode={chatMode}
+                setChatMode={setChatMode}
+                onOptionSelect={() => setIsChatModeOpen(false)}
+            />
         </DropdownMenu>
     );
 };
@@ -177,78 +200,111 @@ export const ChatModeOptions = ({
     chatMode,
     setChatMode,
     isRetry = false,
+    onOptionSelect,
 }: {
     chatMode: ChatMode;
-    setChatMode: (chatMode: ChatMode) => void;
+    setChatMode: (chatMode: ChatMode) => void | Promise<void>;
     isRetry?: boolean;
+    onOptionSelect?: () => void;
 }) => {
     const { isSignedIn } = useUser();
     const isChatPage = usePathname().startsWith('/chat');
     const { push } = useRouter();
-    return (
-        <div className="bg-background border-border no-scrollbar max-h-[300px] w-[300px] overflow-y-auto rounded-md border p-2 shadow-lg">
-            {isChatPage && (
-                <div className="mb-4">
-                    <h3 className="text-muted-foreground mb-2 text-sm font-medium">Advanced Mode</h3>
-                    <div className="space-y-1">
-                        {chatOptions.map(option => (
-                            <button
-                                key={option.label}
-                                onClick={() => {
-                                    if (ChatModeConfig[option.value]?.isAuthRequired && !isSignedIn) {
-                                        push('/sign-in');
-                                        return;
-                                    }
-                                    setChatMode(option.value);
-                                }}
-                                className="hover:bg-muted w-full rounded-sm p-2 text-left transition-colors"
-                            >
-                                <div className="flex w-full flex-row items-start gap-1.5">
-                                    <div className="flex flex-col gap-0 pt-1">{option.icon}</div>
 
-                                    <div className="flex flex-col gap-0">
-                                        <p className="m-0 text-sm font-medium">{option.label}</p>
-                                        {option.description && (
-                                            <p className="text-muted-foreground text-xs font-light">
-                                                {option.description}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <div className="flex-1" />
-                                    {ChatModeConfig[option.value]?.isNew && <NewIcon />}
-                                </div>
-                            </button>
-                        ))}
+    const handleSelect = async (
+        event: Event,
+        mode: ChatMode,
+        requiresAuth?: boolean
+    ) => {
+        if (requiresAuth && !isSignedIn) {
+            event.preventDefault();
+            push('/sign-in');
+            return;
+        }
+
+        await Promise.resolve(setChatMode(mode));
+        onOptionSelect?.();
+    };
+
+    const description = isRetry
+        ? 'Re-run this response with a different model or workflow.'
+        : 'Pick the workflow or base model you want to use for upcoming messages.';
+
+    const renderOption = (option: ChatModeOption) => {
+        const isActive = chatMode === option.value;
+        const Icon = option.icon ?? IconAtom;
+        const iconClassName = option.iconClassName ?? 'text-muted-foreground';
+
+        return (
+            <MenuItem
+                key={option.value}
+                onSelect={(event: Event) =>
+                    handleSelect(event, option.value, ChatModeConfig[option.value]?.isAuthRequired)
+                }
+                className={cn(
+                    'group h-auto w-full flex-col items-start gap-2 rounded-lg px-3 py-1.5 text-left',
+                    isActive
+                        ? 'bg-brand/10 text-foreground ring-1 ring-brand/40'
+                        : 'hover:bg-muted/60 text-foreground'
+                )}
+            >
+                <div className="flex w-full items-start gap-3">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground group-hover:bg-muted">
+                        <Icon size={18} strokeWidth={2} className={iconClassName} />
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1">
+                        <div className="flex w-full items-center gap-2">
+                            <span className="text-sm font-medium leading-tight">{option.label}</span>
+                            {option.badge && (
+                                <span className="bg-quaternary text-tertiary-foreground/80 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                                    {option.badge}
+                                </span>
+                            )}
+                            {ChatModeConfig[option.value]?.isNew && <NewIcon />}
+                            <span className="flex-1" />
+                            {isActive && (
+                                <IconCheck size={16} strokeWidth={2} className="text-brand" />
+                            )}
+                        </div>
+                        {option.description && (
+                            <p className="text-muted-foreground/80 text-xs leading-snug">
+                                {option.description}
+                            </p>
+                        )}
                     </div>
                 </div>
-            )}
-            <div>
-                <h3 className="text-muted-foreground mb-2 text-sm font-medium">Models</h3>
-                <div className="space-y-1">
-                    {modelOptions.map(option => (
-                        <button
-                            key={option.label}
-                            onClick={() => {
-                                if (ChatModeConfig[option.value]?.isAuthRequired && !isSignedIn) {
-                                    push('/sign-in');
-                                    return;
-                                }
-                                setChatMode(option.value);
-                            }}
-                            className="hover:bg-muted w-full rounded-sm p-2 text-left transition-colors"
-                        >
-                            <div className="flex w-full flex-row items-center gap-2.5">
-                                <div className="flex flex-col gap-0">
-                                    <p className="text-sm font-medium">{option.label}</p>
-                                </div>
-                                <div className="flex-1" />
-                                {ChatModeConfig[option.value]?.isNew && <NewIcon />}
-                            </div>
-                        </button>
-                    ))}
+            </MenuItem>
+        );
+    };
+
+    return (
+        <MenuContent className="no-scrollbar w-[260px] max-w-[90vw] overflow-hidden border border-border/80 bg-background/95 p-0 shadow-xl backdrop-blur">
+            <div className="border-border/70 border-b px-4 py-3">
+                <p className="text-muted-foreground/80 text-[11px] font-semibold uppercase tracking-wide">
+                    {isRetry ? 'Rewrite options' : 'Choose your mode'}
+                </p>
+                <p className="text-muted-foreground text-xs leading-snug">{description}</p>
+            </div>
+
+            <div className="max-h-[320px] overflow-y-auto px-3 py-2">
+                {isChatPage && (
+                    <div className="space-y-2">
+                        <MenuLabel className="text-muted-foreground/70 px-1 text-[11px] font-semibold uppercase tracking-wide">
+                            Guided workflows
+                        </MenuLabel>
+                        <div className="space-y-1.5">{chatOptions.map(renderOption)}</div>
+                        <MenuSeparator className="my-2" />
+                    </div>
+                )}
+
+                <div className="space-y-2">
+                    <MenuLabel className="text-muted-foreground/70 px-1 text-[11px] font-semibold uppercase tracking-wide">
+                        Models
+                    </MenuLabel>
+                    <div className="space-y-1.5">{modelOptions.map(renderOption)}</div>
                 </div>
             </div>
-        </div>
+        </MenuContent>
     );
 };
 
