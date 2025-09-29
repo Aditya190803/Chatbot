@@ -29,4 +29,4 @@ export * from './table-of-messages';
 export * from './text-shimmer';
 export * from './thread';
 export * from './tools-menu';
-export * from './floating-chatbot';
+

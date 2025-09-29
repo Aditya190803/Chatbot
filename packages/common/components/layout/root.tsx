@@ -2,7 +2,6 @@
 import {
     CommandSearch,
     FeedbackWidget,
-    FloatingChatbot,
     IntroDialog,
     SettingsModal,
     Sidebar,
@@ -89,7 +88,6 @@ export const RootLayout: FC<TRootLayout> = ({ children }) => {
             </Flex>
 
             <Toaster />
-            <FloatingChatbot />
         </div>
     );
 };
