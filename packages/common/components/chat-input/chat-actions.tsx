@@ -8,6 +8,7 @@ import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
 import {
     IconArrowUp,
     IconAtom,
+    IconBook,
     IconCheck,
     IconChevronDown,
     IconNorthStar,
@@ -57,66 +58,37 @@ export const chatOptions: ChatModeOption[] = [
         iconClassName: 'text-sky-600',
         badge: 'Web',
     },
-    {
-        label: 'Document Q&A',
-        description: 'Ask questions about your uploaded documents',
-        value: ChatMode.DOCUMENT_QA,
-        icon: IconBook,
-        iconClassName: 'text-green-600',
-        badge: 'RAG',
-    },
 ];
 
 export const modelOptions: ChatModeOption[] = [
     {
         label: 'Gemini 2.5 Flash',
         value: ChatMode.GEMINI_2_5_FLASH,
-        badge: 'Default',
     },
     {
         label: 'Gemini 2.5 Pro',
         value: ChatMode.GEMINI_2_5_PRO,
-        badge: 'Multimodal',
-    },
-    {
-        label: 'Claude 3.5 Sonnet',
-        value: ChatMode.CLAUDE_3_5_SONNET,
-        badge: 'Premium',
-    },
-    {
-        label: 'GPT-4o Mini',
-        value: ChatMode.GPT_4O_MINI,
-        badge: 'Fast',
     },
     {
         label: 'Grok 4 Fast',
         value: ChatMode.GROK_4_FAST,
-        badge: 'Free',
+
     },
     {
         label: 'GLM 4.5 Air',
         value: ChatMode.GLM_4_5_AIR,
-        badge: 'Free',
     },
     {
         label: 'DeepSeek Chat v3.1',
         value: ChatMode.DEEPSEEK_CHAT_V3_1,
-        badge: 'Free',
     },
     {
         label: 'GPT-OSS 120B',
         value: ChatMode.GPT_OSS_120B,
-        badge: 'Free',
     },
     {
         label: 'Dolphin Mistral 24B Venice',
         value: ChatMode.DOLPHIN_MISTRAL_24B_VENICE,
-        badge: 'Free',
-    },
-    {
-        label: 'Llama 3.2 3B',
-        value: ChatMode.LLAMA_3_2_3B,
-        badge: 'Free',
     },
 ];
 
@@ -280,12 +252,6 @@ export const ChatModeOptions = ({
                     <div className="flex flex-1 flex-col gap-1">
                         <div className="flex w-full items-center gap-2">
                             <span className="text-sm font-medium leading-tight">{option.label}</span>
-                            {option.badge && (
-                                <span className="bg-quaternary text-tertiary-foreground/80 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
-                                    {option.badge}
-                                </span>
-                            )}
-                            {ChatModeConfig[option.value]?.isNew && <NewIcon />}
                             <span className="flex-1" />
                             {isActive && (
                                 <IconCheck size={16} strokeWidth={2} className="text-brand" />

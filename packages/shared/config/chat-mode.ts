@@ -8,9 +8,6 @@ export enum ChatMode {
     DEEPSEEK_CHAT_V3_1 = 'deepseek-chat-v3-1',
     GPT_OSS_120B = 'gpt-oss-120b',
     DOLPHIN_MISTRAL_24B_VENICE = 'dolphin-mistral-24b-venice',
-    CLAUDE_3_5_SONNET = 'claude-3-5-sonnet',
-    GPT_4O_MINI = 'gpt-4o-mini',
-    LLAMA_3_2_3B = 'llama-3-2-3b',
     DOCUMENT_QA = 'document-qa',
 }
 
@@ -20,6 +17,8 @@ export const ChatModeConfig: Record<
         webSearch: boolean;
         imageUpload: boolean;
         retry: boolean;
+        documentAnalysis?: boolean;
+        nativeInternetAccess?: boolean; // Models can access internet independently of web search toggle
         isNew?: boolean;
         isAuthRequired?: boolean;
     }
@@ -28,79 +27,74 @@ export const ChatModeConfig: Record<
         webSearch: false,
         imageUpload: false,
         retry: false,
+        documentAnalysis: true,
         isAuthRequired: true,
     },
     [ChatMode.Pro]: {
         webSearch: false,
         imageUpload: false,
         retry: false,
+        documentAnalysis: true,
         isAuthRequired: true,
     },
     [ChatMode.GEMINI_2_5_PRO]: {
         webSearch: true,
         imageUpload: true,
         retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
         isAuthRequired: false,
     },
     [ChatMode.GEMINI_2_5_FLASH]: {
         webSearch: true,
         imageUpload: true,
         retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
         isAuthRequired: false,
     },
     [ChatMode.GROK_4_FAST]: {
         webSearch: true,
         imageUpload: false,
         retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
         isNew: true,
         isAuthRequired: false,
     },
     [ChatMode.GLM_4_5_AIR]: {
         webSearch: true,
-        imageUpload: false,
+        imageUpload: true,
         retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
         isNew: true,
         isAuthRequired: false,
     },
     [ChatMode.DEEPSEEK_CHAT_V3_1]: {
         webSearch: true,
-        imageUpload: false,
+        imageUpload: true,
         retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
         isNew: true,
         isAuthRequired: false,
     },
     [ChatMode.GPT_OSS_120B]: {
         webSearch: true,
-        imageUpload: false,
+        imageUpload: true,
         retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
         isNew: true,
         isAuthRequired: false,
     },
     [ChatMode.DOLPHIN_MISTRAL_24B_VENICE]: {
         webSearch: true,
-        imageUpload: false,
+        imageUpload: true,
         retry: true,
-        isNew: true,
-        isAuthRequired: false,
-    },
-    [ChatMode.CLAUDE_3_5_SONNET]: {
-        webSearch: true,
-        imageUpload: false,
-        retry: true,
-        isNew: true,
-        isAuthRequired: false,
-    },
-    [ChatMode.GPT_4O_MINI]: {
-        webSearch: true,
-        imageUpload: false,
-        retry: true,
-        isNew: true,
-        isAuthRequired: false,
-    },
-    [ChatMode.LLAMA_3_2_3B]: {
-        webSearch: true,
-        imageUpload: false,
-        retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
         isNew: true,
         isAuthRequired: false,
     },
@@ -135,12 +129,6 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'GPT-OSS 120B';
         case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
             return 'Dolphin Mistral 24B Venice';
-        case ChatMode.CLAUDE_3_5_SONNET:
-            return 'Claude 3.5 Sonnet';
-        case ChatMode.GPT_4O_MINI:
-            return 'GPT-4o Mini';
-        case ChatMode.LLAMA_3_2_3B:
-            return 'Llama 3.2 3B';
         case ChatMode.DOCUMENT_QA:
             return 'Document Q&A';
     }

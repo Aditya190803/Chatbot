@@ -1,4 +1,5 @@
 import { createTask } from '@repo/orchestrator';
+import { ChatModeConfig } from '@repo/shared/config';
 import { getModelFromChatMode } from '../../models';
 import { WorkflowContextSchema, WorkflowEventSchema } from '../flow';
 import { ChunkBuffer, generateText, getHumanizedDate, handleError } from '../utils';
@@ -46,9 +47,32 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
         }
 
         const model = getModelFromChatMode(mode);
+        const modelConfig = mode ? ChatModeConfig[mode] : undefined;
+        const hasNativeInternet = modelConfig?.nativeInternetAccess || false;
+
+        let internetAccessInfo = '';
+        if (hasNativeInternet && !webSearch) {
+            internetAccessInfo = `
+        
+        **Important**: You have native internet access capabilities. Even though the web search feature is not enabled, you can still:
+        - Access current information and recent events
+        - Look up real-time data, prices, and statistics
+        - Provide up-to-date information about current affairs
+        - Check recent developments in technology, business, and other fields
+        - Access current weather, stock prices, and other live data when relevant
+        
+        For Indian context queries, prioritize:
+        - Current INR exchange rates and market prices
+        - Latest RBI policies and government regulations
+        - Recent Indian startup funding, IPOs, and business news
+        - Current Digital India initiatives and UPI statistics
+        - Latest Supreme Court judgments and parliamentary developments
+        - Real-time NSE/BSE stock prices and market indices
+        `;
+        }
 
         let prompt = `You are a helpful assistant that can answer questions and help with tasks.
-        Today is ${getHumanizedDate()}.
+        Today is ${getHumanizedDate()}.${internetAccessInfo}
         
         Before providing your final answer, please think through the problem step by step inside <think> tags. This thinking process helps you reason through complex problems and provide better responses.
         

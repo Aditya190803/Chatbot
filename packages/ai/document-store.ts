@@ -233,7 +233,7 @@ Answer:`;
         let start = 0;
 
         while (start < text.length) {
-            const end = Math.min(start + chunkSize, text.length);
+            let end = Math.min(start + chunkSize, text.length);
             let chunk = text.slice(start, end);
             
             // Try to break at sentence boundaries for better chunks
