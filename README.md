@@ -7,27 +7,38 @@
 
 Chatbot stands out with its workflow orchestration system and focus on privacy, storing all user data locally in the browser using IndexedDB, ensuring your conversations never leave your device.
 
+## GitHub-powered changelog
+
+The `/changelog` page now reads commit activity directly from GitHub, beginning with the initial clone of the
+[`llmchatco`](https://github.com/llmchatco/llmchatco) project and including every commit you push to this fork.
+By default, it targets this repository (`Aditya190803/llmchat` on the `main` branch). You can customize the
+source or raise the API rate limit with the following optional environment variables:
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `NEXT_PUBLIC_GITHUB_OWNER` | GitHub owner/organization for the changelog feed | `Aditya190803` |
+| `NEXT_PUBLIC_GITHUB_REPO` | Repository name to read commits from | `llmchat` |
+| `NEXT_PUBLIC_GITHUB_BRANCH` | Branch to display in the changelog | `main` |
+| `GITHUB_TOKEN` (or `GITHUB_PERSONAL_ACCESS_TOKEN`, `GITHUB_API_TOKEN`, `NEXT_PUBLIC_GITHUB_TOKEN`) | Personal access token used to increase rate limits or access private repos | _unset_ |
+
+> **Note:** The changelog gracefully falls back to a helpful error message if the GitHub API cannot be reached.
+> Providing a token with `repo:read` scope is recommended for production deployments that expect traffic beyond
+> GitHub's unauthenticated limits (60 requests per hour).
+
 ## Key Features
 
 **Advanced Research Modes**
 
-- **Deep Research**: Comprehensive analysis of complex topics with in-depth exploration
-- **Pro Search**: Enhanced search with web integration for real-time information
 
 **Multiple LLM Provider Support**
-- Google
-- Open Router
 
 **Privacy-Focused**
 
-- **Local Storage**: All user data stored in browser using IndexedDB via Dexie.js
-- **No Server-Side Storage**: Chat history never leaves your device
 
 **Agentic Capabilities**
-- **Workflow Orchestration**: Complex task coordination via custom workflow engine
-- **Reflective Analysis**: Self-improvement through analysis of prior reasoning
-- **Structured Output**: Clean presentation of research findings
 
+## Sidebar behavior
+- The navigation sidebar no longer auto-collapses on desktop when opening a chat/thread from the history list. It remains open if it was open. On mobile, the left drawer still closes to reveal the chat content. See `packages/common/components/side-bar.tsx` around the `HistoryItem` dismiss handler.
 ## Architecture
 
 Chatbot is built as a monorepo with a clear separation of concerns:

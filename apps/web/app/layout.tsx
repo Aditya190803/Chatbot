@@ -1,19 +1,24 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { RootLayout } from '@repo/common/components';
 import { ReactQueryProvider, RootProvider } from '@repo/common/context';
-import { TooltipProvider, cn } from '@repo/ui';
+import { TooltipProvider } from '@repo/ui';
 import { GeistMono } from 'geist/font/mono';
 import type { Viewport } from 'next';
 import { Metadata } from 'next';
 import { Bricolage_Grotesque } from 'next/font/google';
 import localFont from 'next/font/local';
 
+import './globals.css';
+
 const bricolage = Bricolage_Grotesque({
     subsets: ['latin'],
     variable: '--font-bricolage',
 });
 
-import './globals.css';
+// Avoid importing client-only utilities in a Server Component.
+// Use a tiny local join helper for className composition.
+const joinClass = (...inputs: Array<string | false | null | undefined>) =>
+    inputs.filter(Boolean).join(' ');
 
 export const metadata: Metadata = {
     title: 'Chatbot - Go Deeper with AI-Powered Research & Agentic Workflows',
@@ -63,6 +68,15 @@ export const metadata: Metadata = {
     alternates: {
         canonical: 'https://chatbot.adityamer.live',
     },
+    // Provide metadataBase to silence warnings and properly resolve OG/Twitter images
+    metadataBase:
+        typeof process !== 'undefined' &&
+        (process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL)
+            ? new URL(
+                  process.env.NEXT_PUBLIC_APP_URL ||
+                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+              )
+            : new URL('http://localhost:3000'),
 };
 
 export const viewport: Viewport = {
@@ -90,7 +104,7 @@ export default function ParentLayout({
     return (
         <html
             lang="en"
-            className={cn(GeistMono.variable, inter.variable, clash.variable, bricolage.variable)}
+            className={joinClass(GeistMono.variable, inter.variable, clash.variable, bricolage.variable)}
             suppressHydrationWarning
         >
             <head>

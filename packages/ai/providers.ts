@@ -66,18 +66,43 @@ const getApiKey = (provider: ProviderEnumType): string => {
   return '';
 };
 
+const resolveAppOrigin = () => {
+  const envOrigin =
+    (typeof process !== 'undefined' &&
+      (process.env?.OPENROUTER_SITE_URL ||
+        process.env?.NEXT_PUBLIC_APP_URL ||
+        (process.env?.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined))) ||
+    undefined;
+
+  if (envOrigin) {
+    return envOrigin;
+  }
+
+  if (typeof window !== 'undefined') {
+    if ((window as any).NEXT_PUBLIC_APP_URL) {
+      return (window as any).NEXT_PUBLIC_APP_URL;
+    }
+
+    if (window.location?.origin) {
+      return window.location.origin;
+    }
+  }
+
+  if (typeof self !== 'undefined' && (self as any).location?.origin) {
+    return (self as any).location.origin;
+  }
+
+  return 'http://localhost:3000';
+};
+
 const getOpenRouterHeaders = () => {
   const headers: Record<string, string> = {};
 
-  const referer =
-    (typeof process !== 'undefined' && process.env?.OPENROUTER_SITE_URL) ||
-    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_APP_URL) ||
-    (typeof window !== 'undefined' && window.NEXT_PUBLIC_APP_URL) ||
-    '';
-
+  const referer = resolveAppOrigin();
   const title =
     (typeof process !== 'undefined' && process.env?.OPENROUTER_APP_TITLE) ||
-    'LLMChat';
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_APP_NAME) ||
+    'Chatbot';
 
   if (referer) {
     headers['HTTP-Referer'] = referer;
