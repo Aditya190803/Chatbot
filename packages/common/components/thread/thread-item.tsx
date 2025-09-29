@@ -13,6 +13,7 @@ import { useAnimatedText } from '@repo/common/hooks';
 import { useChatStore } from '@repo/common/store';
 import { ThreadItem as ThreadItemType } from '@repo/shared/types';
 import { Alert, AlertDescription, cn } from '@repo/ui';
+import { DotSpinner } from '@repo/common/components';
 import { IconAlertCircle, IconBook } from '@tabler/icons-react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
@@ -100,6 +101,12 @@ export const ThreadItem = memo(
                                 <MotionSkeleton className="w-full bg-gradient-to-r" />
                                 <MotionSkeleton className="w-[70%] bg-gradient-to-r" />
                                 <MotionSkeleton className="w-[50%] bg-gradient-to-r" />
+                            </div>
+                        )}
+
+                        {!hasResponse && (threadItem.status === 'PENDING' || threadItem.status === 'QUEUED') && (
+                            <div className="text-muted-foreground/90 flex flex-row items-center gap-2 text-xs">
+                                <DotSpinner /> Working on it…
                             </div>
                         )}
 

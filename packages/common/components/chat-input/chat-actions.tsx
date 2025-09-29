@@ -3,17 +3,8 @@ import { useUser } from '@clerk/nextjs';
 import { DotSpinner } from '@repo/common/components';
 import { useChatStore } from '@repo/common/store';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
-import {
-    Button,
-    cn,
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-    Kbd,
-} from '@repo/ui';
+import { Button, cn, Kbd } from '@repo/ui';
+import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
 import {
     IconArrowUp,
     IconAtom,
@@ -24,6 +15,15 @@ import {
     IconPlayerStopFilled,
     IconWorld,
 } from '@tabler/icons-react';
+const {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
+
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -92,10 +92,7 @@ export const modelOptions: ChatModeOption[] = [
     },
 ];
 
-const MenuContent: any = DropdownMenuContent;
-const MenuItem: any = DropdownMenuItem;
-const MenuLabel: any = DropdownMenuLabel;
-const MenuSeparator: any = DropdownMenuSeparator;
+// Remove unnecessary aliases - use components directly
 
 export const AttachmentButton = () => {
     return (
@@ -236,7 +233,7 @@ export const ChatModeOptions = ({
         const iconClassName = option.iconClassName ?? 'text-muted-foreground';
 
         return (
-            <MenuItem
+            <DropdownMenuItem
                 key={option.value}
                 onSelect={(event: Event) =>
                     handleSelect(event, option.value, ChatModeConfig[option.value]?.isAuthRequired)
@@ -273,12 +270,12 @@ export const ChatModeOptions = ({
                         )}
                     </div>
                 </div>
-            </MenuItem>
+            </DropdownMenuItem>
         );
     };
 
     return (
-        <MenuContent className="no-scrollbar w-[260px] max-w-[90vw] overflow-hidden border border-border/80 bg-background/95 p-0 shadow-xl backdrop-blur">
+        <DropdownMenuContent className="no-scrollbar w-[260px] max-w-[90vw] overflow-hidden border border-border/80 bg-background/95 p-0 shadow-xl backdrop-blur">
             <div className="border-border/70 border-b px-4 py-3">
                 <p className="text-muted-foreground/80 text-[11px] font-semibold uppercase tracking-wide">
                     {isRetry ? 'Rewrite options' : 'Choose your mode'}
@@ -289,22 +286,22 @@ export const ChatModeOptions = ({
             <div className="max-h-[320px] overflow-y-auto px-3 py-2">
                 {isChatPage && (
                     <div className="space-y-2">
-                        <MenuLabel className="text-muted-foreground/70 px-1 text-[11px] font-semibold uppercase tracking-wide">
+                        <DropdownMenuLabel className="text-muted-foreground/70 px-1 text-[11px] font-semibold uppercase tracking-wide">
                             Guided workflows
-                        </MenuLabel>
+                        </DropdownMenuLabel>
                         <div className="space-y-1.5">{chatOptions.map(renderOption)}</div>
-                        <MenuSeparator className="my-2" />
+                        <DropdownMenuSeparator className="my-2" />
                     </div>
                 )}
 
                 <div className="space-y-2">
-                    <MenuLabel className="text-muted-foreground/70 px-1 text-[11px] font-semibold uppercase tracking-wide">
+                    <DropdownMenuLabel className="text-muted-foreground/70 px-1 text-[11px] font-semibold uppercase tracking-wide">
                         Models
-                    </MenuLabel>
+                    </DropdownMenuLabel>
                     <div className="space-y-1.5">{modelOptions.map(renderOption)}</div>
                 </div>
             </div>
-        </MenuContent>
+        </DropdownMenuContent>
     );
 };
 
@@ -324,7 +321,7 @@ export const SendStopButton = ({
     return (
         <div className="flex flex-row items-center gap-2">
             <AnimatePresence mode="wait" initial={false}>
-                {isGenerating && !isChatPage ? (
+                {isGenerating ? (
                     <motion.div
                         key="stop-button"
                         initial={{ scale: 0.8, opacity: 0 }}

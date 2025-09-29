@@ -3,13 +3,14 @@ import { Step } from '@repo/shared/types';
 import { Badge } from '@repo/ui';
 import { IconSearch } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
-import React from 'react';
+import React, { useState } from 'react';
 
 export type StepRendererType = {
     step: Step;
 };
 
 export const StepRenderer = ({ step }: StepRendererType) => {
+    const [thinkingExpanded, setThinkingExpanded] = useState(false);
     console.log(step);
     const renderTextStep = () => {
         if (step?.text) {
@@ -117,15 +118,20 @@ export const StepRenderer = ({ step }: StepRendererType) => {
                             Analyzing
                         </TextShimmer>
                     </div>
-                    <p className="text-muted-foreground text-sm">
-                        {reasoningData.split('\n\n').map((line: string, index: number) => (
-                            <React.Fragment key={index}>
-                                <span>{line}</span>
-                                <br />
-                                <br />
-                            </React.Fragment>
-                        ))}
-                    </p>
+                    <div className="flex flex-col gap-1">
+                        <button
+                            type="button"
+                            onClick={() => setThinkingExpanded(v => !v)}
+                            className="text-muted-foreground/80 hover:text-foreground text-xs underline-offset-2 hover:underline"
+                        >
+                            {thinkingExpanded ? 'Hide thinking' : 'Show thinking'}
+                        </button>
+                        {thinkingExpanded && (
+                            <p className="text-muted-foreground text-sm whitespace-pre-wrap">
+                                {reasoningData}
+                            </p>
+                        )}
+                    </div>
                 </motion.div>
             );
         }

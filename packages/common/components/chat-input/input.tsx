@@ -112,7 +112,7 @@ export const ChatInput = ({
     const renderChatInput = () => (
         <AnimatePresence>
             <motion.div
-                className="w-full px-3"
+                className="w-full px-2 sm:px-3" // Mobile-first padding
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 key={`chat-input`}
@@ -153,7 +153,7 @@ export const ChatInput = ({
                                         items="center"
                                         justify="between"
                                     >
-                                        {isGenerating && !isChatPage ? (
+                                        {isGenerating ? (
                                             <GeneratingStatus />
                                         ) : (
                                             <Flex gap="xs" items="center" className="shrink-0">
@@ -227,7 +227,7 @@ export const ChatInput = ({
                 className={cn(
                     'mx-auto flex w-full max-w-3xl flex-col items-start',
                     !threadItemsLength && 'justify-start',
-                    size === 'sm' && 'px-8'
+                    size === 'sm' && 'px-4 sm:px-8' // Mobile-first padding
                 )}
             >
                 <Flex
