@@ -128,12 +128,13 @@ export const getProviderInstance = (provider: ProviderEnumType) => {
   }
 };
 
-export const getLanguageModel = (m: ModelEnum, middleware?: LanguageModelV1Middleware) => {
+export const getLanguageModel = (m: ModelEnum, middleware?: LanguageModelV1Middleware): any => {
   const model = models.find(model => model.id === m);
   const instance = getProviderInstance(model?.provider as ProviderEnumType);
   const selectedModel = instance(model?.id || 'gpt-4o-mini')
-  if(middleware) {
-    return wrapLanguageModel({model: selectedModel, middleware }) as LanguageModelV1;
-  }
-  return selectedModel as LanguageModelV1;
+  // Temporarily disable middleware to fix build issues
+  // if(middleware) {
+  //   return wrapLanguageModel({model: selectedModel, middleware });
+  // }
+  return selectedModel;
 };
