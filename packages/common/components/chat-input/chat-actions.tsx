@@ -71,24 +71,44 @@ export const modelOptions: ChatModeOption[] = [
         badge: 'Multimodal',
     },
     {
+        label: 'Claude 3.5 Sonnet',
+        value: ChatMode.CLAUDE_3_5_SONNET,
+        badge: 'Premium',
+    },
+    {
+        label: 'GPT-4o Mini',
+        value: ChatMode.GPT_4O_MINI,
+        badge: 'Fast',
+    },
+    {
         label: 'Grok 4 Fast',
         value: ChatMode.GROK_4_FAST,
+        badge: 'Free',
     },
     {
         label: 'GLM 4.5 Air',
         value: ChatMode.GLM_4_5_AIR,
+        badge: 'Free',
     },
     {
         label: 'DeepSeek Chat v3.1',
         value: ChatMode.DEEPSEEK_CHAT_V3_1,
+        badge: 'Free',
     },
     {
         label: 'GPT-OSS 120B',
         value: ChatMode.GPT_OSS_120B,
+        badge: 'Free',
     },
     {
         label: 'Dolphin Mistral 24B Venice',
         value: ChatMode.DOLPHIN_MISTRAL_24B_VENICE,
+        badge: 'Free',
+    },
+    {
+        label: 'Llama 3.2 3B',
+        value: ChatMode.LLAMA_3_2_3B,
+        badge: 'Free',
     },
 ];
 

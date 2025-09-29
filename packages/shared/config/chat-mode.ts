@@ -8,6 +8,9 @@ export enum ChatMode {
     DEEPSEEK_CHAT_V3_1 = 'deepseek-chat-v3-1',
     GPT_OSS_120B = 'gpt-oss-120b',
     DOLPHIN_MISTRAL_24B_VENICE = 'dolphin-mistral-24b-venice',
+    CLAUDE_3_5_SONNET = 'claude-3-5-sonnet',
+    GPT_4O_MINI = 'gpt-4o-mini',
+    LLAMA_3_2_3B = 'llama-3-2-3b',
 }
 
 export const ChatModeConfig: Record<
@@ -79,6 +82,27 @@ export const ChatModeConfig: Record<
         isNew: true,
         isAuthRequired: false,
     },
+    [ChatMode.CLAUDE_3_5_SONNET]: {
+        webSearch: true,
+        imageUpload: false,
+        retry: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
+    [ChatMode.GPT_4O_MINI]: {
+        webSearch: true,
+        imageUpload: false,
+        retry: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
+    [ChatMode.LLAMA_3_2_3B]: {
+        webSearch: true,
+        imageUpload: false,
+        retry: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
 };
 
 
@@ -103,5 +127,11 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'GPT-OSS 120B';
         case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
             return 'Dolphin Mistral 24B Venice';
+        case ChatMode.CLAUDE_3_5_SONNET:
+            return 'Claude 3.5 Sonnet';
+        case ChatMode.GPT_4O_MINI:
+            return 'GPT-4o Mini';
+        case ChatMode.LLAMA_3_2_3B:
+            return 'Llama 3.2 3B';
     }
 };

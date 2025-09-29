@@ -2,6 +2,7 @@
 export * from './chat-input';
 export * from './code-block/code-block';
 export * from './command-search';
+export * from './cost-tracker';
 export * from './error-boundary';
 export * from './error-placeholder';
 export * from './exmaple-prompts';
