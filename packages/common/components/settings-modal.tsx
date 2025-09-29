@@ -2,7 +2,7 @@
 import { useMcpToolsStore } from '@repo/common/store';
 
 import { Button } from '@repo/ui/src/components/button';
-import { IconSettings2, IconTrash } from '@tabler/icons-react';
+import { IconSettings2, IconTrash, IconX } from '@tabler/icons-react';
 
 import { Badge, Input } from '@repo/ui';
 
@@ -42,16 +42,25 @@ export const SettingsModal = () => {
     return (
         <>
             {/* Backdrop */}
-            <div 
-                className="fixed inset-0 z-40 bg-black/50" 
+            <div
+                className="fixed inset-0 z-40 bg-black/50"
                 onClick={() => setIsSettingOpen(false)}
             />
             {/* Modal */}
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-xl shadow-lg h-full max-h-[600px] max-w-[760px] w-full overflow-x-hidden p-0">
-                    <div className="no-scrollbar relative max-w-full overflow-y-auto overflow-x-hidden h-full">
-                        <h3 className="border-border mx-5 border-b py-4 text-lg font-bold">Settings</h3>
-                        <div className="flex flex-row gap-6 p-4">
+                <div className="relative w-full max-w-[760px] overflow-hidden rounded-2xl border border-border/60 bg-background shadow-subtle-sm">
+                    <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        className="absolute right-3 top-3 text-muted-foreground"
+                        onClick={() => setIsSettingOpen(false)}
+                        tooltip="Close"
+                    >
+                        <IconX size={16} strokeWidth={2} />
+                    </Button>
+                    <div className="no-scrollbar max-h-[80vh] overflow-y-auto">
+                        <h3 className="border-border border-b px-6 py-4 text-lg font-bold">Settings</h3>
+                        <div className="flex flex-row gap-6 px-6 pb-6">
                             <div className="flex w-[160px] shrink-0 flex-col gap-1">
                                 {settingMenu.map(setting => (
                                     <Button

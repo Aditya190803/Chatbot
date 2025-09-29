@@ -10,6 +10,11 @@ import {
     Button,
     cn,
     Flex,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@repo/ui';
 import {
     IconArrowBarLeft,
@@ -29,6 +34,12 @@ import moment from 'moment';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 
+const AccountMenuRoot: any = DropdownMenu;
+const AccountMenuTrigger: any = DropdownMenuTrigger;
+const AccountMenuContent: any = DropdownMenuContent;
+const AccountMenuItem: any = DropdownMenuItem;
+const AccountMenuSeparator: any = DropdownMenuSeparator;
+
 const UserMenu: React.FC<{
     user: any;
     isSidebarOpen: boolean;
@@ -39,87 +50,104 @@ const UserMenu: React.FC<{
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <div className="relative">
-            <div
-                className={cn(
-                    'hover:bg-quaternary bg-background shadow-subtle-xs flex w-full cursor-pointer flex-row items-center gap-3 rounded-lg px-2 py-1.5',
-                    !isSidebarOpen && 'px-1.5'
-                )}
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-                <div className="bg-brand flex size-5 shrink-0 items-center justify-center rounded-full">
-                    {user && user.hasImage ? (
-                        <img
-                            src={user?.imageUrl ?? ''}
-                            width={0}
-                            height={0}
-                            className="size-full shrink-0 rounded-full"
-                            alt={user?.fullName ?? ''}
-                        />
-                    ) : (
-                        <IconUser
+        <AccountMenuRoot open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <AccountMenuTrigger asChild>
+                <Button
+                    variant="ghost"
+                    className={cn(
+                        'group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2.5 text-left shadow-subtle-xs transition-colors hover:border-border/40 hover:bg-background',
+                        !isSidebarOpen &&
+                            'h-9 w-auto justify-center border-none bg-transparent px-1.5 py-1.5 shadow-none hover:bg-transparent'
+                    )}
+                >
+                    <div
+                        className={cn(
+                            'flex size-8 shrink-0 items-center justify-center rounded-full border border-border/40 bg-gradient-to-br from-brand/90 to-brand/70 text-background shadow-subtle-xs',
+                            !isSidebarOpen && 'size-7'
+                        )}
+                    >
+                        {user && user.hasImage ? (
+                            <img
+                                src={user?.imageUrl ?? ''}
+                                width={32}
+                                height={32}
+                                className="size-full shrink-0 rounded-full"
+                                alt={user?.fullName 
+                                    ? user.fullName
+                                        .split(' ')
+                                        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                        .join(' ')
+                                    : 'Account'
+                                }
+                            />
+                        ) : (
+                            <IconUser size={16} strokeWidth={2} className="text-background" />
+                        )}
+                    </div>
+                    {isSidebarOpen && (
+                        <div className="flex flex-1 flex-col items-start gap-0">
+                            <p className="line-clamp-1 text-sm font-medium text-foreground pt-0.5">
+                                {user?.fullName 
+                                    ? user.fullName
+                                        .split(' ')
+                                        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                        .join(' ')
+                                    : 'Account'
+                                }
+                            </p>
+                            <p className="text-muted-foreground/70 text-[11px] font-normal -mt-0.5">
+                                Manage account
+                            </p>
+                        </div>
+                    )}
+                    {isSidebarOpen && (
+                        <IconSelector
                             size={14}
                             strokeWidth={2}
-                            className="text-background"
+                            className={cn(
+                                'text-muted-foreground transition-transform',
+                                isMenuOpen && 'rotate-180'
+                            )}
                         />
                     )}
-                </div>
-
-                {isSidebarOpen && (
-                    <p className="line-clamp-1 flex-1 !text-sm font-medium">
-                        {user?.fullName}
-                    </p>
-                )}
-                {isSidebarOpen && (
-                    <IconSelector
-                        size={14}
-                        strokeWidth={2}
-                        className="text-muted-foreground"
-                    />
-                )}
-            </div>
-            
-            {isMenuOpen && (
-                <>
-                    <div 
-                        className="fixed inset-0 z-40" 
-                        onClick={() => setIsMenuOpen(false)}
-                    />
-                    <div className="absolute left-0 right-0 z-50 mt-2 bg-white border rounded-lg shadow-lg p-1">
-                        <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 rounded"
-                            onClick={() => {
-                                setIsSettingsOpen(true);
-                                setIsMenuOpen(false);
-                            }}
-                        >
-                            <IconSettings size={16} strokeWidth={2} />
-                            Settings
-                        </button>
-                        <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 rounded"
-                            onClick={() => {
-                                openUserProfile();
-                                setIsMenuOpen(false);
-                            }}
-                        >
-                            <IconUser size={16} strokeWidth={2} />
-                            Profile
-                        </button>
-                        <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 rounded"
-                            onClick={() => {
-                                signOut();
-                                setIsMenuOpen(false);
-                            }}
-                        >
-                            <IconLogout size={16} strokeWidth={2} />
-                            Logout
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
+                </Button>
+            </AccountMenuTrigger>
+            <AccountMenuContent
+                align="start"
+                className="min-w-[220px]"
+                side={isSidebarOpen ? 'top' : 'right'}
+                sideOffset={isSidebarOpen ? 12 : 8}
+            >
+                <AccountMenuItem
+                    className="flex w-full items-center gap-2 text-sm"
+                    onSelect={() => {
+                        setIsSettingsOpen(true);
+                    }}
+                >
+                    <IconSettings size={16} strokeWidth={2} />
+                    Settings
+                </AccountMenuItem>
+                <AccountMenuItem
+                    className="flex w-full items-center gap-2 text-sm"
+                    onSelect={() => {
+                        openUserProfile();
+                    }}
+                >
+                    <IconUser size={16} strokeWidth={2} />
+                    Profile
+                </AccountMenuItem>
+                <AccountMenuSeparator />
+                <AccountMenuItem
+                    className="flex w-full items-center gap-2 text-sm text-destructive"
+                    onSelect={() => {
+                        signOut();
+                    }}
+                >
+                    <IconLogout size={16} strokeWidth={2} />
+                    Log out
+                </AccountMenuItem>
+            </AccountMenuContent>
+        </AccountMenuRoot>
     );
 };
 
@@ -189,10 +217,10 @@ export const Sidebar = () => {
                     {title}
                 </div>
                 {threads.length === 0 && renderEmptyState ? (
-                    <div>{renderEmptyState()}</div>
+                    <div className="w-full">{renderEmptyState()}</div>
                 ) : (
                     <Flex
-                        className="bg-background/70 border-border/40 w-full gap-0.5 rounded-md border px-1.5 py-1"
+                        className="bg-background/80 border-border/60 w-full gap-0.5 rounded-lg border px-1.5 py-1"
                         gap="none"
                         direction="col"
                     >
@@ -219,7 +247,7 @@ export const Sidebar = () => {
         <div
             className={cn(
                 'relative z-[50] flex h-[100dvh] flex-shrink-0 flex-col border-r border-border/70 bg-background/95 px-3 py-4 shadow-subtle-sm backdrop-blur transition-all duration-200',
-                isSidebarOpen ? 'w-[260px]' : 'w-[60px] px-2'
+                isSidebarOpen ? 'w-[288px] px-4' : 'w-[64px] px-2'
             )}
         >
             <Flex direction="col" className="w-full flex-1 overflow-hidden" gap="md">
@@ -230,7 +258,7 @@ export const Sidebar = () => {
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.3, delay: 0.2 }}
                             className={cn(
-                                'flex h-8 w-full cursor-pointer items-center justify-start gap-1.5 px-4',
+                                'flex h-9 w-full cursor-pointer items-center justify-start gap-2 rounded-md px-3.5',
                                 !isSidebarOpen && 'justify-center px-0'
                             )}
                         >
@@ -249,7 +277,7 @@ export const Sidebar = () => {
                             tooltipSide="right"
                             size="icon-sm"
                             onClick={() => setIsSidebarOpen(prev => !prev)}
-                            className={cn(!isSidebarOpen && 'mx-auto', 'mr-2')}
+                            className="mr-1"
                         >
                             <IconArrowBarLeft size={16} strokeWidth={2} />
                         </Button>
@@ -296,16 +324,15 @@ export const Sidebar = () => {
                         tooltip={isSidebarOpen ? undefined : 'Search'}
                         tooltipSide="right"
                         className={cn(
-                            isSidebarOpen && 'relative w-full',
-                            'text-muted-foreground justify-center px-2'
+                            isSidebarOpen && 'relative w-full justify-between',
+                            'text-muted-foreground px-2'
                         )}
                         onClick={() => setIsCommandSearchOpen(true)}
                     >
                         <IconSearch size={14} strokeWidth={2} className={cn(isSidebarOpen)} />
-                        {isSidebarOpen && 'Search'}
-                        {isSidebarOpen && <div className="flex-1" />}
+                        {isSidebarOpen && <span className="text-sm font-medium">Search</span>}
                         {isSidebarOpen && (
-                            <div className="flex flex-row items-center gap-1">
+                            <div className="flex flex-row items-center gap-1 pr-1">
                                 <Badge
                                     variant="secondary"
                                     className="bg-muted-foreground/10 text-muted-foreground flex size-5 items-center justify-center rounded-md p-0"
@@ -355,9 +382,9 @@ export const Sidebar = () => {
                 ) : (
                     <Flex
                         direction="col"
-                        gap="md"
+                        gap="lg"
                         className={cn(
-                            'no-scrollbar w-full flex-1 overflow-y-auto pb-[100px]',
+                            'no-scrollbar w-full flex-1 overflow-y-auto pb-[110px] pr-0.5',
                             isSidebarOpen ? 'flex' : 'hidden'
                         )}
                     >
@@ -368,8 +395,8 @@ export const Sidebar = () => {
                                 .sort((a, b) => b.pinnedAt.getTime() - a.pinnedAt.getTime()),
                             groupIcon: <IconPinned size={14} strokeWidth={2} />,
                             renderEmptyState: () => (
-                                <div className="border-hard flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-2">
-                                    <p className="text-muted-foreground text-xs opacity-50">
+                                <div className="border-border/60 bg-background/70 flex w-full flex-col gap-1 rounded-lg border border-dashed px-3 py-2">
+                                    <p className="text-muted-foreground/80 text-xs font-medium">
                                         No pinned threads
                                     </p>
                                 </div>
@@ -388,10 +415,10 @@ export const Sidebar = () => {
 
                 <Flex
                     className={cn(
-                        'from-tertiary via-tertiary/95 absolute bottom-0 mt-auto w-full items-center bg-gradient-to-t via-60% to-transparent px-1.5 pb-4 pt-10',
-                        isSidebarOpen && 'items-start justify-between'
+                        'from-tertiary via-tertiary/95 absolute bottom-0 left-0 right-0 mt-auto bg-gradient-to-t via-60% to-transparent pb-4 pt-10',
+                        isSidebarOpen ? 'items-stretch px-4' : 'items-center px-2'
                     )}
-                    gap="xs"
+                    gap="sm"
                     direction={'col'}
                 >
                     {!isSidebarOpen && (
@@ -407,20 +434,23 @@ export const Sidebar = () => {
                         </Button>
                     )}
                     {isSignedIn && (
-                        <UserMenu
-                            user={user}
-                            isSidebarOpen={isSidebarOpen}
-                            setIsSettingsOpen={setIsSettingsOpen}
-                            openUserProfile={openUserProfile}
-                            signOut={signOut}
-                        />
+                        <div className={cn('w-full', !isSidebarOpen && 'flex justify-center')}>
+                            <UserMenu
+                                user={user}
+                                isSidebarOpen={isSidebarOpen}
+                                setIsSettingsOpen={setIsSettingsOpen}
+                                openUserProfile={openUserProfile}
+                                signOut={signOut}
+                            />
+                        </div>
                     )}
                     {isSidebarOpen && !isSignedIn && (
-                        <div className="flex w-full flex-col gap-1.5 p-1">
+                        <div className="flex w-full max-w-full flex-col gap-2 overflow-hidden rounded-lg bg-background/80 p-3 shadow-subtle-xs">
                             <Button
                                 variant="bordered"
                                 size="sm"
                                 rounded="lg"
+                                className="w-full"
                                 onClick={() => {
                                     setIsSettingsOpen(true);
                                 }}
@@ -428,7 +458,13 @@ export const Sidebar = () => {
                                 <IconSettings2 size={14} strokeWidth={2} />
                                 Settings
                             </Button>
-                            <Button size="sm" rounded="lg" onClick={() => push('/sign-in')}>
+                            <Button
+                                size="sm"
+                                rounded="lg"
+                                className="w-full justify-start gap-2"
+                                onClick={() => push('/sign-in')}
+                            >
+                                <IconLogout size={14} strokeWidth={2} />
                                 Log in / Sign up
                             </Button>
                         </div>
