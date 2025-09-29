@@ -1,14 +1,9 @@
-// import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-// Temporarily disabled clerk middleware for testing
-export default function middleware() {
+export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
-}
-
-// export default clerkMiddleware(async (auth, req) => {
-//     return NextResponse.next();
-// });
+});
 
 export const config = {
     matcher: [

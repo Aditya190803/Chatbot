@@ -1,4 +1,4 @@
-// import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider } from '@clerk/nextjs';
 import { RootLayout } from '@repo/common/components';
 import { ReactQueryProvider, RootProvider } from '@repo/common/context';
 import { TooltipProvider } from '@repo/ui';
@@ -118,8 +118,7 @@ export default function ParentLayout({
             </head>
             <body>
                 {/* <PostHogProvider> */}
-                {/* Temporarily disable Clerk for testing */}
-                {/* <ClerkProvider> */}
+                <ClerkProvider>
                     <RootProvider>
                         {/* <ThemeProvider
             attribute="class"
@@ -134,7 +133,7 @@ export default function ParentLayout({
                         </TooltipProvider>
                         {/* </ThemeProvider> */}
                     </RootProvider>
-                {/* </ClerkProvider> */}
+                </ClerkProvider>
                 {/* </PostHogProvider> */}
             </body>
         </html>
