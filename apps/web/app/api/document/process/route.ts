@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import pdf from 'pdf-parse';
+// Import pdf-parse only when needed to avoid build-time execution
 import { documentStore } from '@repo/ai/document-store';
 
 const processDocumentSchema = z.object({
@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
         switch (file.type) {
             case 'application/pdf':
                 try {
-                    const pdfData = await pdf(uint8Array);
+                    // Dynamic require to avoid build-time issues
+                    const pdfParse = require('pdf-parse');
+                    const pdfData = await pdfParse(uint8Array);
                     extractedText = pdfData.text;
                 } catch (error) {
                     console.error('PDF parsing error:', error);
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
             file.type,
             file.size,
             cleanedText,
-            userId
+            userId || undefined
         );
         
         const response = {
