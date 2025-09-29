@@ -16,12 +16,12 @@
         "prettier": "^3.2.5",
         "prettier-plugin-tailwindcss": "^0.5.12",
         "tsconfig-paths-webpack-plugin": "^4.2.0",
-        "turbo": "latest"
+        "turbo": "latest",
+        "vercel": "^48.1.6"
     },
     "packageManager": "bun@1.1.19",
     "workspaces": [
         "apps/*",
         "packages/*"
     ]
-
 }

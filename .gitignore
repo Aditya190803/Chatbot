@@ -38,3 +38,4 @@ DEPLOYMENT.md
 .turbo
 
 apps/web/tsconfig.tsbuildinfo
+.vercel
