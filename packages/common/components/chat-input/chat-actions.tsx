@@ -186,71 +186,69 @@ export const ChatModeOptions = ({
     const isChatPage = usePathname().startsWith('/chat');
     const { push } = useRouter();
     return (
-        <DropdownMenuContent
-            align="start"
-            side="bottom"
-            className="no-scrollbar max-h-[300px] w-[300px] overflow-y-auto"
-        >
+        <div className="bg-background border-border no-scrollbar max-h-[300px] w-[300px] overflow-y-auto rounded-md border p-2 shadow-lg">
             {isChatPage && (
-                <DropdownMenuGroup>
-                    <DropdownMenuLabel>Advanced Mode</DropdownMenuLabel>
-                    {chatOptions.map(option => (
-                        <DropdownMenuItem
+                <div className="mb-4">
+                    <h3 className="text-muted-foreground mb-2 text-sm font-medium">Advanced Mode</h3>
+                    <div className="space-y-1">
+                        {chatOptions.map(option => (
+                            <button
+                                key={option.label}
+                                onClick={() => {
+                                    if (ChatModeConfig[option.value]?.isAuthRequired && !isSignedIn) {
+                                        push('/sign-in');
+                                        return;
+                                    }
+                                    setChatMode(option.value);
+                                }}
+                                className="hover:bg-muted w-full rounded-sm p-2 text-left transition-colors"
+                            >
+                                <div className="flex w-full flex-row items-start gap-1.5">
+                                    <div className="flex flex-col gap-0 pt-1">{option.icon}</div>
+
+                                    <div className="flex flex-col gap-0">
+                                        <p className="m-0 text-sm font-medium">{option.label}</p>
+                                        {option.description && (
+                                            <p className="text-muted-foreground text-xs font-light">
+                                                {option.description}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="flex-1" />
+                                    {ChatModeConfig[option.value]?.isNew && <NewIcon />}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+            <div>
+                <h3 className="text-muted-foreground mb-2 text-sm font-medium">Models</h3>
+                <div className="space-y-1">
+                    {modelOptions.map(option => (
+                        <button
                             key={option.label}
-                            onSelect={() => {
+                            onClick={() => {
                                 if (ChatModeConfig[option.value]?.isAuthRequired && !isSignedIn) {
                                     push('/sign-in');
                                     return;
                                 }
                                 setChatMode(option.value);
                             }}
-                            className="h-auto"
+                            className="hover:bg-muted w-full rounded-sm p-2 text-left transition-colors"
                         >
-                            <div className="flex w-full flex-row items-start gap-1.5 px-1.5 py-1.5">
-                                <div className="flex flex-col gap-0 pt-1">{option.icon}</div>
-
+                            <div className="flex w-full flex-row items-center gap-2.5">
                                 <div className="flex flex-col gap-0">
-                                    {<p className="m-0 text-sm font-medium">{option.label}</p>}
-                                    {option.description && (
-                                        <p className="text-muted-foreground text-xs font-light">
-                                            {option.description}
-                                        </p>
-                                    )}
+                                    <p className="text-sm font-medium">{option.label}</p>
                                 </div>
                                 <div className="flex-1" />
                                 {ChatModeConfig[option.value]?.isNew && <NewIcon />}
                             </div>
-                        </DropdownMenuItem>
+                        </button>
                     ))}
-                </DropdownMenuGroup>
-            )}
-            <DropdownMenuGroup>
-                <DropdownMenuLabel>Models</DropdownMenuLabel>
-                {modelOptions.map(option => (
-                    <DropdownMenuItem
-                        key={option.label}
-                        onSelect={() => {
-                            if (ChatModeConfig[option.value]?.isAuthRequired && !isSignedIn) {
-                                push('/sign-in');
-                                return;
-                            }
-                            setChatMode(option.value);
-                        }}
-                        className="h-auto"
-                    >
-                        <div className="flex w-full flex-row items-center gap-2.5 px-1.5 py-1.5">
-                            <div className="flex flex-col gap-0">
-                                {<p className="text-sm font-medium">{option.label}</p>}
-                            </div>
-                            <div className="flex-1" />
-                            {ChatModeConfig[option.value]?.isNew && <NewIcon />}
-
-
-                        </div>
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuGroup>
-        </DropdownMenuContent>
+                </div>
+            </div>
+        </div>
     );
 };
 

@@ -117,52 +117,69 @@ export const HistoryItem = ({
                     </Flex>
                 </Link>
             )}
-            <DropdownMenu open={openOptions} onOpenChange={setOpenOptions}>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        className="bg-quaternary invisible absolute right-1 shrink-0 group-hover:visible group-hover:w-6"
-                        onClick={e => {
-                            e.stopPropagation();
-                            setOpenOptions(!openOptions);
-                        }}
-                    >
-                        <MoreHorizontal
-                            size={14}
-                            strokeWidth="2"
-                            className="text-muted-foreground/50"
-                        />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" side="right">
-                    <DropdownMenuItem
-                        onClick={e => {
-                            e.stopPropagation();
-                            handleEditClick();
-                        }}
-                    >
-                        Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={e => {
-                            e.stopPropagation();
-                            handleDeleteConfirm();
-                        }}
-                    >
-                        Delete Chat
-                    </DropdownMenuItem>
-                    {isPinned ? (
-                        <DropdownMenuItem onClick={() => unpinThread(thread.id)}>
-                            Unpin
-                        </DropdownMenuItem>
-                    ) : (
-                        <DropdownMenuItem onClick={() => pinThread(thread.id)}>
-                            Pin
-                        </DropdownMenuItem>
-                    )}
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="relative">
+                <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="bg-quaternary invisible absolute right-1 shrink-0 group-hover:visible group-hover:w-6"
+                    onClick={e => {
+                        e.stopPropagation();
+                        setOpenOptions(!openOptions);
+                    }}
+                >
+                    <MoreHorizontal
+                        size={14}
+                        strokeWidth="2"
+                        className="text-muted-foreground/50"
+                    />
+                </Button>
+                
+                {openOptions && (
+                    <div className="bg-background border-border absolute right-0 top-8 z-50 min-w-32 rounded-md border p-1 shadow-lg">
+                        <button
+                            onClick={e => {
+                                e.stopPropagation();
+                                handleEditClick();
+                                setOpenOptions(false);
+                            }}
+                            className="hover:bg-muted w-full rounded-sm px-2 py-1 text-left text-sm transition-colors"
+                        >
+                            Rename
+                        </button>
+                        <button
+                            onClick={e => {
+                                e.stopPropagation();
+                                handleDeleteConfirm();
+                                setOpenOptions(false);
+                            }}
+                            className="hover:bg-muted w-full rounded-sm px-2 py-1 text-left text-sm transition-colors"
+                        >
+                            Delete Chat
+                        </button>
+                        {isPinned ? (
+                            <button
+                                onClick={() => {
+                                    unpinThread(thread.id);
+                                    setOpenOptions(false);
+                                }}
+                                className="hover:bg-muted w-full rounded-sm px-2 py-1 text-left text-sm transition-colors"
+                            >
+                                Unpin
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => {
+                                    pinThread(thread.id);
+                                    setOpenOptions(false);
+                                }}
+                                className="hover:bg-muted w-full rounded-sm px-2 py-1 text-left text-sm transition-colors"
+                            >
+                                Pin
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
