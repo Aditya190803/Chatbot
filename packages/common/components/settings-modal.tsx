@@ -1,5 +1,5 @@
 'use client';
-import { useMcpToolsStore } from '@repo/common/store';
+import { useMcpToolsStore, useApiKeysStore } from '@repo/common/store';
 
 import { Button } from '@repo/ui/src/components/button';
 import { IconSettings2, IconTrash, IconX } from '@tabler/icons-react';
@@ -34,6 +34,12 @@ export const SettingsModal = () => {
             title: 'MCP Tools',
             key: SETTING_TABS.MCP_TOOLS,
             component: <MCPSettings />,
+        },
+        {
+            icon: <IconSettings2 size={16} strokeWidth={2} className="text-muted-foreground" />,
+            title: 'API Keys',
+            key: SETTING_TABS.API_KEYS as any,
+            component: <ApiKeysSettings />,
         },
     ];
 
@@ -332,6 +338,146 @@ export const PersonalizationSettings = () => {
             <div className=" shadow-subtle-sm border-border mt-2 rounded-lg border p-3">
                 <ChatEditor editor={editor} />
             </div>
+        </div>
+    );
+};
+
+// --- API Keys Settings ---
+export const ApiKeysSettings = () => {
+    const { setKey, removeKey, getAllKeys } = useApiKeysStore(state => ({
+        setKey: state.setKey,
+        removeKey: state.removeKey,
+        getAllKeys: state.getAllKeys,
+    }));
+    const keys = getAllKeys();
+
+    const [OPENROUTER_API_KEY, setOPENROUTER] = useState(keys.OPENROUTER_API_KEY || '');
+    const [GEMINI_API_KEY, setGEMINI] = useState(keys.GEMINI_API_KEY || '');
+    const [LANGSEARCH_API_KEY, setLang] = useState(keys.LANGSEARCH_API_KEY || '');
+    const [SERPER_API_KEY, setSerper] = useState(keys.SERPER_API_KEY || '');
+    const [JINA_API_KEY, setJina] = useState(keys.JINA_API_KEY || '');
+
+    const save = () => {
+        if (OPENROUTER_API_KEY) setKey('OPENROUTER_API_KEY', OPENROUTER_API_KEY.trim());
+        if (GEMINI_API_KEY) setKey('GEMINI_API_KEY', GEMINI_API_KEY.trim());
+        if (LANGSEARCH_API_KEY) setKey('LANGSEARCH_API_KEY', LANGSEARCH_API_KEY.trim());
+        if (SERPER_API_KEY) setKey('SERPER_API_KEY', SERPER_API_KEY.trim());
+        if (JINA_API_KEY) setKey('JINA_API_KEY', JINA_API_KEY.trim());
+    };
+
+    const clear = (provider: Parameters<typeof removeKey>[0]) => removeKey(provider);
+
+    return (
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-col">
+                <h2 className="text-base font-medium">API Keys</h2>
+                <p className="text-muted-foreground text-xs">
+                    Your keys are stored locally in your browser (private to you). Use them to bypass shared limits or use your own provider account.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+                <ApiKeyRow
+                    label="OpenRouter API Key"
+                    placeholder="sk-or-v1-..."
+                    value={OPENROUTER_API_KEY}
+                    onChange={setOPENROUTER}
+                    onClear={() => clear('OPENROUTER_API_KEY')}
+                    docHref="https://openrouter.ai/settings/keys"
+                />
+
+                <ApiKeyRow
+                    label="Google Gemini API Key"
+                    placeholder="AIza..."
+                    value={GEMINI_API_KEY}
+                    onChange={setGEMINI}
+                    onClear={() => clear('GEMINI_API_KEY')}
+                    docHref="https://aistudio.google.com/app/apikey"
+                />
+
+                <ApiKeyRow
+                    label="LangSearch API Key"
+                    placeholder="ls_..."
+                    value={LANGSEARCH_API_KEY}
+                    onChange={setLang}
+                    onClear={() => clear('LANGSEARCH_API_KEY')}
+                    docHref="https://langsearch.ai/"
+                />
+
+                <ApiKeyRow
+                    label="Serper API Key"
+                    placeholder="serper_..."
+                    value={SERPER_API_KEY}
+                    onChange={setSerper}
+                    onClear={() => clear('SERPER_API_KEY')}
+                    docHref="https://serper.dev/"
+                />
+
+                <ApiKeyRow
+                    label="Jina Reader API Key"
+                    placeholder="jina_..."
+                    value={JINA_API_KEY}
+                    onChange={setJina}
+                    onClear={() => clear('JINA_API_KEY')}
+                    docHref="https://jina.ai/reader/"
+                />
+            </div>
+
+            <div className="border-border mt-2 border-t pt-2">
+                <Button onClick={save} rounded="full" className="self-start">
+                    Save Keys
+                </Button>
+            </div>
+        </div>
+    );
+};
+
+const ApiKeyRow = ({
+    label,
+    value,
+    onChange,
+    placeholder,
+    onClear,
+    docHref,
+}: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder: string;
+    onClear: () => void;
+    docHref?: string;
+}) => {
+    const masked = value ? `${value.slice(0, 6)}••••${value.slice(-4)}` : '';
+    return (
+        <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">{label}</label>
+                {docHref && (
+                    <a
+                        href={docHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-primary hover:underline"
+                    >
+                        Get key →
+                    </a>
+                )}
+            </div>
+            <div className="flex items-center gap-2">
+                <Input
+                    type="password"
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    className="font-mono"
+                />
+                <Button variant="ghost" size="sm" onClick={onClear}>
+                    Clear
+                </Button>
+            </div>
+            {value && (
+                <p className="text-muted-foreground text-xs">Saved: {masked}</p>
+            )}
         </div>
     );
 };

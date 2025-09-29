@@ -5,6 +5,7 @@ import { immer } from 'zustand/middleware/immer';
 export const SETTING_TABS = {
     MCP_TOOLS: 'mcp-tools',
     PERSONALIZATION: 'personalization',
+    API_KEYS: 'api-keys',
 } as const;
 
 type SideDrawerProps = {
@@ -41,7 +42,7 @@ export const useAppStore = create(
         isSidebarOpen: true,
         isSourcesOpen: false,
         isSettingsOpen: false,
-        settingTab: 'personalization',
+    settingTab: 'personalization',
         showSignInModal: false,
         setIsSidebarOpen: (prev: (prev: boolean) => boolean) =>
             set({ isSidebarOpen: prev(get().isSidebarOpen) }),

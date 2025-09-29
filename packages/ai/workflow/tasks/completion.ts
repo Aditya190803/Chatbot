@@ -52,7 +52,7 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
         `;
 
         const reasoningBuffer = new ChunkBuffer({
-            threshold: 200,
+            threshold: 120,
             breakOn: ['\n\n'],
             onFlush: (_chunk: string, fullText: string) => {
                 events?.update('steps', prev => ({
@@ -74,8 +74,8 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
         });
 
         const chunkBuffer = new ChunkBuffer({
-            threshold: 200,
-            breakOn: ['\n'],
+            threshold: 48,
+            breakOn: ['\n', '. ', '.\n', '.', '! ', '!', '? ', '?'],
             onFlush: (text: string) => {
                 events?.update('answer', current => ({
                     ...current,
