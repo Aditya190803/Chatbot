@@ -116,24 +116,41 @@ export const ThreadItem = memo(
                         {/* Display thinking process if available */}
                         <ThinkingProcess content={threadItem.thinkingProcess} />
 
+                        {/* Main Answer Section - Prominently displayed */}
                         <div ref={messageRef} className="w-full">
                             {hasAnswer && threadItem.answer?.text && (
                                 <div className="flex flex-col">
+                                    {/* Sources Grid */}
                                     <SourceGrid sources={threadItem.sources || []} />
 
-                                    <MarkdownContent
-                                        content={animatedText || ''}
-                                        key={`answer-${threadItem.id}`}
-                                        isCompleted={['COMPLETED', 'ERROR', 'ABORTED'].includes(
-                                            threadItem.status || ''
+                                    {/* Main Answer - Enhanced with clear separation */}
+                                    <div className="relative">
+                                        {threadItem.thinkingProcess && (
+                                            <div className="absolute -top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-60" />
                                         )}
-                                        shouldAnimate={
-                                            !['COMPLETED', 'ERROR', 'ABORTED'].includes(
-                                                threadItem.status || ''
-                                            )
-                                        }
-                                        isLast={isLast}
-                                    />
+                                        <div className={cn(
+                                            "rounded-lg bg-background/50 backdrop-blur-sm",
+                                            threadItem.thinkingProcess && "mt-4 p-1 border border-border/20"
+                                        )}>
+                                            <MarkdownContent
+                                                content={animatedText || ''}
+                                                key={`answer-${threadItem.id}`}
+                                                isCompleted={['COMPLETED', 'ERROR', 'ABORTED'].includes(
+                                                    threadItem.status || ''
+                                                )}
+                                                shouldAnimate={
+                                                    !['COMPLETED', 'ERROR', 'ABORTED'].includes(
+                                                        threadItem.status || ''
+                                                    )
+                                                }
+                                                isLast={isLast}
+                                                className={cn(
+                                                    "prose-slate dark:prose-invert max-w-none",
+                                                    threadItem.thinkingProcess && "p-4"
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

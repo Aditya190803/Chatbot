@@ -1,7 +1,7 @@
 import { SearchResultsList, StepStatus, TextShimmer } from '@repo/common/components';
 import { Step } from '@repo/shared/types';
-import { Badge } from '@repo/ui';
-import { IconSearch } from '@tabler/icons-react';
+import { Badge, cn } from '@repo/ui';
+import { IconSearch, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import React, { useState } from 'react';
 
@@ -122,15 +122,30 @@ export const StepRenderer = ({ step }: StepRendererType) => {
                         <button
                             type="button"
                             onClick={() => setThinkingExpanded(v => !v)}
-                            className="text-muted-foreground/80 hover:text-foreground text-xs underline-offset-2 hover:underline"
+                            className="flex items-center gap-1 text-muted-foreground/80 hover:text-foreground text-xs transition-colors duration-150 hover:bg-muted/50 rounded px-1 py-0.5"
                         >
-                            {thinkingExpanded ? 'Hide thinking' : 'Show thinking'}
+                            {thinkingExpanded ? (
+                                <>
+                                    <IconChevronDown size={12} />
+                                    Hide analysis
+                                </>
+                            ) : (
+                                <>
+                                    <IconChevronRight size={12} />
+                                    Show analysis
+                                </>
+                            )}
                         </button>
-                        {thinkingExpanded && (
-                            <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-                                {reasoningData}
-                            </p>
-                        )}
+                        <div className={cn(
+                            "overflow-hidden transition-all duration-200 ease-in-out",
+                            thinkingExpanded ? "max-h-[40vh] opacity-100" : "max-h-0 opacity-0"
+                        )}>
+                            <div className="mt-1 p-2 rounded-md bg-muted/30 border border-border/20">
+                                <div className="text-muted-foreground text-sm whitespace-pre-wrap font-mono leading-relaxed max-h-[35vh] overflow-y-auto">
+                                    {reasoningData}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </motion.div>
             );
