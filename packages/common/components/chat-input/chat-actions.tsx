@@ -15,6 +15,7 @@ import {
     IconPaperclip,
     IconPlayerStopFilled,
     IconWorld,
+    IconPhotoPlus,
 } from '@tabler/icons-react';
 const {
     DropdownMenu,
@@ -57,6 +58,14 @@ export const chatOptions: ChatModeOption[] = [
         icon: IconNorthStar,
         iconClassName: 'text-sky-600',
         badge: 'Web',
+    },
+    {
+        label: 'Gemini Image Studio',
+        description: 'Generate and edit images with AI',
+        value: ChatMode.IMAGE_STUDIO,
+        icon: IconPhotoPlus,
+        iconClassName: 'text-emerald-600',
+        badge: 'New',
     },
 ];
 
@@ -216,6 +225,13 @@ export const ChatModeOptions = ({
         if (requiresAuth && !isSignedIn) {
             event.preventDefault();
             push('/sign-in');
+            return;
+        }
+
+        // Handle special routing for Image Studio
+        if (mode === ChatMode.IMAGE_STUDIO) {
+            event.preventDefault();
+            push('/image-studio');
             return;
         }
 

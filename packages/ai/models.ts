@@ -7,6 +7,7 @@ export * from './cost-tracker';
 export enum ModelEnum {
     GEMINI_2_5_PRO = 'gemini-2.5-pro',
     GEMINI_2_5_FLASH = 'gemini-2.5-flash',
+    GEMINI_2_5_FLASH_IMAGE_PREVIEW = 'gemini-2.5-flash-image-preview',
     GROK_4_FAST = 'x-ai/grok-4-fast:free',
     GLM_4_5_AIR = 'z-ai/glm-4.5-air:free',
     DEEPSEEK_CHAT_V3_1 = 'deepseek/deepseek-chat-v3.1:free',
@@ -43,6 +44,15 @@ export const models: Model[] = [
         contextWindow: 200000,
         costPer1MInput: 1.25,
         costPer1MOutput: 5.00,
+    },
+    {
+        id: ModelEnum.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
+        name: 'Gemini 2.5 Flash Image Preview',
+        provider: 'google',
+        maxTokens: 200000,
+        contextWindow: 200000,
+        costPer1MInput: 0.075,
+        costPer1MOutput: 0.30,
     },
     {
         id: ModelEnum.GROK_4_FAST,
@@ -92,6 +102,8 @@ export const getModelFromChatMode = (mode?: string): ModelEnum => {
             return ModelEnum.GEMINI_2_5_PRO;
         case ChatMode.GEMINI_2_5_FLASH:
             return ModelEnum.GEMINI_2_5_FLASH;
+        case ChatMode.IMAGE_STUDIO:
+            return ModelEnum.GEMINI_2_5_FLASH_IMAGE_PREVIEW;
         case ChatMode.GROK_4_FAST:
             return ModelEnum.GROK_4_FAST;
         case ChatMode.GLM_4_5_AIR:
@@ -111,6 +123,7 @@ export const getChatModeMaxTokens = (mode: ChatMode) => {
     switch (mode) {
         case ChatMode.GEMINI_2_5_PRO:
         case ChatMode.GEMINI_2_5_FLASH:
+        case ChatMode.IMAGE_STUDIO:
             return 500000;
         case ChatMode.GROK_4_FAST:
         case ChatMode.GLM_4_5_AIR:

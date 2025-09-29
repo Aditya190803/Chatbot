@@ -3,6 +3,7 @@ export enum ChatMode {
     Deep = 'deep',
     GEMINI_2_5_PRO = 'gemini-pro-2.5',
     GEMINI_2_5_FLASH = 'gemini-flash-2.5',
+    IMAGE_STUDIO = 'image-studio',
     GROK_4_FAST = 'grok-4-fast',
     GLM_4_5_AIR = 'glm-4-5-air',
     DEEPSEEK_CHAT_V3_1 = 'deepseek-chat-v3-1',
@@ -51,6 +52,14 @@ export const ChatModeConfig: Record<
         retry: true,
         documentAnalysis: true,
         nativeInternetAccess: true,
+        isAuthRequired: false,
+    },
+    [ChatMode.IMAGE_STUDIO]: {
+        webSearch: false,
+        imageUpload: true,
+        retry: true,
+        documentAnalysis: false,
+        nativeInternetAccess: false,
         isAuthRequired: false,
     },
     [ChatMode.GROK_4_FAST]: {
@@ -119,6 +128,8 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'Gemini 2.5 Pro';
         case ChatMode.GEMINI_2_5_FLASH:
             return 'Gemini 2.5 Flash';
+        case ChatMode.IMAGE_STUDIO:
+            return 'Gemini Image Studio';
         case ChatMode.GROK_4_FAST:
             return 'Grok 4 Fast';
         case ChatMode.GLM_4_5_AIR:
