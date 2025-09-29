@@ -37,3 +37,4 @@ DEPLOYMENT.md
 # turbo
 .turbo
 
+apps/web/tsconfig.tsbuildinfo
