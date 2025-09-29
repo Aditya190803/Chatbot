@@ -35,15 +35,6 @@ export const RootLayout: FC<TRootLayout> = ({ children }) => {
 
     return (
         <div className="bg-tertiary flex h-[100dvh] w-full flex-row overflow-hidden">
-            <div className="bg-tertiary item-center fixed inset-0 z-[99999] flex justify-center md:hidden">
-                <div className="flex flex-col items-center justify-center gap-2">
-                    <IconMoodSadDizzy size={24} strokeWidth={2} className="text-muted-foreground" />
-                    <span className="text-muted-foreground text-center text-sm">
-                        Mobile version is coming soon.
-                        <br /> Please use a desktop browser.
-                    </span>
-                </div>
-            </div>
             <Flex className="hidden lg:flex">
                 <AnimatePresence>{isSidebarOpen && <Sidebar />}</AnimatePresence>
             </Flex>
@@ -52,11 +43,23 @@ export const RootLayout: FC<TRootLayout> = ({ children }) => {
                 open={isMobileSidebarOpen}
                 direction="left"
                 shouldScaleBackground
-                onOpenChange={setIsMobileSidebarOpen}
+                modal={true}
+                preventScrollRestoration={true}
+                onOpenChange={(open) => {
+                    setIsMobileSidebarOpen(open);
+                    // When opening mobile sidebar, ensure it's expanded
+                    if (open && typeof window !== 'undefined' && window.innerWidth < 1024) {
+                        const { setIsSidebarOpen } = useAppStore.getState();
+                        setIsSidebarOpen(() => true);
+                    }
+                }}
             >
                 <Drawer.Portal>
-                    <Drawer.Overlay className="fixed inset-0 z-30 backdrop-blur-sm" />
-                    <Drawer.Content className="fixed bottom-0 left-0 top-0 z-[50]">
+                    <Drawer.Overlay className="fixed inset-0 z-30 backdrop-blur-sm" aria-hidden="false" />
+                    <Drawer.Content 
+                        className="fixed bottom-0 left-0 top-0 z-[50] outline-none" 
+                        aria-label="Navigation sidebar"
+                    >
                         <Flex className="pr-2">
                             <Sidebar />
                         </Flex>
@@ -71,7 +74,27 @@ export const RootLayout: FC<TRootLayout> = ({ children }) => {
                         <div className={containerClass}>
                             <div className="relative flex h-full w-0 flex-1 flex-row">
                                 <div className="flex w-full flex-col gap-2 overflow-y-auto">
-                                    <div className="from-secondary to-secondary/0 via-secondary/70 absolute left-0 right-0 top-0 z-40 flex flex-row items-center justify-center gap-1 bg-gradient-to-b p-2 pb-12"></div>
+                                    {/* Mobile Header with hamburger menu */}
+                                    <div className="from-secondary to-secondary/0 via-secondary/70 absolute left-0 right-0 top-0 z-40 flex flex-row items-center justify-between gap-1 bg-gradient-to-b p-2 pb-12 lg:justify-center">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            className="lg:hidden"
+                                            onClick={() => {
+                                                setIsMobileSidebarOpen(true);
+                                                // Ensure sidebar is expanded when opening on mobile
+                                                const { setIsSidebarOpen } = useAppStore.getState();
+                                                setIsSidebarOpen(prev => true);
+                                            }}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <line x1="3" x2="21" y1="6" y2="6"/>
+                                                <line x1="3" x2="21" y1="12" y2="12"/>
+                                                <line x1="3" x2="21" y1="18" y2="18"/>
+                                            </svg>
+                                        </Button>
+                                        <div className="lg:hidden" />
+                                    </div>
                                     {/* Auth Button Header */}
 
                                     {children}
@@ -115,7 +138,7 @@ export const SideDrawer = () => {
                         damping: 30,
                         exit: { duration: 0.2 },
                     }}
-                    className="flex min-h-[99dvh] w-[500px] shrink-0 flex-col overflow-hidden py-1.5 pl-0.5 pr-1.5"
+                    className="flex min-h-[99dvh] w-full max-w-[500px] sm:w-[500px] shrink-0 flex-col overflow-hidden py-1.5 pl-0.5 pr-1.5"
                 >
                     <div className="bg-background border-border shadow-subtle-xs flex h-full w-full flex-col overflow-hidden rounded-lg">
                         <div className="border-border flex flex-row items-center justify-between gap-2 border-b py-1.5 pl-4 pr-2">

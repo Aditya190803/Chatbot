@@ -7,7 +7,7 @@ export const Footer = () => {
             label: 'Star us on GitHub',
         },
         {
-            href: 'https://github.com/Aditya190803/chatbot',
+            href: '/changelog',
             label: 'Changelog',
         },
         {
@@ -24,12 +24,12 @@ export const Footer = () => {
         },
     ];
     return (
-        <div className="flex w-full flex-row items-center justify-center gap-4 p-3">
+        <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:gap-4 p-3 text-center">
             {links.map(link => (
                 <Link
                     key={link.label}
                     href={link.href}
-                    className="text-muted-foreground text-xs opacity-50 hover:opacity-100"
+                    className="text-muted-foreground text-xs opacity-50 hover:opacity-100 whitespace-nowrap"
                 >
                     {link.label}
                 </Link>

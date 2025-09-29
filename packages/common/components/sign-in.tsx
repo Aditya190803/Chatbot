@@ -348,7 +348,7 @@ export const CustomSignIn = ({
 
     if (verifying) {
         return (
-            <div className="flex w-[300px] flex-col items-center gap-4">
+            <div className="flex w-full max-w-[300px] flex-col items-center gap-4">
                 <div className="flex flex-col items-center gap-1">
                     <h2 className="font-clash text-foreground !text-brand text-center text-[24px] font-semibold leading-tight">
                         Check your email
@@ -424,7 +424,7 @@ export const CustomSignIn = ({
             >
                 <IconX className="h-4 w-4" />
             </Button>
-            <div className="flex w-[350px] flex-col items-center gap-6">
+            <div className="flex w-full max-w-[350px] flex-col items-center gap-6">
                 <h2 className="text-muted-foreground/70 text-center text-[24px] font-semibold leading-tight">
                     Sign in to unlock <br /> advanced research tools
                 </h2>
