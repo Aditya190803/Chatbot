@@ -105,6 +105,8 @@ export type WorkflowContextSchema = {
     threadItemId: string;
     showSuggestions: boolean;
     customInstructions?: string;
+    autoWebSearchEnabled?: boolean;
+    autoWebSearchReason?: string;
     onFinish: (data: any) => void;
 };
 

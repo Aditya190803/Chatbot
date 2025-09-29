@@ -3,6 +3,7 @@ import { ChatModeConfig } from '@repo/shared/config';
 import { getModelFromChatMode } from '../../models';
 import { WorkflowContextSchema, WorkflowEventSchema } from '../flow';
 import { ChunkBuffer, generateText, getHumanizedDate, handleError } from '../utils';
+import { shouldUseWebSearchWithContext } from '../utils/smart-web-search';
 
 const MAX_ALLOWED_CUSTOM_INSTRUCTIONS_LENGTH = 6000;
 
@@ -41,14 +42,29 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
             ];
         }
 
-        if (webSearch) {
-            redirectTo('quickSearch');
-            return;
-        }
-
         const model = getModelFromChatMode(mode);
         const modelConfig = mode ? ChatModeConfig[mode] : undefined;
         const hasNativeInternet = modelConfig?.nativeInternetAccess || false;
+
+        // Enhanced native internet access: intelligently decide if web search is needed
+        const searchDecision = await shouldUseWebSearchWithContext(
+            messages,
+            hasNativeInternet,
+            webSearch,
+            signal
+        );
+
+        // If AI determines web search is needed or user manually enabled it, redirect to search
+        if (searchDecision.shouldSearch) {
+            // Update context to indicate why web search was triggered
+            if (searchDecision.autoEnabled) {
+                context?.set('autoWebSearchReason', searchDecision.reasoning);
+                context?.set('autoWebSearchEnabled', true);
+            }
+            
+            redirectTo('quickSearch');
+            return;
+        }
 
         let internetAccessInfo = '';
         if (hasNativeInternet && !webSearch) {
