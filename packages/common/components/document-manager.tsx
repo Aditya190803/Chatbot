@@ -37,13 +37,13 @@ export function DocumentManager() {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outlined" size="sm" className="gap-2">
                     <IconFile size={16} />
                     Documents ({totalDocuments})
                 </Button>
             </DialogTrigger>
             
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" ariaTitle="Document Manager">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <IconFile size={20} />

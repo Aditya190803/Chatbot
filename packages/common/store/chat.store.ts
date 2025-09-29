@@ -758,7 +758,7 @@ export const useChatStore = create(
                         id: threadItem.id,
                         threadId,
                         query: threadItem.query || '',
-                        mode: threadItem.mode || ChatMode.GEMINI_2_FLASH,
+                        mode: threadItem.mode || ChatMode.GEMINI_2_5_FLASH,
                         createdAt: new Date(),
                         updatedAt: new Date(),
                         ...threadItem,

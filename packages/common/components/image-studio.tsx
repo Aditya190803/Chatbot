@@ -1,10 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { generateText } from 'ai';
-import { getLanguageModel } from '@repo/ai/models';
-import { ModelEnum } from '@repo/ai/models';
-import { Button, Card, Flex, Input, Textarea, cn } from '@repo/ui';
+import React, { useState, useRef, useCallback } from 'react';
+import { Button, Card, Flex, Textarea, cn } from '@repo/ui';
 import { IconUpload, IconDownload, IconPhotoPlus, IconLoader2, IconX, IconSparkles } from '@tabler/icons-react';
 import { useDropzone } from 'react-dropzone';
 
@@ -72,52 +69,45 @@ export const ImageStudioComponent: React.FC = () => {
         setError('');
 
         try {
-            const model = getLanguageModel(ModelEnum.GEMINI_2_5_FLASH_IMAGE_PREVIEW);
-            
-            // Prepare the prompt content
-            let content: any[] = [{ type: 'text', text: prompt }];
-            
-            // If there's an uploaded image, add it to the content
+            // Make API call to our custom endpoint
+            const requestData: any = {
+                prompt: prompt,
+            };
+
             if (uploadedImage) {
+                // Convert image to base64
                 const imageBuffer = await uploadedImage.arrayBuffer();
-                const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-                content.push({
-                    type: 'image',
-                    image: base64Image,
+                const uint8Array = new Uint8Array(imageBuffer);
+                const base64Image = btoa(Array.from(uint8Array, byte => String.fromCharCode(byte)).join(''));
+                requestData.image = {
+                    data: base64Image,
                     mimeType: uploadedImage.type
-                });
+                };
             }
 
-            const result = await generateText({
-                model,
-                messages: [
-                    {
-                        role: 'user',
-                        content: content,
-                    },
-                ],
+            const response = await fetch('/api/image-generation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
             });
 
-            // Process generated images from result.files
-            if (result.files && result.files.length > 0) {
-                const newImages: GeneratedImage[] = result.files.map((file, index) => {
-                    // Convert Uint8Array to base64 if needed
-                    let dataUrl = '';
-                    if (file.data instanceof Uint8Array) {
-                        const base64 = btoa(String.fromCharCode(...file.data));
-                        dataUrl = `data:${file.mediaType};base64,${base64}`;
-                    } else if (typeof file.data === 'string') {
-                        dataUrl = `data:${file.mediaType};base64,${file.data}`;
-                    }
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to generate image');
+            }
 
-                    return {
-                        id: `${Date.now()}-${index}`,
-                        dataUrl,
-                        mediaType: file.mediaType || 'image/png',
-                        prompt: prompt,
-                        timestamp: Date.now(),
-                    };
-                });
+            const result = await response.json();
+
+            if (result.images && result.images.length > 0) {
+                const newImages: GeneratedImage[] = result.images.map((imageData: any, index: number) => ({
+                    id: `${Date.now()}-${index}`,
+                    dataUrl: imageData.dataUrl,
+                    mediaType: imageData.mediaType || 'image/png',
+                    prompt: prompt,
+                    timestamp: Date.now(),
+                }));
 
                 setGeneratedImages(prev => [...newImages, ...prev]);
             } else {
@@ -291,7 +281,7 @@ export const ImageStudioComponent: React.FC = () => {
                                             </div>
                                             <Button
                                                 size="sm"
-                                                variant="outline"
+                                                variant="secondary"
                                                 className="w-full"
                                                 onClick={() => downloadImage(image)}
                                             >

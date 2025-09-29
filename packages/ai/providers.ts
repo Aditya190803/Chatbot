@@ -136,7 +136,6 @@ export const getProviderInstance = (provider: ProviderEnumType) => {
       return createOpenAI({
         apiKey,
         baseURL: 'https://openrouter.ai/api/v1',
-        compatibility: 'strict',
         headers: getOpenRouterHeaders(),
       });
       }

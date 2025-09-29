@@ -1,13 +1,14 @@
 import { SignInButton, useAuth, UserButton } from '@clerk/nextjs';
 import { FullPageLoader, HistoryItem } from '@repo/common/components';
 import { useRootContext } from '@repo/common/context';
-import { Thread, useAppStore, useChatStore } from '@repo/common/store';
+import { Thread } from '@repo/shared/types';
+import { useAppStore, useChatStore } from '@repo/common/store';
 import { Button, cn, Flex } from '@repo/ui';
 import { IconArrowBarLeft, IconArrowBarRight, IconPlus, IconSearch } from '@tabler/icons-react';
 import moment from 'moment';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 
-export const Sidebar = () => {
+export const LayoutSidebar = () => {
     const { threadId: currentThreadId } = useParams();
     const pathname = usePathname();
     const { setIsCommandSearchOpen } = useRootContext();
@@ -64,6 +65,9 @@ export const Sidebar = () => {
                                 setIsSidebarOpen(prev => false);
                             }}
                             isActive={thread.id === currentThreadId}
+                            pinThread={() => {}} // Mock function
+                            unpinThread={() => {}} // Mock function
+                            isPinned={false}
                         />
                     ))}
                 </Flex>
