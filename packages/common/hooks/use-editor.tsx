@@ -3,6 +3,7 @@ import CharacterCount from '@tiptap/extension-character-count';
 import { Document } from '@tiptap/extension-document';
 import { HardBreak } from '@tiptap/extension-hard-break';
 import { Highlight } from '@tiptap/extension-highlight';
+import { History } from '@tiptap/extension-history';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { Text } from '@tiptap/extension-text';
@@ -30,6 +31,10 @@ export const useChatEditor = (editorProps: {
             }),
             CharacterCount.configure({
                 limit: editorProps?.charLimit || 400000,
+            }),
+            History.configure({
+                depth: 100,
+                newGroupDelay: 500,
             }),
             ...(!editorProps?.enableEnter ? [ShiftEnterToLineBreak, DisableEnter] : []),
             Highlight.configure({

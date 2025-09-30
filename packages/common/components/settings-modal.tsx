@@ -401,7 +401,7 @@ export const ApiKeysSettings = () => {
                     value={LANGSEARCH_API_KEY}
                     onChange={setLang}
                     onClear={() => clear('LANGSEARCH_API_KEY')}
-                    docHref="https://langsearch.ai/"
+                    docHref="https://langsearch.com/api-keys"
                 />
 
                 <ApiKeyRow
@@ -410,7 +410,7 @@ export const ApiKeysSettings = () => {
                     value={SERPER_API_KEY}
                     onChange={setSerper}
                     onClear={() => clear('SERPER_API_KEY')}
-                    docHref="https://serper.dev/"
+                    docHref="https://serper.dev/api-keys"
                 />
 
                 <ApiKeyRow

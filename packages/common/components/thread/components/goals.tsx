@@ -77,21 +77,22 @@ export const Steps = ({ steps, threadItem }: { steps: Step[]; threadItem: Thread
 
     const isStopped = threadItem.status === 'ABORTED' || threadItem.status === 'ERROR';
 
+    const answerText =
+        threadItem.answer?.text?.trim()?.length
+            ? threadItem.answer?.text
+            : threadItem.answer?.finalText;
     const isLoading = steps.some(step => step.status === 'PENDING') && !isStopped;
     const hasAnswer =
-        !!threadItem?.answer?.text &&
+        !!answerText &&
         (threadItem.status === 'COMPLETED' ||
             threadItem.status === 'ABORTED' ||
             threadItem.status === 'ERROR');
 
-    console.log('hasAnswer', hasAnswer);
-
     useEffect(() => {
         if (hasAnswer) {
-            console.log('dismissing side drawer');
             dismissSideDrawer();
         }
-    }, [hasAnswer]);
+    }, [hasAnswer, dismissSideDrawer]);
 
     useEffect(() => {
         if (steps[0]?.status === 'PENDING') {
