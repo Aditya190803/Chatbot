@@ -10,7 +10,8 @@
         "generate": "bunx drizzle-kit generate"
     },
     "dependencies": {
-        "@clerk/nextjs": "^6.12.3",
+    "appwrite": "20.1.0",
+    "node-appwrite": "19.1.0",
         "@electric-sql/pglite": "0.2.13",
         "@electric-sql/pglite-repl": "^0.2.15",
         "@hotjar/browser": "^1.0.9",
