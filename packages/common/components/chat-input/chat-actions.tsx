@@ -57,7 +57,8 @@ export const chatOptions: ChatModeOption[] = [
         value: ChatMode.IMAGE_GENERATION,
         icon: IconPhoto,
         iconClassName: 'text-rose-500',
-        badge: 'Images',
+        badge: 'Coming Soon',
+        disabled: true,
     },
 ];
 
