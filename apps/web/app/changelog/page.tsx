@@ -67,6 +67,17 @@ const CHANGE_TYPE_META: Record<ChangeType, { label: string; icon: IconComponent;
 // Define the changelog features with organized structure
 const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        id: 'image-generation-reliability',
+        title: 'Image Generation Reliability',
+        type: 'fix',
+        description: 'Improved Gemini image generation stability and resilience.',
+        items: [
+            'Removed unsupported response MIME configuration for Gemini 2.5 Flash Image Preview',
+            'Added exponential backoff retries for Gemini rate limit and transient errors',
+            'Surfaced clearer messaging when prompts are blocked or no images are returned'
+        ]
+    },
+    {
         id: 'development',
         title: 'Development & Build Improvements',
         type: 'chore',
