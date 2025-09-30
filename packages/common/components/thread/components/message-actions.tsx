@@ -23,9 +23,28 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
         const useWebSearch = useChatStore(state => state.useWebSearch);
         const [chatMode, setChatMode] = useState<ChatMode>(threadItem.mode);
         const { copyToClipboard, status, copyMarkdown, markdownCopyStatus } = useCopyText();
+        const answerText =
+            threadItem.answer?.text?.trim()?.length
+                ? threadItem.answer?.text
+                : threadItem.answer?.finalText;
+        const tokensUsed = threadItem.tokensUsed ?? 0;
+        const durationSeconds =
+            typeof threadItem.generationDurationMs === 'number' &&
+            threadItem.generationDurationMs > 0
+                ? threadItem.generationDurationMs / 1000
+                : null;
+        const tokensPerSecond =
+            durationSeconds && tokensUsed > 0 ? tokensUsed / durationSeconds : null;
+        const formattedTokensPerSecond =
+            tokensPerSecond !== null
+                ? tokensPerSecond >= 100
+                    ? `${Math.round(tokensPerSecond).toLocaleString()} tok/s`
+                    : `${tokensPerSecond.toFixed(1)} tok/s`
+                : null;
+
         return (
             <div className="flex flex-row items-center gap-1 py-2">
-                {threadItem?.answer?.text && (
+                {answerText && (
                     <Button
                         variant="ghost-bordered"
                         size="icon-sm"
@@ -44,13 +63,13 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                     </Button>
                 )}
 
-                {threadItem?.answer?.text && (
+                {answerText && (
                     <Button
                         variant="ghost-bordered"
                         size="icon-sm"
                         onClick={() => {
                             copyMarkdown(
-                                `${threadItem?.answer?.text}\n\n## References\n${threadItem?.sources
+                                `${answerText}\n\n## References\n${threadItem?.sources
                                     ?.map(source => `[${source.index}] ${source.link}`)
                                     .join('\n')}`
                             );
@@ -102,6 +121,17 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                     >
                         <IconTrash size={16} strokeWidth={2} />
                     </Button>
+                )}
+                {threadItem.status === 'COMPLETED' && formattedTokensPerSecond && (
+                    <p className="text-muted-foreground px-2 text-xs">
+                        {tokensUsed > 0 && (
+                            <>
+                                {tokensUsed.toLocaleString()} tokens
+                                <span className="mx-1">·</span>
+                            </>
+                        )}
+                        {formattedTokensPerSecond}
+                    </p>
                 )}
                 {threadItem.mode && (
                     <p className="text-muted-foreground px-2 text-xs">
