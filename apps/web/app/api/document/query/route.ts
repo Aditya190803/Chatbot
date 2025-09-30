@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/common/auth/server';
 import { documentStore } from '@repo/ai/document-store';
 import { ModelEnum } from '@repo/ai/models';
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,7 +12,11 @@ const documentQuerySchema = z.object({
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();
-        const userId = session?.userId;
+        const userId = session?.userId ?? undefined;
+
+        if (!userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
         
         const body = await request.json();
         const validation = documentQuerySchema.safeParse(body);
@@ -30,7 +34,7 @@ export async function POST(request: NextRequest) {
         const { query, model = ModelEnum.GEMINI_2_5_FLASH } = validation.data;
 
         // Check if user has any documents
-        const userDocuments = documentStore.getAllDocuments(userId);
+    const userDocuments = documentStore.getAllDocuments(userId);
         if (userDocuments.length === 0) {
             return NextResponse.json({
                 response: "You haven't uploaded any documents yet. Please upload documents first to ask questions about them.",
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate RAG response
-        const result = await documentStore.generateRAGResponse(query, userId, model);
+    const result = await documentStore.generateRAGResponse(query, userId, model);
 
         return NextResponse.json({
             response: result.response,
@@ -67,9 +71,13 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
     try {
         const session = await auth();
-        const userId = session?.userId;
+        const userId = session?.userId ?? undefined;
+
+        if (!userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
         
-        const documents = documentStore.getAllDocuments(userId);
+    const documents = documentStore.getAllDocuments(userId);
         
         const documentsSummary = documents.map(doc => ({
             id: doc.id,

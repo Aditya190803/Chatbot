@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/common/auth/server';
 
 export const submitFeedback = async (feedback: string) => {
     const session = await auth();

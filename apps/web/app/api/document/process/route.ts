@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/common/auth/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 // Import pdf-parse only when needed to avoid build-time execution
@@ -19,7 +19,11 @@ const SUPPORTED_MIME_TYPES = [
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();
-        const userId = session?.userId;
+        const userId = session?.userId ?? undefined;
+
+        if (!userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
         
         const formData = await request.formData();
         const file = formData.get('document') as File;
@@ -126,7 +130,7 @@ export async function POST(request: NextRequest) {
             file.type,
             file.size,
             cleanedText,
-            userId || undefined
+            userId
         );
         
         const response = {

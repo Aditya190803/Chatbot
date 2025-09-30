@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/common/auth/server';
 import { getLanguageModel } from '@repo/ai/providers';
 import { ModelEnum } from '@repo/ai/models';
 import { generateText } from 'ai';
@@ -19,7 +19,9 @@ const titleGenerationRequestSchema = z.object({
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();
-        const userId = session?.userId;
+        if (!session.userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
 
         const body = await request.json();
         const validatedData = titleGenerationRequestSchema.safeParse(body);

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/common/auth/server';
 import { prisma } from '@repo/prisma';
 import { geolocation } from '@vercel/functions';
 import { NextRequest, NextResponse } from 'next/server';
