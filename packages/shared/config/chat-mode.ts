@@ -30,14 +30,14 @@ export const ChatModeConfig: Record<
         imageUpload: false,
         retry: false,
         documentAnalysis: true,
-        isAuthRequired: true,
+        isAuthRequired: false,
     },
     [ChatMode.Pro]: {
         webSearch: false,
         imageUpload: false,
         retry: false,
         documentAnalysis: true,
-        isAuthRequired: true,
+        isAuthRequired: false,
     },
     [ChatMode.GEMINI_2_5_PRO]: {
         webSearch: true,

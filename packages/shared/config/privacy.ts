@@ -1,7 +1,5 @@
 export const privacyPolicy = `
-### Priv### Cookies
-
-\`chatbot.adityamer.live\` does not directly use cookies. However, some third-party services we utilize, such as PostHog and Sentry, may use cookies to monitor interactions with our Service. Additionally, cookies are used for authentication purposes. You have the option to either accept or decline these cookies and should refer to your browser settings for managing your preferences. Policy
+### Privacy Policy
 
 ---------------------------------
 
@@ -28,20 +26,10 @@ We collect two types of information:
 - **Proxy Requests**: For certain models, requests are forwarded through our proxy server without logging or storing any data. The proxy server simply passes your request to the model's server.
 - **No External JavaScript**: We do not run any external JavaScript on our site, ensuring high security and privacy.
 - **Data Deletion**: You can delete all your data, including API keys, configurations, and chat histories, at any time from your browser.
-- **Tracking and Cookies**: We may use tracking and error logging tools to improve our services. Cookies might be used to enhance user experience and functionality.
-
-### Use of Third-Party Services
-
-Our Service may use third-party tools and services to assist in analytics, service optimization, or for technical support. These may include:
-
-- **PostHog**: Used for analytics to better understand user interactions with our Service.
-- **Sentry**: Used for error logging and monitoring to improve the stability and performance of our Service.
-
-These third-party services have their own Privacy Policies, which we recommend you review.
 
 ### Cookies
 
-\`chatbot.adityamer.live\` does not directly use cookies. However, some third-party services we utilize, such as PostHog and Sentry, may use cookies to monitor interactions with our Service. Additionally, cookies are used for authentication purposes. You have the option to either accept or decline these cookies and should refer to your browser settings for managing your preferences.
+\`chatbot.adityamer.live\` uses cookies only for authentication purposes. You have the option to either accept or decline these cookies and should refer to your browser settings for managing your preferences.
 
 ### Third-Party Links and Content
 
