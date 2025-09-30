@@ -5,7 +5,15 @@ import { ThreadItem } from '@repo/shared/types';
 import { buildCoreMessagesFromThreadItems, plausible } from '@repo/shared/utils';
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo } from 'react';
+import {
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+} from 'react';
 import { useApiKeysStore, useAppStore, useChatStore, useMcpToolsStore } from '../store';
 import { useTitleGeneration } from './use-title-generation';
 
@@ -61,6 +69,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
     // In-memory store for thread items
     const threadItemMap = useMemo(() => new Map<string, ThreadItem>(), []);
+    const pendingTitleStages = useRef<Map<string, Set<'initial' | 'refine'>>>(new Map());
 
     // Define common event types to reduce repetition
     const EVENT_TYPES = [
@@ -73,6 +82,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
         'toolCalls',
         'toolResults',
         'object',
+        'metrics',
     ];
 
     // Helper: Update in-memory and store thread item
@@ -93,6 +103,9 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 shouldPersistToDB
             );
             const prevItem = threadItemMap.get(threadItemId) || ({} as ThreadItem);
+            const incomingAnswer = eventType === 'answer' ? eventData.answer || {} : undefined;
+            const incomingMetrics = eventType === 'metrics' ? eventData.metrics || {} : undefined;
+
             const updatedItem: ThreadItem = {
                 ...prevItem,
                 query: eventData?.query || prevItem.query || '',
@@ -105,14 +118,32 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 updatedAt: new Date(),
                 ...(eventType === 'answer'
                     ? {
-                          answer: {
-                              ...prevItem.answer,
-                              ...eventData.answer,
-                              text: (prevItem.answer?.text || '') + (eventData.answer.text || ''),
-                          },
-                          thinkingProcess: eventData.answer.thinkingProcess || prevItem.thinkingProcess,
+                          answer: incomingAnswer
+                              ? {
+                                    ...(prevItem.answer ?? {}),
+                                    ...incomingAnswer,
+                                    text:
+                                        incomingAnswer.finalText ??
+                                        `${prevItem.answer?.text ?? ''}${incomingAnswer.text ?? ''}`,
+                                    finalText:
+                                        incomingAnswer.finalText ?? prevItem.answer?.finalText,
+                                }
+                              : prevItem.answer,
+                          thinkingProcess:
+                              incomingAnswer?.thinkingProcess ?? prevItem.thinkingProcess,
                       }
-                    : { [eventType]: eventData[eventType] }),
+                    : eventType === 'metrics'
+                        ? {
+                              tokensUsed:
+                                  typeof incomingMetrics?.totalTokens === 'number'
+                                      ? incomingMetrics.totalTokens
+                                      : prevItem.tokensUsed,
+                              generationDurationMs:
+                                  typeof incomingMetrics?.durationMs === 'number'
+                                      ? incomingMetrics.durationMs
+                                      : prevItem.generationDurationMs,
+                          }
+                        : { [eventType]: eventData[eventType] }),
             };
 
             threadItemMap.set(threadItemId, updatedItem);
@@ -293,24 +324,109 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                                                     persistToDB: true,
                                                 });
 
-                                                // Generate title after the first conversation turn
-                                                // Check if this is the first response in the thread
-                                                const threadItems = useChatStore.getState().threadItems.filter(
-                                                    item => item.threadId === data.threadId
+                                                const chatState = useChatStore.getState();
+                                                const threadItems = chatState.threadItems
+                                                    .filter(item => item.threadId === data.threadId)
+                                                    .sort(
+                                                        (a, b) =>
+                                                            (a.createdAt?.getTime?.() || 0) -
+                                                            (b.createdAt?.getTime?.() || 0)
+                                                    );
+
+                                                const conversationTurns = threadItems
+                                                    .filter(item => item.query)
+                                                    .map(item => ({
+                                                        id: item.id,
+                                                        user: (item.query || '').trim(),
+                                                        assistant: (
+                                                            item.answer?.finalText || item.answer?.text || ''
+                                                        ).trim(),
+                                                    }));
+
+                                                const latestTurn = conversationTurns.find(
+                                                    turn => turn.id === data.threadItemId
                                                 );
-                                                
-                                                if (threadItems.length <= 2) { // User message + AI response
-                                                    const userItem = threadItems.find(item => item.query && !item.answer);
-                                                    const aiItem = threadItemMap.get(data.threadItemId);
-                                                    
-                                                    if (userItem && aiItem && aiItem.answer?.finalText) {
-                                                        // Generate title asynchronously
-                                                        generateAndUpdateTitle(
-                                                            data.threadId,
-                                                            userItem.query,
-                                                            aiItem.answer.finalText
-                                                        ).catch(console.error);
+                                                const latestAnswerCandidate =
+                                                    (data as any)?.answer?.finalText ||
+                                                    (data as any)?.answer?.text ||
+                                                    '';
+                                                const finalAnswerText =
+                                                    typeof latestAnswerCandidate === 'string'
+                                                        ? latestAnswerCandidate.trim()
+                                                        : '';
+
+                                                if (latestTurn && finalAnswerText.length) {
+                                                    latestTurn.assistant = finalAnswerText;
+                                                }
+
+                                                const completedTurns = conversationTurns.filter(
+                                                    turn => turn.user.length && turn.assistant.length
+                                                );
+
+                                                const currentThread = chatState.threads.find(
+                                                    thread => thread.id === data.threadId
+                                                );
+                                                const currentVersion = currentThread?.autoTitleVersion ?? 0;
+
+                                                const requestTitleGeneration = (
+                                                    stage: 'initial' | 'refine',
+                                                    conversation: { role: 'user' | 'assistant'; content: string }[],
+                                                    fallbackTitle?: string
+                                                ) => {
+                                                    const pending =
+                                                        pendingTitleStages.current.get(data.threadId) || new Set();
+                                                    if (pending.has(stage)) {
+                                                        return;
                                                     }
+                                                    pending.add(stage);
+                                                    pendingTitleStages.current.set(data.threadId, pending);
+
+                                                    generateAndUpdateTitle({
+                                                        threadId: data.threadId,
+                                                        stage,
+                                                        conversation,
+                                                        fallbackTitle,
+                                                    })
+                                                        .catch(console.error)
+                                                        .finally(() => {
+                                                            const current = pendingTitleStages.current.get(data.threadId);
+                                                            if (!current) return;
+                                                            current.delete(stage);
+                                                            if (current.size === 0) {
+                                                                pendingTitleStages.current.delete(data.threadId);
+                                                            }
+                                                        });
+                                                };
+
+                                                if (currentVersion < 1 && completedTurns.length >= 1) {
+                                                    const firstTurn = completedTurns[0];
+                                                    console.log('[TitleGeneration] Requesting initial title', {
+                                                        threadId: data.threadId,
+                                                        user: firstTurn.user.substring(0, 50),
+                                                        assistant: firstTurn.assistant.substring(0, 50)
+                                                    });
+                                                    requestTitleGeneration(
+                                                        'initial',
+                                                        [
+                                                            { role: 'user' as const, content: firstTurn.user },
+                                                            {
+                                                                role: 'assistant' as const,
+                                                                content: firstTurn.assistant,
+                                                            },
+                                                        ],
+                                                        firstTurn.user
+                                                    );
+                                                } else if (currentVersion < 2 && completedTurns.length >= 3) {
+                                                    const refinedTurns = completedTurns.slice(0, 3);
+                                                    const messages: { role: 'user' | 'assistant'; content: string }[] =
+                                                        refinedTurns.flatMap(turn => [
+                                                            { role: 'user' as const, content: turn.user },
+                                                            {
+                                                                role: 'assistant' as const,
+                                                                content: turn.assistant,
+                                                            },
+                                                        ]);
+                                                    requestTitleGeneration('refine', messages, refinedTurns[0].user);
                                                 }
                                             }
                                         }
@@ -405,12 +521,17 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             const threadId = currentThreadId?.toString() || newThreadId;
             if (!threadId) return;
 
-            // Update thread title
-            updateThread({ id: threadId, title: formData.get('query') as string });
-
             const optimisticAiThreadItemId = existingThreadItemId || nanoid();
             const query = formData.get('query') as string;
             const imageAttachment = formData.get('imageAttachment') as string;
+
+            const existingThread = useChatStore
+                .getState()
+                .threads.find(thread => thread.id === threadId);
+
+            if (!existingThread || (existingThread.autoTitleVersion ?? 0) < 1) {
+                updateThread({ id: threadId, title: query });
+            }
 
             const aiThreadItem: ThreadItem = {
                 id: optimisticAiThreadItemId,

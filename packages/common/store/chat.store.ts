@@ -92,7 +92,7 @@ type Actions = {
     setAbortController: (abortController: AbortController) => void;
     createThread: (optimisticId: string, thread?: Pick<Thread, 'title'>) => Promise<Thread>;
     setChatMode: (chatMode: ChatMode) => void;
-    updateThread: (thread: Pick<Thread, 'id' | 'title'>) => Promise<void>;
+    updateThread: (thread: { id: string } & Partial<Omit<Thread, 'id'>>) => Promise<void>;
     getThread: (threadId: string) => Promise<Thread | null>;
     pinThread: (threadId: string) => Promise<void>;
     unpinThread: (threadId: string) => Promise<void>;
@@ -619,13 +619,21 @@ export const useChatStore = create(
 
         createThread: async (optimisticId: string, thread?: Pick<Thread, 'title'>) => {
             const threadId = optimisticId || nanoid();
+            const providedTitle = thread?.title?.trim() ?? '';
+            const initialTitle = providedTitle.length
+                ? providedTitle.length > 60
+                    ? `${providedTitle.slice(0, 59)}…`
+                    : providedTitle
+                : 'New Thread';
             const newThread = {
                 id: threadId,
-                title: thread?.title || 'New Thread',
+                title: initialTitle,
                 updatedAt: new Date(),
                 createdAt: new Date(),
                 pinned: false,
                 pinnedAt: new Date(),
+                autoTitleVersion: 0,
+                autoTitleUpdatedAt: new Date(),
             };
             db.threads.add(newThread);
             set(state => {
@@ -658,10 +666,9 @@ export const useChatStore = create(
             };
 
             set(state => {
-                const index = state.threads.findIndex((t: Thread) => t.id === thread.id);
-                if (index !== -1) {
-                    state.threads[index] = updatedThread;
-                }
+                state.threads = state.threads.map((t: Thread) =>
+                    t.id === thread.id ? updatedThread : t
+                );
                 if (state.currentThreadId === thread.id) {
                     state.currentThread = updatedThread;
                 }

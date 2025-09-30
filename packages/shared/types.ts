@@ -16,6 +16,8 @@ export type Thread = {
     pinned: boolean;
     pinnedAt: Date;
     projectId?: string;
+    autoTitleVersion?: number;
+    autoTitleUpdatedAt?: Date;
 };
 
 export type SubStep = {
@@ -61,6 +63,8 @@ export type ToolResult = {
 
 export type ThreadItem = {
     query: string;
+    tokensUsed?: number;
+    generationDurationMs?: number;
     toolCalls?: Record<string, ToolCall>;
     toolResults?: Record<string, ToolResult>;
     steps?: Record<string, Step>;
