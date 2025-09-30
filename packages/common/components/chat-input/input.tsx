@@ -151,11 +151,8 @@ export const ChatInput = ({
                                         className="border-border w-full gap-0 border-t border-dashed px-2 py-2"
                                         gap="none"
                                         items="center"
-                                        justify="between"
                                     >
-                                        {isGenerating ? (
-                                            <GeneratingStatus />
-                                        ) : (
+                                        {!isGenerating ? (
                                             <Flex gap="xs" items="center" className="shrink-0">
                                                 <ChatModeButton />
                                                 {/* <AttachmentButton /> */}
@@ -169,9 +166,11 @@ export const ChatInput = ({
                                                     handleImageUpload={handleImageUpload}
                                                 />
                                             </Flex>
+                                        ) : (
+                                            <div className="h-8" />
                                         )}
 
-                                        <Flex gap="md" items="center">
+                                        <Flex gap="md" items="center" className="ml-auto">
                                             <SendStopButton
                                                 isGenerating={isGenerating}
                                                 isChatPage={isChatPage}
