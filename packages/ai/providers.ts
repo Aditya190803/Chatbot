@@ -37,7 +37,7 @@ declare global {
 }
 
 // Helper function to get API key from env or global
-const getApiKey = (provider: ProviderEnumType): string => {
+export const getProviderApiKey = (provider: ProviderEnumType): string => {
   // For server environments
   if (typeof process !== 'undefined' && process.env) {
     switch (provider) {
@@ -119,7 +119,7 @@ export const getProviderInstance = (provider: ProviderEnumType) => {
   switch (provider) {
     case 'google':
       {
-        const apiKey = getApiKey(Providers.GOOGLE);
+  const apiKey = getProviderApiKey(Providers.GOOGLE);
         if (!apiKey) {
           throw new MissingProviderKeyError(Providers.GOOGLE);
         }
@@ -129,7 +129,7 @@ export const getProviderInstance = (provider: ProviderEnumType) => {
       }
     case Providers.OPENROUTER:
       {
-        const apiKey = getApiKey(Providers.OPENROUTER);
+  const apiKey = getProviderApiKey(Providers.OPENROUTER);
         if (!apiKey) {
           throw new MissingProviderKeyError(Providers.OPENROUTER);
         }
@@ -142,7 +142,7 @@ export const getProviderInstance = (provider: ProviderEnumType) => {
       }
     default:
       {
-        const apiKey = getApiKey(Providers.OPENROUTER);
+  const apiKey = getProviderApiKey(Providers.OPENROUTER);
         if (!apiKey) {
           throw new MissingProviderKeyError(Providers.OPENROUTER);
         }
