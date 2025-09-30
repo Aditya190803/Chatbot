@@ -5,7 +5,6 @@ import {
     MarkdownContent,
     Message,
     MessageActions,
-    MotionSkeleton,
     QuestionPrompt,
     SourceGrid,
     Steps,
@@ -16,10 +15,70 @@ import { useChatStore } from '@repo/common/store';
 import { ThreadItem as ThreadItemType } from '@repo/shared/types';
 import { Alert, AlertDescription, cn } from '@repo/ui';
 import { DotSpinner } from '@repo/common/components';
-import { IconAlertCircle, IconBook, IconBrain } from '@tabler/icons-react';
+import { IconAlertCircle, IconBook } from '@tabler/icons-react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 import type { ImageGenerationResultData } from '@repo/common/components';
+
+const THINK_BLOCK_REGEX = /<think>([\s\S]*?)<\/think>/gi;
+const THINK_TAG_REGEX = /<\/?think>/gi;
+
+const cloneRegex = (regex: RegExp) => new RegExp(regex.source, regex.flags);
+const stripThinkTags = (value: string) => value.replace(cloneRegex(THINK_TAG_REGEX), '');
+
+const extractAnswerAndThinking = (
+    rawAnswer?: string,
+    explicitThinking?: string
+): { answer: string; thinking: string } => {
+    const thinkingParts = new Set<string>();
+
+    const normalizedExplicit = explicitThinking?.trim();
+    if (normalizedExplicit) {
+        thinkingParts.add(normalizedExplicit);
+    }
+
+    let sanitizedAnswer = rawAnswer ?? '';
+
+    if (sanitizedAnswer) {
+        const blockRegex = cloneRegex(THINK_BLOCK_REGEX);
+        let hasBlockMatch = false;
+
+        sanitizedAnswer = sanitizedAnswer.replace(blockRegex, (_match: string, group: string) => {
+            hasBlockMatch = true;
+            const part = group?.trim();
+            if (part) {
+                thinkingParts.add(stripThinkTags(part).trim());
+            }
+            return '';
+        });
+
+        if (!hasBlockMatch) {
+            const lowerCaseAnswer = sanitizedAnswer.toLowerCase();
+            const openIndex = lowerCaseAnswer.indexOf('<think>');
+            if (openIndex !== -1) {
+                const tail = sanitizedAnswer.slice(openIndex + '<think>'.length);
+                const cleanedTail = stripThinkTags(tail).trim();
+                if (cleanedTail) {
+                    thinkingParts.add(cleanedTail);
+                }
+                sanitizedAnswer = sanitizedAnswer.slice(0, openIndex);
+            }
+        }
+    }
+
+    sanitizedAnswer = stripThinkTags(sanitizedAnswer).trim();
+
+    const thinking = Array.from(thinkingParts)
+        .map(part => part.trim())
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+
+    return {
+        answer: sanitizedAnswer,
+        thinking,
+    };
+};
 
 export const ThreadItem = memo(
     ({
@@ -32,8 +91,21 @@ export const ThreadItem = memo(
         isGenerating: boolean;
         isLast: boolean;
     }) => {
+        const rawAnswerText = useMemo(() => {
+            const text = threadItem.answer?.text?.trim();
+            if (text && text.length > 0) {
+                return threadItem.answer?.text || '';
+            }
+            return threadItem.answer?.finalText || '';
+        }, [threadItem.answer?.text, threadItem.answer?.finalText]);
+
+        const { answer: answerText, thinking: derivedThinkingProcess } = useMemo(
+            () => extractAnswerAndThinking(rawAnswerText, threadItem.thinkingProcess),
+            [rawAnswerText, threadItem.thinkingProcess]
+        );
+
         const { isAnimationComplete, text: animatedText } = useAnimatedText(
-            threadItem.answer?.text || '',
+            answerText,
             isLast && isGenerating
         );
         const setCurrentSources = useChatStore(state => state.setCurrentSources);
@@ -57,23 +129,30 @@ export const ThreadItem = memo(
                     .flatMap(step => step.steps?.read?.data?.map((result: any) => result.link))
                     .filter((link): link is string => link !== undefined) || [];
             return setCurrentSources(sources);
-        }, [threadItem]);
+        }, [threadItem, setCurrentSources]);
 
         const hasAnswer = useMemo(() => {
-            return threadItem.answer?.text && threadItem.answer?.text.length > 0;
-        }, [threadItem.answer]);
+            return (answerText?.length || 0) > 0;
+        }, [answerText]);
 
         const hasResponse = useMemo(() => {
             return (
                 !!threadItem?.steps ||
-                !!threadItem?.answer?.text ||
+                !!answerText ||
                 !!threadItem?.object ||
                 !!threadItem?.error ||
                 threadItem?.status === 'COMPLETED' ||
                 threadItem?.status === 'ABORTED' ||
                 threadItem?.status === 'ERROR'
             );
-        }, [threadItem]);
+        }, [threadItem, answerText]);
+
+        const isFinalStatus = useMemo(
+            () => ['COMPLETED', 'ERROR', 'ABORTED'].includes(threadItem?.status ?? ''),
+            [threadItem?.status]
+        );
+
+        const isAnswerReady = hasAnswer || isFinalStatus;
 
         const imageGenerationResult =
             threadItem.object?.type === 'image-generation'
@@ -82,7 +161,7 @@ export const ThreadItem = memo(
 
         const sanitizedImageResult =
             imageGenerationResult &&
-            (imageGenerationResult.summary === threadItem.answer?.text
+            (imageGenerationResult.summary === answerText
                 ? { ...imageGenerationResult, summary: undefined }
                 : imageGenerationResult);
         return (
@@ -110,24 +189,34 @@ export const ThreadItem = memo(
                         )}
 
                         {!hasResponse && (
-                            <div className="flex w-full flex-col items-start gap-2 opacity-10">
-                                <MotionSkeleton className="bg-muted-foreground/40 mb-2 h-4 !w-[100px] rounded-sm" />
-                                <MotionSkeleton className="w-full bg-gradient-to-r" />
-                                <MotionSkeleton className="w-[70%] bg-gradient-to-r" />
-                                <MotionSkeleton className="w-[50%] bg-gradient-to-r" />
+                            <div className="w-full">
+                                <div className="border-border/40 bg-background/80 relative overflow-hidden rounded-xl border px-4 py-4 shadow-subtle-sm backdrop-blur-sm dark:border-border/30 dark:bg-background/60">
+                                    <div className="bg-primary/5 pointer-events-none absolute inset-0 animate-pulse" aria-hidden />
+                                    <div className="relative flex items-center gap-3">
+                                        <div className="border-border/50 bg-background/90 flex h-10 w-10 items-center justify-center rounded-full border shadow-inner">
+                                            <DotSpinner />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-semibold text-foreground">
+                                                Generating response…
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                The assistant is processing your request and will reply in just a moment.
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-                        {!hasResponse && (threadItem.status === 'PENDING' || threadItem.status === 'QUEUED') && (
-                            <div className="text-muted-foreground/90 flex flex-row items-center gap-2 text-xs">
-                                <DotSpinner />
-                                <IconBrain size={16} className="animate-pulse text-amber-500" />
-                                Thinking...
-                            </div>
+                        {/* Display thinking process only if actual thinking content exists */}
+                        {derivedThinkingProcess.length > 0 && (
+                            <ThinkingProcess
+                                content={derivedThinkingProcess}
+                                isGenerating={isGenerating && isLast}
+                                isAnswerReady={isAnswerReady}
+                            />
                         )}
-
-                        {/* Display thinking process if available */}
-                        <ThinkingProcess content={threadItem.thinkingProcess} />
 
                         {/* Main Answer Section - Prominently displayed */}
                         <div ref={messageRef} className="w-full space-y-4">
@@ -135,38 +224,25 @@ export const ThreadItem = memo(
                                 <ImageGenerationResult result={sanitizedImageResult} />
                             )}
 
-                            {hasAnswer && threadItem.answer?.text && (
+                            {hasAnswer && (
                                 <div className="flex flex-col">
                                     {/* Sources Grid */}
                                     <SourceGrid sources={threadItem.sources || []} />
 
-                                    {/* Main Answer - Enhanced with clear separation */}
+                                    {/* Main Answer - Prominently displayed with clear contrast from thinking */}
                                     <div className="relative">
-                                        {threadItem.thinkingProcess && (
-                                            <div className="absolute -top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-60" />
-                                        )}
-                                        <div className={cn(
-                                            "rounded-lg bg-background/50 backdrop-blur-sm",
-                                            threadItem.thinkingProcess && "mt-4 p-1 border border-border/20"
-                                        )}>
-                                            <MarkdownContent
-                                                content={animatedText || ''}
-                                                key={`answer-${threadItem.id}`}
-                                                isCompleted={['COMPLETED', 'ERROR', 'ABORTED'].includes(
+                                        <MarkdownContent
+                                            content={animatedText || ''}
+                                            key={`answer-${threadItem.id}`}
+                                            isCompleted={isFinalStatus}
+                                            shouldAnimate={
+                                                !['COMPLETED', 'ERROR', 'ABORTED'].includes(
                                                     threadItem.status || ''
-                                                )}
-                                                shouldAnimate={
-                                                    !['COMPLETED', 'ERROR', 'ABORTED'].includes(
-                                                        threadItem.status || ''
-                                                    )
-                                                }
-                                                isLast={isLast}
-                                                className={cn(
-                                                    "prose-slate dark:prose-invert max-w-none",
-                                                    threadItem.thinkingProcess && "p-4"
-                                                )}
-                                            />
-                                        </div>
+                                                )
+                                            }
+                                            isLast={isLast}
+                                            className="prose-slate dark:prose-invert max-w-none"
+                                        />
                                     </div>
                                 </div>
                             )}

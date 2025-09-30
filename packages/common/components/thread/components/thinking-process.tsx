@@ -1,38 +1,65 @@
-import { useState, useRef, useId } from 'react';
-import {
-    IconChevronDown,
-    IconChevronRight,
-    IconBrain,
-    IconCopy,
-    IconCheck,
-    IconInfoCircle,
-} from '@tabler/icons-react';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { IconChevronUp, IconBrain, IconCopy, IconCheck } from '@tabler/icons-react';
 import { cn } from '@repo/ui';
 
 interface ThinkingProcessProps {
     content?: string;
     isCollapsedByDefault?: boolean;
     showCopyButton?: boolean;
+    isAnswerReady?: boolean;
+    isGenerating?: boolean;
 }
 
 export function ThinkingProcess({ 
     content, 
     isCollapsedByDefault = true, 
-    showCopyButton = true 
+    showCopyButton = true,
+    isAnswerReady = false,
+    isGenerating = false,
 }: ThinkingProcessProps) {
-    const [isCollapsed, setIsCollapsed] = useState(isCollapsedByDefault);
+    const sanitizedContent = useMemo(() => {
+        if (!content) {
+            return '';
+        }
+
+        return content
+            .replace(/<\/?think>/gi, '')
+            .replace(/\r\n/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }, [content]);
+
+    const shouldForceOpen = isGenerating || !isAnswerReady;
+    const [hasUserInteracted, setHasUserInteracted] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(() => (shouldForceOpen ? true : !isCollapsedByDefault));
     const [isCopied, setIsCopied] = useState(false);
-    const contentRef = useRef<HTMLDivElement>(null);
     const contentId = useId();
 
-    if (!content || content.trim().length === 0) {
+    if (!sanitizedContent) {
         return null;
     }
 
+    useEffect(() => {
+        if (!hasUserInteracted) {
+            if (shouldForceOpen) {
+                setIsExpanded(true);
+            } else {
+                setIsExpanded(!isCollapsedByDefault);
+            }
+        }
+    }, [shouldForceOpen, hasUserInteracted, isCollapsedByDefault]);
+
+    useEffect(() => {
+        if (!isGenerating && isAnswerReady) {
+            setHasUserInteracted(false);
+            setIsExpanded(false);
+        }
+    }, [isGenerating, isAnswerReady]);
+
     const handleCopy = async () => {
-        if (content) {
+        if (sanitizedContent) {
             try {
-                await navigator.clipboard.writeText(content);
+                await navigator.clipboard.writeText(sanitizedContent);
                 setIsCopied(true);
                 setTimeout(() => setIsCopied(false), 2000);
             } catch (err) {
@@ -42,78 +69,92 @@ export function ThinkingProcess({
     };
 
     // Get word count for better UX
-    const wordCount = content.trim().split(/\s+/).length;
-    const readingTime = Math.ceil(wordCount / 200); // Average reading speed
+    const { wordCount, readingTime } = useMemo(() => {
+        const words = sanitizedContent.trim().split(/\s+/).filter(Boolean).length;
+        return {
+            wordCount: words,
+            readingTime: Math.max(1, Math.ceil(words / 200)),
+        };
+    }, [sanitizedContent]);
+
+    const toggleExpansion = () => {
+        setHasUserInteracted(true);
+        setIsExpanded(prev => !prev);
+    };
+
+    const summaryPill = (
+        <span className="ml-3 rounded-full bg-muted/80 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">
+            {wordCount} words • {readingTime} min read
+        </span>
+    );
 
     return (
-        <div className="mb-4 rounded-xl border border-amber-200/70 bg-amber-50/70 shadow-subtle-xs backdrop-blur-sm dark:border-amber-800/60 dark:bg-amber-950/30">
-            <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left transition-colors duration-150 hover:bg-amber-100/70 dark:hover:bg-amber-900/40"
-                aria-expanded={!isCollapsed}
-                aria-controls={contentId}
-            >
+        <div className="mb-4 rounded-xl border border-border/50 bg-background/80 shadow-subtle-xs backdrop-blur-sm dark:border-border/40 dark:bg-background/30">
+            <div className="flex w-full items-start gap-3 rounded-t-xl border-b border-border/40 px-4 py-3">
                 <div className="flex flex-1 flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-200">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1 text-sm font-semibold text-muted-foreground">
                             <IconBrain size={16} className="shrink-0" />
-                            <span>Thinking…</span>
+                            <span>Model thinking</span>
                         </div>
-                        <span className="rounded-full border border-amber-200/80 bg-white/70 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-amber-600/80 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400/80">
-                            Not the final answer
+                        <span className={cn(
+                            'rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide',
+                            shouldForceOpen
+                                ? 'border-amber-500/50 bg-amber-50 text-amber-700 dark:border-amber-300/40 dark:bg-amber-400/10 dark:text-amber-200'
+                                : 'border-border/60 bg-muted/70 text-muted-foreground/80 dark:border-border/50 dark:bg-muted/40'
+                        )}>
+                            {shouldForceOpen ? 'In progress' : 'Hidden by default'}
                         </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-amber-600/70 dark:text-amber-400/70">
-                        <IconInfoCircle size={14} className="shrink-0" />
-                        <span>{wordCount} words • {readingTime} min read • tap to expand</span>
+                        {summaryPill}
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
-                    {showCopyButton && !isCollapsed && (
+                    {showCopyButton && (
                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
+                            onClick={() => {
                                 handleCopy();
                             }}
-                            className="p-1 hover:bg-amber-200/60 dark:hover:bg-amber-800/60 rounded transition-colors duration-150"
-                            title="Copy thinking process"
+                            type="button"
+                            className="rounded-md border border-border/60 bg-muted/40 p-1.5 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground dark:border-border/50 dark:bg-muted/30"
+                            title="Copy thinking"
                         >
                             {isCopied ? (
-                                <IconCheck size={14} className="text-amber-600 dark:text-amber-400" />
+                                <IconCheck size={16} className="text-green-600 dark:text-green-400" />
                             ) : (
-                                <IconCopy size={14} className="text-amber-600 dark:text-amber-400" />
+                                <IconCopy size={16} />
                             )}
                         </button>
                     )}
-                    {isCollapsed ? (
-                        <IconChevronRight size={16} className="text-amber-600 dark:text-amber-400 transition-transform duration-150" />
-                    ) : (
-                        <IconChevronDown size={16} className="text-amber-600 dark:text-amber-400 transition-transform duration-150" />
-                    )}
+                    <button
+                        onClick={toggleExpansion}
+                        type="button"
+                        className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition hover:bg-muted dark:border-border/50 dark:bg-background/60"
+                        aria-expanded={isExpanded}
+                        aria-controls={contentId}
+                    >
+                        {isExpanded ? 'Hide thinking' : 'Show thinking'}
+                        <IconChevronUp
+                            size={16}
+                            className={cn('transition-transform', isExpanded ? 'rotate-0' : 'rotate-180')}
+                        />
+                    </button>
                 </div>
-            </button>
-            
-            <div 
+            </div>
+
+            <div
                 id={contentId}
                 className={cn(
-                    "overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out",
-                    isCollapsed ? "max-h-0 opacity-0" : "max-h-[80vh] opacity-100"
+                    'overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out',
+                    isExpanded ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0'
                 )}
+                aria-live={isGenerating ? 'polite' : 'off'}
+                role="region"
             >
-                <div className="border-t border-amber-200/60 bg-gradient-to-b from-amber-50/80 via-amber-50/40 to-transparent dark:border-amber-800/60 dark:from-amber-950/40 dark:via-amber-950/10">
-                    <div 
-                        ref={contentRef}
-                        className="hide-scrollbar max-h-[70vh] overflow-y-auto px-4 py-5 text-[13px] leading-relaxed text-amber-900/90 dark:text-amber-100/90"
-                        style={{
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: 'rgb(245 158 11 / 0.3) transparent'
-                        }}
-                    >
-                        <pre className="whitespace-pre-wrap break-words font-mono text-[12.5px] tracking-tight">
-                            {content}
-                        </pre>
-                    </div>
+                <div className="hide-scrollbar max-h-[60vh] overflow-y-auto px-4 py-5 text-[13px] leading-relaxed text-muted-foreground">
+                    <pre className="whitespace-pre-wrap break-words font-mono text-[12.5px] leading-relaxed tracking-tight text-muted-foreground/90">
+                        {sanitizedContent}
+                    </pre>
                 </div>
             </div>
         </div>
