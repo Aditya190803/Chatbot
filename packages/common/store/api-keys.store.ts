@@ -38,8 +38,9 @@ export const useApiKeysStore = create<ApiKeysState>()(
             hasApiKeyForChatMode: (chatMode: ChatMode) => {
                 const apiKeys = get().keys;
                 switch (chatMode) {
-                    case ChatMode.GEMINI_2_FLASH:
                     case ChatMode.GEMINI_2_5_FLASH:
+                    case ChatMode.GEMINI_2_5_PRO:
+                    case ChatMode.IMAGE_GENERATION:
                         return !!apiKeys['GEMINI_API_KEY'];
                     case ChatMode.GROK_4_FAST:
                     case ChatMode.GLM_4_5_AIR:

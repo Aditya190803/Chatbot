@@ -1,6 +1,7 @@
 import {
     CitationProvider,
     FollowupSuggestions,
+    ImageGenerationResult,
     MarkdownContent,
     Message,
     MessageActions,
@@ -18,6 +19,7 @@ import { DotSpinner } from '@repo/common/components';
 import { IconAlertCircle, IconBook, IconBrain } from '@tabler/icons-react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
+import type { ImageGenerationResultData } from '@repo/common/components';
 
 export const ThreadItem = memo(
     ({
@@ -72,6 +74,17 @@ export const ThreadItem = memo(
                 threadItem?.status === 'ERROR'
             );
         }, [threadItem]);
+
+        const imageGenerationResult =
+            threadItem.object?.type === 'image-generation'
+                ? (threadItem.object as ImageGenerationResultData)
+                : null;
+
+        const sanitizedImageResult =
+            imageGenerationResult &&
+            (imageGenerationResult.summary === threadItem.answer?.text
+                ? { ...imageGenerationResult, summary: undefined }
+                : imageGenerationResult);
         return (
             <CitationProvider sources={threadItem.sources || []}>
                 <div className="w-full" ref={inViewRef} id={`thread-item-${threadItem.id}`}>
@@ -117,7 +130,11 @@ export const ThreadItem = memo(
                         <ThinkingProcess content={threadItem.thinkingProcess} />
 
                         {/* Main Answer Section - Prominently displayed */}
-                        <div ref={messageRef} className="w-full">
+                        <div ref={messageRef} className="w-full space-y-4">
+                            {sanitizedImageResult && (
+                                <ImageGenerationResult result={sanitizedImageResult} />
+                            )}
+
                             {hasAnswer && threadItem.answer?.text && (
                                 <div className="flex flex-col">
                                     {/* Sources Grid */}

@@ -9,6 +9,7 @@ export enum ChatMode {
     GPT_OSS_120B = 'gpt-oss-120b',
     DOLPHIN_MISTRAL_24B_VENICE = 'dolphin-mistral-24b-venice',
     DOCUMENT_QA = 'document-qa',
+    IMAGE_GENERATION = 'image-generation',
 }
 
 export const ChatModeConfig: Record<
@@ -105,6 +106,15 @@ export const ChatModeConfig: Record<
         isNew: true,
         isAuthRequired: false,
     },
+    [ChatMode.IMAGE_GENERATION]: {
+        webSearch: false,
+        imageUpload: true,
+        retry: true,
+        documentAnalysis: false,
+        nativeInternetAccess: false,
+        isNew: true,
+        isAuthRequired: false,
+    },
 };
 
 
@@ -131,5 +141,7 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'Dolphin Mistral 24B Venice';
         case ChatMode.DOCUMENT_QA:
             return 'Document Q&A';
+        case ChatMode.IMAGE_GENERATION:
+            return 'Image Generation';
     }
 };

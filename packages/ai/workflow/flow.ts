@@ -12,6 +12,7 @@ import {
     analysisTask,
     completionTask,
     documentQATask,
+    imageGenerationTask,
     modeRoutingTask,
     plannerTask,
     proSearchTask,
@@ -214,6 +215,7 @@ export const runWorkflow = ({
         suggestionsTask,
         quickSearchTask,
         proSearchTask,
+        imageGenerationTask,
         documentQATask,
     ]);
 

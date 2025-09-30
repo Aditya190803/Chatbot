@@ -1,4 +1,5 @@
 'use client';
+
 import { useUser } from '@clerk/nextjs';
 import { DotSpinner } from '@repo/common/components';
 import { useChatStore } from '@repo/common/store';
@@ -8,27 +9,17 @@ import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
 import {
     IconArrowUp,
     IconAtom,
-    IconBook,
     IconCheck,
     IconChevronDown,
     IconNorthStar,
+    IconPhoto,
     IconPaperclip,
     IconPlayerStopFilled,
     IconWorld,
 } from '@tabler/icons-react';
-const {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
-
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { NewIcon } from '../icons';
+import { type ComponentType, useState } from 'react';
 
 type IconComponent = typeof IconAtom;
 
@@ -39,6 +30,8 @@ type ChatModeOption = {
     icon?: IconComponent;
     iconClassName?: string;
     badge?: string;
+    badgeClassName?: string;
+    disabled?: boolean;
 };
 
 export const chatOptions: ChatModeOption[] = [
@@ -57,6 +50,14 @@ export const chatOptions: ChatModeOption[] = [
         icon: IconNorthStar,
         iconClassName: 'text-sky-600',
         badge: 'Web',
+    },
+    {
+        label: 'Gemini Image Preview',
+        description: 'Generate or edit images with Gemini',
+        value: ChatMode.IMAGE_GENERATION,
+        icon: IconPhoto,
+        iconClassName: 'text-rose-500',
+        badge: 'Images',
     },
 ];
 
@@ -85,6 +86,9 @@ export const modelOptions: ChatModeOption[] = [
     {
         label: 'GPT-OSS 120B',
         value: ChatMode.GPT_OSS_120B,
+        badge: 'Temporarily unavailable',
+        badgeClassName: 'border border-amber-200/70 bg-amber-100 text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200',
+        disabled: true,
     },
     {
         label: 'Dolphin Mistral 24B Venice',
@@ -92,7 +96,21 @@ export const modelOptions: ChatModeOption[] = [
     },
 ];
 
-// Remove unnecessary aliases - use components directly
+const {
+    DropdownMenu: DropdownMenuRoot,
+    DropdownMenuTrigger: DropdownMenuTriggerComponent,
+    DropdownMenuContent: DropdownMenuContentComponent,
+    DropdownMenuItem: DropdownMenuItemComponent,
+    DropdownMenuLabel: DropdownMenuLabelComponent,
+    DropdownMenuSeparator: DropdownMenuSeparatorComponent,
+} = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
+
+const DropdownMenu = DropdownMenuRoot as unknown as ComponentType<any>;
+const DropdownMenuTrigger = DropdownMenuTriggerComponent as unknown as ComponentType<any>;
+const DropdownMenuContent = DropdownMenuContentComponent as unknown as ComponentType<any>;
+const DropdownMenuItem = DropdownMenuItemComponent as unknown as ComponentType<any>;
+const DropdownMenuLabel = DropdownMenuLabelComponent as unknown as ComponentType<any>;
+const DropdownMenuSeparator = DropdownMenuSeparatorComponent as unknown as ComponentType<any>;
 
 export const AttachmentButton = () => {
     return (
@@ -115,10 +133,9 @@ export const ChatModeButton = () => {
     const [isChatModeOpen, setIsChatModeOpen] = useState(false);
     const isChatPage = usePathname().startsWith('/chat');
 
+    const allOptions = [...chatOptions, ...modelOptions];
     const selectedOption =
-        (isChatPage
-            ? [...chatOptions, ...modelOptions].find(option => option.value === chatMode)
-            : [...modelOptions].find(option => option.value === chatMode)) ?? modelOptions[0];
+        allOptions.find(option => option.value === chatMode) ?? modelOptions[0];
     const SelectedIcon = (selectedOption?.icon as IconComponent | undefined) ?? undefined;
 
     return (
@@ -229,20 +246,32 @@ export const ChatModeOptions = ({
 
     const renderOption = (option: ChatModeOption) => {
         const isActive = chatMode === option.value;
+        const isDisabled = option.disabled;
         const Icon = option.icon ?? IconAtom;
         const iconClassName = option.iconClassName ?? 'text-muted-foreground';
 
         return (
             <DropdownMenuItem
                 key={option.value}
-                onSelect={(event: Event) =>
-                    handleSelect(event, option.value, ChatModeConfig[option.value]?.isAuthRequired)
-                }
+                disabled={isDisabled}
+                onSelect={(event: Event) => {
+                    if (isDisabled) {
+                        event.preventDefault();
+                        if ('stopPropagation' in event && typeof event.stopPropagation === 'function') {
+                            event.stopPropagation();
+                        }
+                        return;
+                    }
+
+                    handleSelect(event, option.value, ChatModeConfig[option.value]?.isAuthRequired);
+                }}
                 className={cn(
                     'group h-auto w-full flex-col items-start gap-2 rounded-lg px-3 py-1.5 text-left',
                     isActive
                         ? 'bg-brand/10 text-foreground ring-1 ring-brand/40'
-                        : 'hover:bg-muted/60 text-foreground'
+                        : 'hover:bg-muted/60 text-foreground',
+                    isDisabled &&
+                        'cursor-not-allowed opacity-60 hover:bg-transparent hover:text-foreground'
                 )}
             >
                 <div className="flex w-full items-start gap-3">
@@ -252,6 +281,17 @@ export const ChatModeOptions = ({
                     <div className="flex flex-1 flex-col gap-1">
                         <div className="flex w-full items-center gap-2">
                             <span className="text-sm font-medium leading-tight">{option.label}</span>
+                            {option.badge && (
+                                <span
+                                    className={cn(
+                                        'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                                        option.badgeClassName ??
+                                            'border border-border/60 bg-muted/60 text-muted-foreground'
+                                    )}
+                                >
+                                    {option.badge}
+                                </span>
+                            )}
                             <span className="flex-1" />
                             {isActive && (
                                 <IconCheck size={16} strokeWidth={2} className="text-brand" />
