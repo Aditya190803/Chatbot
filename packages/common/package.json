@@ -3,10 +3,12 @@
     "version": "0.1.0",
     "private": true,
     "exports": {
-        "./hooks": "./hooks/index.ts",
-        "./context": "./context/index.ts",
-        "./store": "./store/index.ts",
-        "./components": "./components/index.ts"
+    "./hooks": "./hooks/index.ts",
+    "./context": "./context/index.ts",
+    "./store": "./store/index.ts",
+    "./components": "./components/index.ts",
+    "./auth": "./auth/index.ts",
+    "./auth/server": "./auth/server.ts"
     },
     "scripts": {
         "lint": "eslint . --max-warnings 0",
