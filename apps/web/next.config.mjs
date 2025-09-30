@@ -1,4 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs';
 import { config as loadEnv } from 'dotenv';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,13 +43,4 @@ const nextConfig = {
     },
 };
 
-export default withSentryConfig(nextConfig, {
-    // Sentry configuration (unchanged)
-    org: 'saascollect',
-    project: 'javascript-nextjs',
-    silent: !process.env.CI,
-    widenClientFileUpload: true,
-    hideSourceMaps: true,
-    disableLogger: true,
-    automaticVercelMonitors: true,
-});
+export default nextConfig;
