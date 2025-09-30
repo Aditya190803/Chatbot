@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { CustomSignUp } from '@repo/common/components';
+import { useAuth } from '@repo/common/context';
 import { useRouter } from 'next/navigation';
 
 export default function SignUpPage() {

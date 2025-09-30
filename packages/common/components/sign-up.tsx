@@ -1,10 +1,10 @@
-import { useSignUp } from '@clerk/nextjs';
-import { isClerkAPIResponseError } from '@clerk/nextjs/errors';
-import { Button, Input } from '@repo/ui';
-import { IconX, IconEye, IconEyeOff } from '@tabler/icons-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { FaGithub, FaGoogle } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
+import { FaGoogle } from 'react-icons/fa';
+import { IconEye, IconEyeOff, IconX } from '@tabler/icons-react';
+
+import { useAuth, useAuthActions } from '@repo/common/context';
+import { Button, Input } from '@repo/ui';
 
 type CustomSignUpProps = {
     redirectUrl?: string;
@@ -15,6 +15,15 @@ export const CustomSignUp = ({
     redirectUrl = '/sign-in/sso-callback',
     onClose,
 }: CustomSignUpProps) => {
+    const router = useRouter();
+    const { isLoaded, isSignedIn } = useAuth();
+    const {
+        signUpWithPassword,
+        verifyEmailCode,
+        requestEmailCode,
+        signInWithGoogle,
+    } = useAuthActions();
+
     const [isLoading, setIsLoading] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         firstName: '',
@@ -23,52 +32,23 @@ export const CustomSignUp = ({
         password: '',
     });
     const [error, setError] = useState('');
-    const [verifying, setVerifying] = useState(false);
-    const [code, setCode] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const { signUp, isLoaded, setActive } = useSignUp();
-    const router = useRouter();
 
-    if (!isLoaded) return null;
+    const [verifying, setVerifying] = useState(false);
+    const [emailToken, setEmailToken] = useState<{ userId: string; email: string } | null>(null);
+    const [code, setCode] = useState('');
+    const [resending, setResending] = useState(false);
 
-    const handleVerify = async () => {
-        if (code.length !== 6) {
-            setError('Please enter the complete 6-digit code');
-            return;
-        }
+    if (!isLoaded) {
+        return null;
+    }
 
-        setIsLoading('verify');
-        setError(''); // Clear any previous errors
-        
-        try {
-            if (!signUp) return;
-            
-            const result = await signUp.attemptEmailAddressVerification({
-                code,
-            });
+    if (isSignedIn) {
+        router.push('/chat');
+        return null;
+    }
 
-            if (result.status === 'complete') {
-                setActive({ session: result.createdSessionId });
-                router.push('/chat');
-            } else {
-                setError('Verification not complete. Please try again.');
-            }
-        } catch (error: any) {
-            console.error('Verification error:', error);
-            if (isClerkAPIResponseError(error)) {
-                const errorMessage = error.errors[0]?.longMessage || error.errors[0]?.message;
-                if (errorMessage?.includes('code')) {
-                    setError('Invalid verification code. Please try again.');
-                } else {
-                    setError(errorMessage || 'Verification failed. Please try again.');
-                }
-            } else {
-                setError('Something went wrong during verification. Please try again.');
-            }
-        } finally {
-            setIsLoading(null);
-        }
-    };
+    const resetErrors = () => setError('');
 
     const validateForm = () => {
         if (!formData.firstName.trim()) {
@@ -99,89 +79,92 @@ export const CustomSignUp = ({
     };
 
     const handleSignUp = async () => {
-        setError('');
-        
+        resetErrors();
+
         if (!validateForm()) {
             return;
         }
 
         setIsLoading('signup');
-        
+
         try {
-            if (!signUp) return;
-
-            await signUp.create({
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                emailAddress: formData.email,
+            const token = await signUpWithPassword({
+                email: formData.email.trim(),
                 password: formData.password,
+                firstName: formData.firstName.trim(),
+                lastName: formData.lastName.trim(),
             });
 
-            await signUp.prepareEmailAddressVerification({
-                strategy: 'email_code',
-            });
-
+            setEmailToken(token);
             setVerifying(true);
-        } catch (error: any) {
-            console.error('Sign-up error:', error);
-            if (isClerkAPIResponseError(error)) {
-                setError(error.errors[0]?.longMessage || 'Sign-up failed. Please try again.');
+        } catch (err: unknown) {
+            console.error('Sign-up error:', err);
+            const message = err instanceof Error ? err.message : 'Sign-up failed. Please try again.';
+            setError(message);
+        } finally {
+            setIsLoading(null);
+        }
+    };
+
+    const handleVerify = async () => {
+        resetErrors();
+
+        if (!emailToken) {
+            setError('Sign-up session has expired. Please start again.');
+            return;
+        }
+
+        if (code.length !== 6) {
+            setError('Please enter the complete 6-digit code');
+            return;
+        }
+
+        setIsLoading('verify');
+
+        try {
+            await verifyEmailCode(emailToken.userId, code);
+            router.push('/chat');
+        } catch (err: unknown) {
+            console.error('Verification error:', err);
+            const message = err instanceof Error ? err.message : 'Verification failed. Please try again.';
+            if (message.toLowerCase().includes('code')) {
+                setError('Invalid verification code. Please try again.');
             } else {
-                setError('Something went wrong during sign-up. Please try again.');
+                setError(message);
             }
         } finally {
             setIsLoading(null);
         }
     };
 
-    const handleGoogleAuth = async () => {
-        setIsLoading('google');
+    const handleResendCode = async () => {
+        if (resending || !emailToken) {
+            return;
+        }
+
+        setResending(true);
+        resetErrors();
 
         try {
-            if (!signUp) return;
-            await signUp.authenticateWithRedirect({
-                strategy: 'oauth_google',
-                redirectUrl,
-                redirectUrlComplete: redirectUrl,
-            });
+            const token = await requestEmailCode(emailToken.email);
+            setEmailToken(token);
+        } catch (err: unknown) {
+            console.error('Error resending code:', err);
+            setError('Failed to resend code. Please try again.');
+        } finally {
+            setTimeout(() => setResending(false), 3000);
+        }
+    };
+
+    const handleGoogleAuth = async () => {
+        setIsLoading('google');
+        resetErrors();
+
+        try {
+            await signInWithGoogle(redirectUrl);
         } catch (error) {
             console.error('Google authentication error:', error);
             setError('Google authentication failed. Please try again.');
-        } finally {
-            setIsLoading(null);
-        }
-    };
-
-    const handleGithubAuth = async () => {
-        setIsLoading('github');
-
-        try {
-            if (!signUp) return;
-            await signUp.authenticateWithRedirect({
-                strategy: 'oauth_github',
-                redirectUrl,
-                redirectUrlComplete: redirectUrl,
-            });
-        } catch (error) {
-            console.error('GitHub authentication error:', error);
-            setError('GitHub authentication failed. Please try again.');
-        } finally {
-            setIsLoading(null);
-        }
-    };
-
-    const handleResendCode = async () => {
-        if (!signUp) return;
-        
-        setIsLoading('resend');
-        try {
-            await signUp.prepareEmailAddressVerification({
-                strategy: 'email_code',
-            });
-            setError('');
-        } catch (error) {
-            console.error('Error resending code:', error);
-            setError('Failed to resend code. Please try again.');
         } finally {
             setIsLoading(null);
         }
@@ -192,10 +175,12 @@ export const CustomSignUp = ({
             <div className="flex w-[350px] flex-col items-center gap-4">
                 <div className="flex flex-col items-center gap-1">
                     <h2 className="font-clash text-foreground !text-brand text-center text-[24px] font-semibold leading-tight">
-                        Check your email
+                        Verify your email
                     </h2>
                     <p className="text-muted-foreground text-center text-sm">
-                        We've sent a verification code to {formData.email}. Please check your inbox and enter the code to complete your registration.
+                        We've sent a verification code to{' '}
+                        <span className="font-medium">{emailToken?.email}</span>. Enter the code to complete
+                        your registration.
                     </p>
                 </div>
                 <div className="flex flex-col gap-3 w-full">
@@ -205,7 +190,7 @@ export const CustomSignUp = ({
                         value={code}
                         onChange={(e) => {
                             setCode(e.target.value);
-                            setError(''); // Clear error when typing
+                            resetErrors();
                         }}
                         onKeyPress={(e) => {
                             if (e.key === 'Enter' && code.length === 6) {
@@ -223,7 +208,7 @@ export const CustomSignUp = ({
                     >
                         {isLoading === 'verify' ? (
                             <>
-                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                                 Verifying...
                             </>
                         ) : (
@@ -235,20 +220,28 @@ export const CustomSignUp = ({
                     Didn't receive an email?{' '}
                     <span
                         className={`hover:text-brand text-brand cursor-pointer underline ${
-                            isLoading === 'resend' ? 'pointer-events-none opacity-70' : ''
+                            resending ? 'pointer-events-none opacity-70' : ''
                         }`}
                         onClick={handleResendCode}
                     >
-                        {isLoading === 'resend' ? 'Sending...' : 'Resend Code'}
+                        {resending ? 'Sending...' : 'Resend Code'}
                     </span>
                 </p>
-
-                <div id="clerk-captcha"></div>
-                {error && (
-                    <div className="text-center text-sm text-rose-400">
-                        {error}
-                    </div>
-                )}
+                <div className="text-muted-foreground text-center text-sm">
+                    {error && <p className="text-rose-400">{error}</p>}
+                    {resending && <p className="text-brand">Sending verification code...</p>}
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                        setVerifying(false);
+                        setCode('');
+                    }}
+                >
+                    Back
+                </Button>
             </div>
         );
     }
@@ -285,7 +278,7 @@ export const CustomSignUp = ({
                             disabled={isLoading !== null}
                         />
                     </div>
-                    
+
                     <Input
                         type="email"
                         placeholder="Email address"
@@ -293,7 +286,7 @@ export const CustomSignUp = ({
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         disabled={isLoading !== null}
                     />
-                    
+
                     <div className="relative">
                         <Input
                             type={showPassword ? 'text' : 'password'}
@@ -307,7 +300,7 @@ export const CustomSignUp = ({
                             variant="ghost"
                             size="icon-sm"
                             className="absolute right-2 top-1/2 -translate-y-1/2"
-                            onClick={() => setShowPassword(!showPassword)}
+                            onClick={() => setShowPassword((value) => !value)}
                         >
                             {showPassword ? (
                                 <IconEyeOff className="h-4 w-4" />
@@ -324,7 +317,7 @@ export const CustomSignUp = ({
                     >
                         {isLoading === 'signup' ? (
                             <>
-                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                                 Creating account...
                             </>
                         ) : (
@@ -332,17 +325,13 @@ export const CustomSignUp = ({
                         )}
                     </Button>
 
-                    {error && (
-                        <div className="text-center text-sm text-rose-400">
-                            {error}
-                        </div>
-                    )}
+                    {error && <div className="text-center text-sm text-rose-400">{error}</div>}
                 </div>
 
                 <div className="flex w-full items-center gap-4">
-                    <div className="bg-border h-px flex-1"></div>
+                    <div className="bg-border h-px flex-1" />
                     <span className="text-muted-foreground text-sm">or continue with</span>
-                    <div className="bg-border h-px flex-1"></div>
+                    <div className="bg-border h-px flex-1" />
                 </div>
 
                 <div className="flex w-full flex-col space-y-2">
@@ -352,24 +341,11 @@ export const CustomSignUp = ({
                         variant="bordered"
                     >
                         {isLoading === 'google' ? (
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         ) : (
                             <FaGoogle className="size-3" />
                         )}
                         {isLoading === 'google' ? 'Authenticating...' : 'Continue with Google'}
-                    </Button>
-
-                    <Button
-                        onClick={handleGithubAuth}
-                        disabled={isLoading === 'github'}
-                        variant="bordered"
-                    >
-                        {isLoading === 'github' ? (
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                        ) : (
-                            <FaGithub className="size-3" />
-                        )}
-                        {isLoading === 'github' ? 'Authenticating...' : 'Continue with GitHub'}
                     </Button>
                 </div>
 

@@ -1,6 +1,5 @@
-import { ClerkProvider } from '@clerk/nextjs';
 import { RootLayout } from '@repo/common/components';
-import { ReactQueryProvider, RootProvider } from '@repo/common/context';
+import { AuthProvider, ReactQueryProvider, RootProvider } from '@repo/common/context';
 import { TooltipProvider } from '@repo/ui';
 import { GeistMono } from 'geist/font/mono';
 import type { Viewport } from 'next';
@@ -118,7 +117,7 @@ export default function ParentLayout({
             </head>
             <body>
                 {/* <PostHogProvider> */}
-                <ClerkProvider>
+                <AuthProvider>
                     <RootProvider>
                         {/* <ThemeProvider
             attribute="class"
@@ -133,7 +132,7 @@ export default function ParentLayout({
                         </TooltipProvider>
                         {/* </ThemeProvider> */}
                     </RootProvider>
-                </ClerkProvider>
+                </AuthProvider>
                 {/* </PostHogProvider> */}
             </body>
         </html>

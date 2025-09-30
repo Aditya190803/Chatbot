@@ -1,10 +1,11 @@
-import { useSignIn, useSignUp } from '@clerk/nextjs';
-import { isClerkAPIResponseError } from '@clerk/nextjs/errors';
-import { Button, Input } from '@repo/ui';
-import { IconX, IconEye, IconEyeOff } from '@tabler/icons-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { FaGithub, FaGoogle } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
+import { FaGoogle } from 'react-icons/fa';
+import { IconEye, IconEyeOff, IconX } from '@tabler/icons-react';
+
+import { useAuth, useAuthActions } from '@repo/common/context';
+import { Button, Input } from '@repo/ui';
+
 type CustomSignInProps = {
     redirectUrl?: string;
     onClose?: () => void;
@@ -14,153 +15,52 @@ export const CustomSignIn = ({
     redirectUrl = '/sign-in/sso-callback',
     onClose,
 }: CustomSignInProps) => {
+    const router = useRouter();
+
+    const { isLoaded, isSignedIn } = useAuth();
+    const {
+        signInWithPassword,
+        requestEmailCode,
+        verifyEmailCode,
+        signInWithGoogle,
+    } = useAuthActions();
+
+    const [authMode, setAuthMode] = useState<'password' | 'emailCode'>('password');
     const [isLoading, setIsLoading] = useState<string | null>(null);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+
     const [verifying, setVerifying] = useState(false);
-    const { signIn, isLoaded, setActive } = useSignIn();
-    const { signUp, isLoaded: isSignUpLoaded } = useSignUp();
+    const [emailToken, setEmailToken] = useState<{ userId: string; email: string } | null>(null);
     const [code, setCode] = useState('');
     const [resending, setResending] = useState(false);
-    const [authMode, setAuthMode] = useState<'password' | 'emailCode'>('password');
-    if (!isSignUpLoaded || !isLoaded) return null;
-    const router = useRouter();
 
-    const handleVerify = async () => {
-        // Check if code is complete
-        if (code.length !== 6) {
-            setError('Please enter the complete 6-digit code');
-            return;
-        }
+    if (!isLoaded) {
+        return null;
+    }
 
-        setIsLoading('verify');
-        setError(''); // Clear any previous errors
-        
-        try {
-            if (!isLoaded || !signIn) return;
-            
-            // First try sign-up verification
-            const result = await signUp.attemptEmailAddressVerification({
-                code,
-            });
+    if (isSignedIn) {
+        router.push('/chat');
+        return null;
+    }
 
-            if (result.status === 'complete') {
-                setActive({ session: result.createdSessionId });
-                router.push('/chat');
-            }
-        } catch (error: any) {
-            console.log('Sign-up verification failed, trying sign-in:', error.errors);
-            
-            // If sign-up fails, try sign-in verification
-            if (error.errors && error.errors.some((e: any) => e.code === 'client_state_invalid')) {
-                try {
-                    const result = await signIn.attemptFirstFactor({
-                        strategy: 'email_code',
-                        code,
-                    });
+    const resetErrors = () => setError('');
 
-                    if (result.status === 'complete') {
-                        setActive({ session: result.createdSessionId });
-                        router.push('/chat');
-                    }
-                } catch (signInError: any) {
-                    console.error('Sign-in verification error:', signInError);
-                    if (isClerkAPIResponseError(signInError)) {
-                        const errorMessage = signInError.errors[0]?.longMessage || signInError.errors[0]?.message;
-                        if (errorMessage?.includes('code')) {
-                            setError('Invalid verification code. Please try again.');
-                        } else {
-                            setError(errorMessage || 'Verification failed. Please try again.');
-                        }
-                    } else {
-                        setError('Something went wrong while verifying. Please try again.');
-                    }
-                }
-            } else {
-                // Handle sign-up verification errors
-                if (isClerkAPIResponseError(error)) {
-                    const errorMessage = error.errors[0]?.longMessage || error.errors[0]?.message;
-                    if (errorMessage?.includes('code')) {
-                        setError('Invalid verification code. Please try again.');
-                    } else {
-                        setError(errorMessage || 'Verification failed. Please try again.');
-                    }
-                } else {
-                    setError('Verification failed. Please try again.');
-                }
-            }
-        } finally {
-            setIsLoading(null);
-        }
-    };
-
-    const handleGoogleAuth = async () => {
-        setIsLoading('google');
-
-        try {
-            if (!isLoaded || !signIn) return;
-            await signIn.authenticateWithRedirect({
-                strategy: 'oauth_google',
-                redirectUrl,
-                redirectUrlComplete: redirectUrl,
-            });
-        } catch (error) {
-            console.error('Google authentication error:', error);
-        } finally {
-            setIsLoading(null);
-        }
-    };
-
-    const handleGithubAuth = async () => {
-        setIsLoading('github');
-
-        try {
-            if (!isLoaded || !signIn) return;
-            await signIn.authenticateWithRedirect({
-                strategy: 'oauth_github',
-                redirectUrl,
-                redirectUrlComplete: redirectUrl,
-            });
-        } catch (error) {
-            console.error('GitHub authentication error:', error);
-        } finally {
-            setIsLoading(null);
-        }
-    };
-
-    const handleAppleAuth = async () => {
-        setIsLoading('apple');
-
-        try {
-            if (!isLoaded || !signIn) return;
-            await signIn.authenticateWithRedirect({
-                strategy: 'oauth_apple',
-                redirectUrl,
-                redirectUrlComplete: redirectUrl,
-            });
-        } catch (error) {
-            console.error('Apple authentication error:', error);
-        } finally {
-            setIsLoading(null);
-        }
-    };
-
-    const validateEmail = (email: string) => {
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return regex.test(email);
-    };
+    const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
     const handlePasswordAuth = async () => {
         setIsLoading('password');
-        setError('');
+        resetErrors();
 
         if (!email) {
             setError('Email is required');
             setIsLoading(null);
             return;
-        } else if (!validateEmail(email)) {
+        }
+
+        if (!validateEmail(email)) {
             setError('Please enter a valid email');
             setIsLoading(null);
             return;
@@ -173,34 +73,17 @@ export const CustomSignIn = ({
         }
 
         try {
-            if (!signIn) return;
-
-            const result = await signIn.create({
-                identifier: email,
-                password: password,
-            });
-
-            if (result.status === 'complete') {
-                setActive({ session: result.createdSessionId });
-                router.push('/chat');
+            await signInWithPassword(email.trim(), password);
+            router.push('/chat');
+        } catch (err: unknown) {
+            console.error('Password authentication error:', err);
+            const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
+            if (message.toLowerCase().includes('invalid credentials')) {
+                setError('Invalid email or password. Please try again.');
+            } else if (message.toLowerCase().includes('not found')) {
+                setError('Account not found. Please check your email or sign up.');
             } else {
-                // Handle additional factors if needed
-                console.log('Additional factors required:', result);
-                setError('Additional authentication required. Please check your account settings.');
-            }
-        } catch (error: any) {
-            console.error('Password authentication error:', error);
-            if (isClerkAPIResponseError(error)) {
-                const errorMessage = error.errors[0]?.longMessage || error.errors[0]?.message;
-                if (errorMessage?.includes('password')) {
-                    setError('Invalid email or password. Please try again.');
-                } else if (errorMessage?.includes('identifier')) {
-                    setError('Account not found. Please check your email or sign up.');
-                } else {
-                    setError(errorMessage || 'Authentication failed. Please try again.');
-                }
-            } else {
-                setError('Something went wrong. Please try again.');
+                setError(message);
             }
         } finally {
             setIsLoading(null);
@@ -209,76 +92,58 @@ export const CustomSignIn = ({
 
     const handleEmailAuth = async () => {
         setIsLoading('email');
-        setError('');
+        resetErrors();
 
         if (!email) {
             setError('Email is required');
             setIsLoading(null);
             return;
-        } else if (!validateEmail(email)) {
+        }
+
+        if (!validateEmail(email)) {
             setError('Please enter a valid email');
             setIsLoading(null);
             return;
         }
 
         try {
-            // Try signing up the user first
-            await signUp.create({ emailAddress: email });
-
-            // If sign-up is successful, send the magic link
-            const protocol = window.location.protocol;
-            const host = window.location.host;
-            const fullRedirectUrl = `${protocol}//${host}${redirectUrl}`;
-
-            await signUp.prepareEmailAddressVerification({
-                strategy: 'email_code',
-            });
-
+            const token = await requestEmailCode(email.trim());
+            setEmailToken(token);
             setVerifying(true);
-        } catch (error: any) {
-            if (
-                error.errors &&
-                error.errors.some((e: any) => e.code === 'form_identifier_exists')
-            ) {
-                try {
-                    // If the user already exists, sign them in instead
-                    const signInAttempt = await signIn.create({
-                        identifier: email,
-                    });
+        } catch (err: unknown) {
+            console.error('Email authentication error:', err);
+            const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
+            setError(message);
+        } finally {
+            setIsLoading(null);
+        }
+    };
 
-                    console.log(signInAttempt);
+    const handleVerify = async () => {
+        resetErrors();
 
-                    // Get the email address ID from the response and prepare the magic link
-                    const emailAddressIdObj: any = signInAttempt?.supportedFirstFactors?.find(
-                        (factor: any) => factor.strategy === 'email_code'
-                    );
+        if (!emailToken) {
+            setError('Email verification has not been requested.');
+            return;
+        }
 
-                    const emailAddressId: any = emailAddressIdObj?.emailAddressId || '';
+        if (code.length !== 6) {
+            setError('Please enter the complete 6-digit code');
+            return;
+        }
 
-                    if (emailAddressId) {
-                        await signIn.prepareFirstFactor({
-                            strategy: 'email_code',
-                            emailAddressId,
-                        });
+        setIsLoading('verify');
 
-                        setVerifying(true);
-                    } else {
-                        throw new Error('Email address ID not found');
-                    }
-                } catch (error: any) {
-                    console.log(error.message);
-                    if (error.includes('Incorrect code')) {
-                        setError('Incorrect code. Please try again.');
-                    } else {
-                        console.error('Sign-in error:', error);
-                        setError('Something went wrong while signing in. Please try again.');
-                    }
-                }
+        try {
+            await verifyEmailCode(emailToken.userId, code);
+            router.push('/chat');
+        } catch (err: unknown) {
+            console.error('Verification failed:', err);
+            const message = err instanceof Error ? err.message : 'Verification failed. Please try again.';
+            if (message.toLowerCase().includes('code')) {
+                setError('Invalid verification code. Please try again.');
             } else {
-                console.error('Authentication error:', error);
-                setError(
-                    error?.errors?.[0]?.longMessage || 'Authentication failed. Please try again.'
-                );
+                setError(message);
             }
         } finally {
             setIsLoading(null);
@@ -286,63 +151,36 @@ export const CustomSignIn = ({
     };
 
     const handleSendCode = async () => {
-        // Don't proceed if already resending
-        if (resending) return;
-
-        // Check if email is available
-        if (!email) {
+        if (resending || !emailToken) {
             setError('Email is missing. Please try again.');
             return;
         }
 
         setResending(true);
-        setError('');
+        resetErrors();
 
         try {
-            // First try with signUp flow
-            await signUp.prepareEmailAddressVerification({
-                strategy: 'email_code',
-            });
-
-            // Show a success message
-            setError('');
-        } catch (error: any) {
-            // If error, try with signIn flow
-            if (error.errors && error.errors.some((e: any) => e.code === 'client_state_invalid')) {
-                try {
-                    const signInAttempt = await signIn.create({
-                        identifier: email,
-                    });
-
-                    const emailAddressIdObj: any = signInAttempt?.supportedFirstFactors?.find(
-                        (factor: any) => factor.strategy === 'email_code'
-                    );
-
-                    const emailAddressId: any = emailAddressIdObj?.emailAddressId || '';
-
-                    if (emailAddressId) {
-                        await signIn.prepareFirstFactor({
-                            strategy: 'email_code',
-                            emailAddressId,
-                        });
-                    } else {
-                        throw new Error('Email address ID not found');
-                    }
-                } catch (error) {
-                    if (isClerkAPIResponseError(error)) {
-                        console.error('Error resending code:', error);
-                    }
-                    setError('Failed to resend code. Please try again.');
-                }
-            } else {
-                console.error('Error resending code:', error);
-                setError('Failed to resend code. Please try again.');
-            }
+            const token = await requestEmailCode(emailToken.email);
+            setEmailToken(token);
+        } catch (err: unknown) {
+            console.error('Error resending code:', err);
+            setError('Failed to resend code. Please try again.');
         } finally {
-            // Wait a moment before allowing another resend (to prevent spam)
-            setTimeout(() => {
-                setResending(false);
-            }, 3000);
+            setTimeout(() => setResending(false), 3000);
+        }
+    };
+
+    const handleGoogleAuth = async () => {
+        setIsLoading('google');
+        resetErrors();
+
+        try {
+            await signInWithGoogle(redirectUrl);
+        } catch (error) {
+            console.error('Google authentication error:', error);
+            setError('Google authentication failed. Please try again.');
+        } finally {
+            setIsLoading(null);
         }
     };
 
@@ -354,18 +192,19 @@ export const CustomSignIn = ({
                         Check your email
                     </h2>
                     <p className="text-muted-foreground text-center text-sm">
-                        We've sent a code to your email. Please check your inbox and enter the code
-                        to continue.
+                        We've sent a code to{' '}
+                        <span className="font-medium">{emailToken?.email}</span>. Please check your inbox and
+                        enter the code to continue.
                     </p>
                 </div>
-                <div className="flex flex-col gap-3 w-full">
+                <div className="flex w-full flex-col gap-3">
                     <Input
                         maxLength={6}
                         autoFocus
                         value={code}
                         onChange={(e) => {
                             setCode(e.target.value);
-                            setError(''); // Clear error when typing
+                            resetErrors();
                         }}
                         onKeyPress={(e) => {
                             if (e.key === 'Enter' && code.length === 6) {
@@ -383,7 +222,7 @@ export const CustomSignIn = ({
                     >
                         {isLoading === 'verify' ? (
                             <>
-                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                                 Verifying...
                             </>
                         ) : (
@@ -402,12 +241,21 @@ export const CustomSignIn = ({
                         {resending ? 'Sending...' : 'Resend Code'}
                     </span>
                 </p>
-
-                <div id="clerk-captcha"></div>
                 <div className="text-muted-foreground text-center text-sm">
                     {error && <p className="text-rose-400">{error}</p>}
                     {resending && <p className="text-brand">Sending verification code...</p>}
                 </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                        setVerifying(false);
+                        setCode('');
+                    }}
+                >
+                    Back
+                </Button>
             </div>
         );
     }
@@ -430,7 +278,6 @@ export const CustomSignIn = ({
                 </h2>
 
                 <div className="flex w-full flex-col space-y-4">
-                    {/* Email/Password Form */}
                     <div className="flex flex-col space-y-3">
                         <Input
                             type="email"
@@ -439,7 +286,7 @@ export const CustomSignIn = ({
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={isLoading !== null}
                         />
-                        
+
                         {authMode === 'password' && (
                             <div className="relative">
                                 <Input
@@ -454,7 +301,7 @@ export const CustomSignIn = ({
                                     variant="ghost"
                                     size="icon-sm"
                                     className="absolute right-2 top-1/2 -translate-y-1/2"
-                                    onClick={() => setShowPassword(!showPassword)}
+                                    onClick={() => setShowPassword((value) => !value)}
                                 >
                                     {showPassword ? (
                                         <IconEyeOff className="h-4 w-4" />
@@ -472,7 +319,7 @@ export const CustomSignIn = ({
                         >
                             {isLoading === 'password' || isLoading === 'email' ? (
                                 <>
-                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                                     Signing in...
                                 </>
                             ) : (
@@ -480,32 +327,28 @@ export const CustomSignIn = ({
                             )}
                         </Button>
 
-                        {error && (
-                            <div className="text-center text-sm text-rose-400">
-                                {error}
-                            </div>
-                        )}
+                        {error && <div className="text-center text-sm text-rose-400">{error}</div>}
 
                         <div className="text-center">
                             <span
                                 className="hover:text-brand text-brand cursor-pointer text-sm underline"
                                 onClick={() => {
-                                    setAuthMode(authMode === 'password' ? 'emailCode' : 'password');
-                                    setError('');
+                                    setAuthMode((mode) => (mode === 'password' ? 'emailCode' : 'password'));
+                                    resetErrors();
                                     setPassword('');
                                 }}
                             >
-                                {authMode === 'password' 
-                                    ? 'Use email verification code instead' 
+                                {authMode === 'password'
+                                    ? 'Use email verification code instead'
                                     : 'Use password instead'}
                             </span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="bg-border h-px flex-1"></div>
+                        <div className="bg-border h-px flex-1" />
                         <span className="text-muted-foreground text-sm">or continue with</span>
-                        <div className="bg-border h-px flex-1"></div>
+                        <div className="bg-border h-px flex-1" />
                     </div>
 
                     <div className="flex flex-col space-y-2">
@@ -515,24 +358,11 @@ export const CustomSignIn = ({
                             variant="bordered"
                         >
                             {isLoading === 'google' ? (
-                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                             ) : (
-                                <FaGoogle className=" size-3" />
+                                <FaGoogle className="size-3" />
                             )}
                             {isLoading === 'google' ? 'Authenticating...' : 'Continue with Google'}
-                        </Button>
-
-                        <Button
-                            onClick={handleGithubAuth}
-                            disabled={isLoading === 'github'}
-                            variant="bordered"
-                        >
-                            {isLoading === 'github' ? (
-                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                            ) : (
-                                <FaGithub className=" size-3" />
-                            )}
-                            {isLoading === 'github' ? 'Authenticating...' : 'Continue with GitHub'}
                         </Button>
                     </div>
                 </div>
@@ -546,9 +376,7 @@ export const CustomSignIn = ({
                 </div>
 
                 <div className="text-muted-foreground/50 w-full text-center text-xs">
-                    <span className="text-muted-foreground/50">
-                        By using this app, you agree to the{' '}
-                    </span>
+                    <span className="text-muted-foreground/50">By using this app, you agree to the </span>
                     <a href="/terms" className="hover:text-foreground underline">
                         Terms of Service
                     </a>{' '}
