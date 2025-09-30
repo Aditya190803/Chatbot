@@ -102,7 +102,7 @@ Your report should demonstrate subject matter expertise while remaining intellec
             },
         });
 
-        const answer = await generateText({
+        const { text: answer } = await generateText({
             prompt,
             model: ModelEnum.GEMINI_2_5_FLASH,
             messages,

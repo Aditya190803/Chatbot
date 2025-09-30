@@ -216,7 +216,7 @@ export const quickSearchTask = createTask<WorkflowEventSchema, WorkflowContextSc
             status: 'PENDING',
         });
 
-        const response = await generateText({
+        const { text: response } = await generateText({
             model,
             messages: [...messages],
             prompt,

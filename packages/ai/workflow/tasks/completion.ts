@@ -139,7 +139,7 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
             },
         });
 
-        const response = await generateText({
+        const { text: response, usage, durationMs } = await generateText({
             model,
             messages,
             prompt,
@@ -163,6 +163,15 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
             fullText: response,
             thinkingProcess: reasoningText,
             status: 'COMPLETED',
+        }));
+
+        events?.update('metrics', prev => ({
+            ...prev,
+            totalTokens: usage?.totalTokens ?? prev?.totalTokens ?? 0,
+            promptTokens: usage?.promptTokens ?? prev?.promptTokens ?? 0,
+            completionTokens: usage?.completionTokens ?? prev?.completionTokens ?? 0,
+            durationMs: durationMs ?? prev?.durationMs ?? 0,
+            model: model ?? prev?.model,
         }));
 
         context.update('answer', _ => response);

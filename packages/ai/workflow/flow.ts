@@ -67,6 +67,13 @@ export type WorkflowEventSchema = {
     status: Status;
 
     suggestions?: string[];
+    metrics?: {
+        totalTokens?: number;
+        promptTokens?: number;
+        completionTokens?: number;
+        durationMs?: number;
+        model?: string;
+    };
 };
 
 // Define the context schema type
@@ -170,6 +177,12 @@ export const runWorkflow = ({
             status: 'PENDING',
         },
         status: 'PENDING',
+        metrics: {
+            totalTokens: 0,
+            promptTokens: 0,
+            completionTokens: 0,
+            durationMs: 0,
+        },
     });
 
     const context = createContext<WorkflowContextSchema>({

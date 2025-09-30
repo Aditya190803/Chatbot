@@ -7,6 +7,7 @@ import {
     streamText,
     ToolSet,
 } from 'ai';
+import type { LanguageModelUsage } from 'ai';
 import { format } from 'date-fns';
 import { ZodSchema } from 'zod';
 import { ModelEnum } from '../models';
@@ -83,7 +84,11 @@ export const generateText = async ({
     signal?: AbortSignal;
     toolChoice?: 'auto' | 'none' | 'required';
     maxSteps?: number;
-}) => {
+}): Promise<{
+    text: string;
+    usage?: LanguageModelUsage;
+    durationMs: number;
+}> => {
     try {
         if (signal?.aborted) {
             throw new Error('Operation aborted');
@@ -115,6 +120,8 @@ export const generateText = async ({
               });
         let fullText = '';
         let reasoning = '';
+        let usage: LanguageModelUsage | undefined;
+        const startTime = Date.now();
 
         for await (const chunk of fullStream) {
             if (signal?.aborted) {
@@ -136,12 +143,21 @@ export const generateText = async ({
                 onToolResult?.(chunk);
             }
 
+            if (chunk.type === 'finish') {
+                usage = chunk.usage as LanguageModelUsage | undefined;
+            }
+
             if (chunk.type === 'error') {
                 console.error(chunk.error);
                 return Promise.reject(chunk.error);
             }
         }
-        return Promise.resolve(fullText);
+        const durationMs = Date.now() - startTime;
+        return Promise.resolve({
+            text: fullText,
+            usage,
+            durationMs,
+        });
     } catch (error) {
         console.error(error);
         return Promise.reject(error);
@@ -591,16 +607,19 @@ export const sendEvents = (events?: TypedEventEmitter<WorkflowEventSchema>) => {
         text,
         finalText,
         status,
+        thinkingProcess,
     }: {
         text?: string;
         finalText?: string;
         status?: 'PENDING' | 'COMPLETED';
+        thinkingProcess?: string;
     }) => {
         events?.update('answer', prev => ({
             ...prev,
-            text: text || prev?.text,
-            finalText: finalText || prev?.finalText,
-            status: status || prev?.status,
+            text: text ?? prev?.text,
+            finalText: finalText ?? prev?.finalText,
+            thinkingProcess: thinkingProcess ?? prev?.thinkingProcess,
+            status: status ?? prev?.status,
         }));
     };
 

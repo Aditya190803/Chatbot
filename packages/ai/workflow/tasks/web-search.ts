@@ -116,8 +116,8 @@ ${processedResults
 
       `;
 
-        const summary = await generateText({
-            model: ModelEnum.GEMINI_2_FLASH,
+        const { text: summary } = await generateText({
+            model: ModelEnum.GEMINI_2_5_FLASH,
             prompt,
         });
 

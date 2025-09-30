@@ -269,7 +269,7 @@ export const proSearchTask = createTask<WorkflowEventSchema, WorkflowContextSche
             // Step 4: Generate analysis
             let reasoning = '';
             try {
-                reasoning = await generateText({
+                const { text: generatedReasoning } = await generateText({
                     prompt: getAnalysisPrompt(question, webPageContent),
                     model: ModelEnum.GEMINI_2_5_FLASH,
                     messages,
@@ -280,6 +280,8 @@ export const proSearchTask = createTask<WorkflowEventSchema, WorkflowContextSche
                         chunkBuffer.add(chunk);
                     },
                 });
+
+                reasoning = generatedReasoning;
 
                 if (!reasoning || reasoning.trim() === '') {
                     throw new Error('Failed to generate analysis');
