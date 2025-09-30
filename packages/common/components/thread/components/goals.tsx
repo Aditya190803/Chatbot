@@ -10,7 +10,7 @@ import {
     IconLoader2,
     IconNorthStar,
 } from '@tabler/icons-react';
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 const getTitle = (threadItem: ThreadItem) => {
     if (threadItem.mode === ChatMode.Deep) {
         return 'Research';
@@ -74,6 +74,7 @@ export const Steps = ({ steps, threadItem }: { steps: Step[]; threadItem: Thread
     const openSideDrawer = useAppStore(state => state.openSideDrawer);
     const dismissSideDrawer = useAppStore(state => state.dismissSideDrawer);
     const updateSideDrawer = useAppStore(state => state.updateSideDrawer);
+    const sideDrawerOpen = useAppStore(state => state.sideDrawer.open);
 
     const isStopped = threadItem.status === 'ABORTED' || threadItem.status === 'ERROR';
 
@@ -129,22 +130,21 @@ export const Steps = ({ steps, threadItem }: { steps: Step[]; threadItem: Thread
     }, [steps, threadItem?.status]);
 
     const handleClick = () => {
-        dismissSideDrawer();
-
-        openSideDrawer({
-            badge: stepCounts,
-            title: () => renderTitle(false),
-            renderContent: () => (
-                <div className="flex w-full flex-1 flex-col px-2 py-4">
-                    {steps.map((step, index) => (
-                        <StepRenderer key={index} step={step} />
-                    ))}
-                    {/* {toolCallAndResults.map(({ toolCall, toolResult }) => (
-                        <ToolStep toolCall={toolCall} toolResult={toolResult} />
-                    ))} */}
-                </div>
-            ),
-        });
+        if (sideDrawerOpen) {
+            dismissSideDrawer();
+        } else {
+            openSideDrawer({
+                badge: stepCounts,
+                title: () => renderTitle(false),
+                renderContent: () => (
+                    <div className="flex w-full flex-1 flex-col px-2 py-4">
+                        {steps.map((step, index) => (
+                            <StepRenderer key={index} step={step} />
+                        ))}
+                    </div>
+                ),
+            });
+        }
     };
 
     const renderTitle = (useNote = true) => {
