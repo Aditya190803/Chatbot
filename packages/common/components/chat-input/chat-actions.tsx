@@ -52,7 +52,7 @@ export const chatOptions: ChatModeOption[] = [
         badge: 'Web',
     },
     {
-        label: 'Gemini Image Preview',
+        label: 'Image Generation',
         description: 'Generate or edit images with Gemini',
         value: ChatMode.IMAGE_GENERATION,
         icon: IconPhoto,
@@ -228,6 +228,7 @@ export const ChatModeOptions = ({
     const { isSignedIn } = useUser();
     const isChatPage = usePathname().startsWith('/chat');
     const { push } = useRouter();
+    const showGuidedWorkflows = isChatPage && !isRetry;
 
     const handleSelect = async (
         event: Event,
@@ -245,7 +246,7 @@ export const ChatModeOptions = ({
     };
 
     const description = isRetry
-        ? 'Re-run this response with a different model or workflow.'
+        ? 'Re-run this response with a different base model.'
         : 'Pick the workflow or base model you want to use for upcoming messages.';
 
     const renderOption = (option: ChatModeOption) => {
@@ -322,7 +323,7 @@ export const ChatModeOptions = ({
             </div>
 
             <div className="max-h-[320px] overflow-y-auto px-3 py-2">
-                {isChatPage && (
+                {showGuidedWorkflows && (
                     <div className="space-y-2">
                         <DropdownMenuLabel className="text-muted-foreground/70 px-1 text-[11px] font-semibold uppercase tracking-wide">
                             Guided workflows
