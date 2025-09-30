@@ -1,4 +1,4 @@
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useAuth } from '@repo/common/context';
 import { useWorkflowWorker } from '@repo/ai/worker';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
 import { ThreadItem } from '@repo/shared/types';
@@ -36,7 +36,6 @@ const AgentContext = createContext<AgentContextType | undefined>(undefined);
 export const AgentProvider = ({ children }: { children: ReactNode }) => {
     const { threadId: currentThreadId } = useParams();
     const { isSignedIn } = useAuth();
-    const { user } = useUser();
 
     const {
         updateThreadItem,
@@ -64,7 +63,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
     const getSelectedMCP = useMcpToolsStore(state => state.getSelectedMCP);
     const apiKeys = useApiKeysStore(state => state.getAllKeys);
     const hasApiKeyForChatMode = useApiKeysStore(state => state.hasApiKeyForChatMode);
-    const setShowSignInModal = useAppStore(state => state.setShowSignInModal);
     const { generateAndUpdateTitle } = useTitleGeneration();
 
     // In-memory store for thread items
@@ -604,7 +602,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             isSignedIn,
             currentThreadId,
             chatMode,
-            setShowSignInModal,
             updateThread,
             createThreadItem,
             setCurrentThreadItem,

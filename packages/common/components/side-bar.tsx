@@ -1,8 +1,9 @@
 'use client';
 import React, { useState } from 'react';
-import { useClerk, useUser } from '@clerk/nextjs';
+
 import { FullPageLoader, HistoryItem, Logo } from '@repo/common/components';
-import { useRootContext } from '@repo/common/context';
+import { useAuth, useRootContext } from '@repo/common/context';
+import type { AuthUser } from '@repo/common/auth';
 import { useAppStore, useChatStore } from '@repo/common/store';
 import { Thread } from '@repo/shared/types';
 import { Badge, Button, cn, Flex } from '@repo/ui';
@@ -40,13 +41,15 @@ const MenuItem = DropdownMenuItemComponent as unknown as React.ComponentType<any
 const MenuSeparator = DropdownMenuSeparatorComponent as unknown as React.ComponentType<any>;
 
 const UserMenu: React.FC<{
-    user: any;
+    user: AuthUser | null;
     isSidebarOpen: boolean;
     setIsSettingsOpen: (open: boolean) => void;
-    openUserProfile: () => void;
-    signOut: () => void;
-}> = ({ user, isSidebarOpen, setIsSettingsOpen, openUserProfile, signOut }) => {
+    signOut: () => void | Promise<void>;
+}> = ({ user, isSidebarOpen, setIsSettingsOpen, signOut }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const displayName =
+        user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || 'Account';
 
     return (
         <MenuRoot open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -65,19 +68,13 @@ const UserMenu: React.FC<{
                             !isSidebarOpen && 'size-7'
                         )}
                     >
-                        {user && user.hasImage ? (
+                        {user?.imageUrl ? (
                             <img
-                                src={user?.imageUrl ?? ''}
+                                src={user.imageUrl}
                                 width={32}
                                 height={32}
                                 className="size-full shrink-0 rounded-full"
-                                alt={user?.fullName 
-                                    ? user.fullName
-                                        .split(' ')
-                                        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                                        .join(' ')
-                                    : 'Account'
-                                }
+                                alt={displayName}
                             />
                         ) : (
                             <IconUser size={16} strokeWidth={2} className="text-background" />
@@ -86,16 +83,10 @@ const UserMenu: React.FC<{
                     {isSidebarOpen && (
                         <div className="flex flex-1 flex-col items-start gap-0">
                             <p className="line-clamp-1 text-sm font-medium text-foreground pt-0.5">
-                                {user?.fullName 
-                                    ? user.fullName
-                                        .split(' ')
-                                        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                                        .join(' ')
-                                    : 'Account'
-                                }
+                                {displayName}
                             </p>
                             <p className="text-muted-foreground/70 text-[11px] font-normal -mt-0.5">
-                                Manage account
+                                {user?.email || 'Manage account'}
                             </p>
                         </div>
                     )}
@@ -126,20 +117,11 @@ const UserMenu: React.FC<{
                     <IconSettings size={16} strokeWidth={2} />
                     Settings
                 </MenuItem>
-                <MenuItem
-                    className="flex w-full items-center gap-2 text-sm"
-                    onSelect={() => {
-                        openUserProfile();
-                    }}
-                >
-                    <IconUser size={16} strokeWidth={2} />
-                    Profile
-                </MenuItem>
                 <MenuSeparator />
                 <MenuItem
                     className="flex w-full items-center gap-2 text-sm text-destructive"
                     onSelect={() => {
-                        signOut();
+                        void signOut();
                     }}
                 >
                     <IconLogout size={16} strokeWidth={2} />
@@ -162,9 +144,7 @@ export const Sidebar = () => {
         return [...threads].sort((a, b) => moment(b[sortBy]).diff(moment(a[sortBy])));
     };
 
-    const { isSignedIn, user } = useUser();
-    const { openUserProfile, signOut, redirectToSignIn } = useClerk();
-    const clearAllThreads = useChatStore(state => state.clearAllThreads);
+    const { isSignedIn, user, signOut } = useAuth();
     const setIsSidebarOpen = useAppStore(state => state.setIsSidebarOpen);
     const isSidebarOpen = useAppStore(state => state.isSidebarOpen);
     const setIsSettingsOpen = useAppStore(state => state.setIsSettingsOpen);
@@ -469,7 +449,6 @@ export const Sidebar = () => {
                                 user={user}
                                 isSidebarOpen={isSidebarOpen}
                                 setIsSettingsOpen={setIsSettingsOpen}
-                                openUserProfile={openUserProfile}
                                 signOut={signOut}
                             />
                         </div>

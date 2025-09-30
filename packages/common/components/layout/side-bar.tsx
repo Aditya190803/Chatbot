@@ -1,7 +1,7 @@
-import { SignInButton, useAuth, UserButton } from '@clerk/nextjs';
 import { FullPageLoader, HistoryItem } from '@repo/common/components';
-import { useRootContext } from '@repo/common/context';
-import { Thread, useAppStore, useChatStore } from '@repo/common/store';
+import { useAuth, useRootContext } from '@repo/common/context';
+import { useAppStore, useChatStore } from '@repo/common/store';
+import type { Thread } from '@repo/shared/types';
 import { Button, cn, Flex } from '@repo/ui';
 import { IconArrowBarLeft, IconArrowBarRight, IconPlus, IconSearch } from '@tabler/icons-react';
 import moment from 'moment';
@@ -14,11 +14,12 @@ export const Sidebar = () => {
     const { push } = useRouter();
     const isChatPage = pathname.startsWith('/chat');
     const threads = useChatStore(state => state.threads);
-    const { isSignedIn } = useAuth();
+    const pinThread = useChatStore(state => state.pinThread);
+    const unpinThread = useChatStore(state => state.unpinThread);
+    const { isSignedIn, user, signOut } = useAuth();
     const sortThreads = (threads: Thread[], sortBy: 'createdAt') => {
         return [...threads].sort((a, b) => moment(b[sortBy]).diff(moment(a[sortBy])));
     };
-    const clearAllThreads = useChatStore(state => state.clearAllThreads);
     const setIsSidebarOpen = useAppStore(state => state.setIsSidebarOpen);
     const isSidebarOpen = useAppStore(state => state.isSidebarOpen);
 
@@ -61,9 +62,12 @@ export const Sidebar = () => {
                             thread={thread}
                             key={thread.id}
                             dismiss={() => {
-                                setIsSidebarOpen(prev => false);
+                                setIsSidebarOpen(() => false);
                             }}
                             isActive={thread.id === currentThreadId}
+                            isPinned={thread.pinned}
+                            pinThread={() => pinThread(thread.id)}
+                            unpinThread={() => unpinThread(thread.id)}
                         />
                     ))}
                 </Flex>
@@ -166,23 +170,29 @@ export const Sidebar = () => {
                     )}
                     <div className="sticky right-0 top-0 z-50 flex items-center gap-1 px-4 py-2">
                         {isSignedIn ? (
-                            <UserButton
-                                showName
-                                appearance={{
-                                    elements: {
-                                        avatarBox:
-                                            'size-6 bg-muted-foreground border border-border',
-                                        userButtonAvatarBox: 'bg-muted-foreground',
-                                        userPreviewAvatarIcon: 'bg-muted-foreground',
-                                    },
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                rounded="full"
+                                className="gap-2"
+                                onClick={() => {
+                                    void signOut();
                                 }}
-                            />
+                            >
+                                <span>Sign out</span>
+                                {user?.firstName && (
+                                    <span className="text-muted-foreground text-xs">{user.firstName}</span>
+                                )}
+                            </Button>
                         ) : (
-                            <SignInButton mode="modal">
-                                <Button variant="default" size="sm" rounded="full">
-                                    Log in
-                                </Button>
-                            </SignInButton>
+                            <Button
+                                variant="default"
+                                size="sm"
+                                rounded="full"
+                                onClick={() => push('/sign-in')}
+                            >
+                                Log in
+                            </Button>
                         )}
                     </div>
                 </Flex>
