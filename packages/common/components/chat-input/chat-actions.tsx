@@ -71,6 +71,10 @@ export const modelOptions: ChatModeOption[] = [
         value: ChatMode.GEMINI_2_5_PRO,
     },
     {
+        label: 'DeepSeek R1',
+        value: ChatMode.DEEPSEEK_R1,
+    },
+    {
         label: 'Grok 4 Fast',
         value: ChatMode.GROK_4_FAST,
 

@@ -37,17 +37,26 @@ export const useApiKeysStore = create<ApiKeysState>()(
             getAllKeys: () => get().keys,
             hasApiKeyForChatMode: (chatMode: ChatMode) => {
                 const apiKeys = get().keys;
+                const hasGeminiKey = !!apiKeys['GEMINI_API_KEY'];
+                const hasOpenRouterKey = !!apiKeys['OPENROUTER_API_KEY'];
+                const hasSearchKey = !!apiKeys['LANGSEARCH_API_KEY'] || !!apiKeys['SERPER_API_KEY'];
+
                 switch (chatMode) {
+                    case ChatMode.Deep:
+                    case ChatMode.Pro:
+                        // Deep/Pro workflows require an LLM plus at least one search provider
+                        return hasGeminiKey && hasSearchKey;
                     case ChatMode.GEMINI_2_5_FLASH:
                     case ChatMode.GEMINI_2_5_PRO:
                     case ChatMode.IMAGE_GENERATION:
-                        return !!apiKeys['GEMINI_API_KEY'];
+                        return hasGeminiKey;
                     case ChatMode.GROK_4_FAST:
                     case ChatMode.GLM_4_5_AIR:
                     case ChatMode.DEEPSEEK_CHAT_V3_1:
+                    case ChatMode.DEEPSEEK_R1:
                     case ChatMode.GPT_OSS_120B:
                     case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
-                        return !!apiKeys['OPENROUTER_API_KEY'];
+                        return hasOpenRouterKey;
                     default:
                         return false;
                 }

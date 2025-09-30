@@ -6,6 +6,7 @@ export enum ChatMode {
     GROK_4_FAST = 'grok-4-fast',
     GLM_4_5_AIR = 'glm-4-5-air',
     DEEPSEEK_CHAT_V3_1 = 'deepseek-chat-v3-1',
+    DEEPSEEK_R1 = 'deepseek-r1',
     GPT_OSS_120B = 'gpt-oss-120b',
     DOLPHIN_MISTRAL_24B_VENICE = 'dolphin-mistral-24b-venice',
     DOCUMENT_QA = 'document-qa',
@@ -81,6 +82,15 @@ export const ChatModeConfig: Record<
         isNew: true,
         isAuthRequired: false,
     },
+    [ChatMode.DEEPSEEK_R1]: {
+        webSearch: true,
+        imageUpload: true,
+        retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
     [ChatMode.GPT_OSS_120B]: {
         webSearch: true,
         imageUpload: true,
@@ -135,6 +145,8 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'GLM 4.5 Air';
         case ChatMode.DEEPSEEK_CHAT_V3_1:
             return 'DeepSeek Chat v3.1';
+        case ChatMode.DEEPSEEK_R1:
+            return 'DeepSeek R1';
         case ChatMode.GPT_OSS_120B:
             return 'GPT-OSS 120B';
         case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:

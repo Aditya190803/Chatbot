@@ -11,6 +11,7 @@ export enum ModelEnum {
     GROK_4_FAST = 'x-ai/grok-4-fast:free',
     GLM_4_5_AIR = 'z-ai/glm-4.5-air:free',
     DEEPSEEK_CHAT_V3_1 = 'deepseek/deepseek-chat-v3.1:free',
+    DEEPSEEK_R1 = 'deepseek/deepseek-r1-0528:free',
     GPT_OSS_120B = 'openai/gpt-oss-120b:free',
     DOLPHIN_MISTRAL_24B_VENICE = 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
 }
@@ -79,6 +80,14 @@ export const models: Model[] = [
         isFree: true,
     },
     {
+        id: ModelEnum.DEEPSEEK_R1,
+        name: 'DeepSeek R1 (OpenRouter Free)',
+        provider: 'openrouter',
+        maxTokens: 8000,
+        contextWindow: 128000,
+        isFree: true,
+    },
+    {
         id: ModelEnum.GPT_OSS_120B,
         name: 'GPT-OSS 120B (OpenRouter Free)',
         provider: 'openrouter',
@@ -108,6 +117,8 @@ export const getModelFromChatMode = (mode?: string): ModelEnum => {
             return ModelEnum.GLM_4_5_AIR;
         case ChatMode.DEEPSEEK_CHAT_V3_1:
             return ModelEnum.DEEPSEEK_CHAT_V3_1;
+        case ChatMode.DEEPSEEK_R1:
+            return ModelEnum.DEEPSEEK_R1;
         case ChatMode.GPT_OSS_120B:
             return ModelEnum.GPT_OSS_120B;
         case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
@@ -128,6 +139,7 @@ export const getChatModeMaxTokens = (mode: ChatMode) => {
         case ChatMode.GROK_4_FAST:
         case ChatMode.GLM_4_5_AIR:
         case ChatMode.DEEPSEEK_CHAT_V3_1:
+        case ChatMode.DEEPSEEK_R1:
         case ChatMode.GPT_OSS_120B:
         case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
             return 128000;
