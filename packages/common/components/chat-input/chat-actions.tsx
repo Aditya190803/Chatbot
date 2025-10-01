@@ -2,15 +2,19 @@
 
 import { useAuth } from '@repo/common/context';
 import { DotSpinner } from '@repo/common/components';
+import { useBranchNavigation, BRANCH_NAV_BUTTON_CLASSES } from '../thread/components/branch-switcher';
 import { useChatStore } from '@repo/common/store';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
 import { Button, cn, Kbd } from '@repo/ui';
 import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
+import type { ThreadItem } from '@repo/shared/types';
 import {
     IconArrowUp,
     IconAtom,
     IconCheck,
+    IconChevronLeft,
     IconChevronDown,
+    IconChevronRight,
     IconNorthStar,
     IconPhoto,
     IconPaperclip,
@@ -214,6 +218,63 @@ export const GeneratingStatus = () => {
     return (
         <div className="text-muted-foreground flex flex-row items-center gap-1 px-2 text-xs">
             <DotSpinner /> Generating...
+        </div>
+    );
+};
+
+export const ComposerBranchControls = ({
+    threadItem,
+    disabled = false,
+}: {
+    threadItem: ThreadItem | null;
+    disabled?: boolean;
+}) => {
+    if (!threadItem) {
+        return null;
+    }
+
+    const {
+        totalBranches,
+        activeIndex,
+        canShowPrevious,
+        canShowNext,
+        selectPrevious,
+        selectNext,
+    } = useBranchNavigation(threadItem);
+
+    if (totalBranches <= 1 || activeIndex < 0) {
+        return null;
+    }
+
+    const displayIndex = Math.min(activeIndex, totalBranches - 1);
+
+    return (
+        <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-subtle-sm">
+            <span className="font-medium text-foreground">{`<${displayIndex + 1}/${totalBranches}>`}</span>
+            <div className="flex items-center gap-1">
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className={cn(BRANCH_NAV_BUTTON_CLASSES, (!canShowPrevious || disabled) && 'opacity-40')}
+                    disabled={disabled || !canShowPrevious}
+                    aria-label="Previous branch"
+                    onClick={selectPrevious}
+                    tooltip="Previous reply"
+                >
+                    <IconChevronLeft size={14} strokeWidth={2} />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className={cn(BRANCH_NAV_BUTTON_CLASSES, (!canShowNext || disabled) && 'opacity-40')}
+                    disabled={disabled || !canShowNext}
+                    aria-label="Next branch"
+                    onClick={selectNext}
+                    tooltip="Next reply"
+                >
+                    <IconChevronRight size={14} strokeWidth={2} />
+                </Button>
+            </div>
         </div>
     );
 };

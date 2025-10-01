@@ -3,7 +3,8 @@
     "compilerOptions": {
         "baseUrl": ".",
         "jsx": "react-jsx",
-        "module": "ESNext"
+        "module": "ESNext",
+        "types": ["vitest/globals"]
     },
     "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
     "exclude": ["node_modules"]

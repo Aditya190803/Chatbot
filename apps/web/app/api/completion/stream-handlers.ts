@@ -5,11 +5,19 @@ import { Geo } from '@vercel/functions';
 import { CompletionRequestType, StreamController } from './types';
 import { sanitizePayloadForJSON } from './utils';
 
+type GuardedStreamController = StreamController & {
+    __closed?: boolean;
+};
+
 export function sendMessage(
-    controller: StreamController,
+    controller: GuardedStreamController,
     encoder: TextEncoder,
     payload: Record<string, any>
 ) {
+    if (controller.__closed) {
+        return;
+    }
+
     try {
         if (payload.content && typeof payload.content === 'string') {
             payload.content = normalizeMarkdownContent(payload.content);
@@ -21,6 +29,14 @@ export function sendMessage(
         controller.enqueue(encoder.encode(message));
         controller.enqueue(new Uint8Array(0));
     } catch (error) {
+        const isControllerClosedError =
+            error instanceof TypeError && error.message.toLowerCase().includes('invalid state');
+
+        if (isControllerClosedError) {
+            controller.__closed = true;
+            return;
+        }
+
         // This is critical - we should log errors in message serialization
         logger.error('Error serializing message payload', error, {
             payloadType: payload.type,
@@ -35,7 +51,19 @@ export function sendMessage(
             threadItemId: payload.threadItemId,
             parentThreadItemId: payload.parentThreadItemId,
         })}\n\n`;
-        controller.enqueue(encoder.encode(errorMessage));
+
+        try {
+            controller.enqueue(encoder.encode(errorMessage));
+        } catch (fallbackError) {
+            if (
+                fallbackError instanceof TypeError &&
+                fallbackError.message.toLowerCase().includes('invalid state')
+            ) {
+                controller.__closed = true;
+            } else {
+                logger.error('Failed to send serialization error payload', fallbackError);
+            }
+        }
     }
 }
 
@@ -53,7 +81,7 @@ export async function executeStream({
     userId,
     onFinish,
 }: {
-    controller: StreamController;
+    controller: GuardedStreamController;
     encoder: TextEncoder;
     data: CompletionRequestType;
     abortController: AbortController;
@@ -64,7 +92,7 @@ export async function executeStream({
     try {
         const { signal } = abortController;
 
-        const workflow = runWorkflow({
+    const workflow = runWorkflow({
             mode: data.mode,
             question: data.prompt,
             threadId: data.threadId,
@@ -120,7 +148,7 @@ export async function executeStream({
 
         return { success: true };
     } catch (error) {
-        if (abortController.signal.aborted) {
+    if (abortController.signal.aborted) {
             // Aborts are normal user actions, not errors
             if (process.env.NODE_ENV === 'development') {
                 logger.debug('Workflow aborted', { threadId: data.threadId });
@@ -151,6 +179,6 @@ export async function executeStream({
             });
         }
 
-        throw error;
+        return { success: false };
     }
 }

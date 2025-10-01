@@ -1,5 +1,6 @@
 import {
     CitationProvider,
+    BranchSwitcher,
     FollowupSuggestions,
     ImageGenerationResult,
     MarkdownContent,
@@ -175,6 +176,8 @@ export const ThreadItem = memo(
                                 threadItem={threadItem}
                             />
                         )}
+
+                        <BranchSwitcher threadItem={threadItem} />
 
                         <div className="text-muted-foreground flex flex-row items-center gap-1.5 text-xs font-medium">
                             <IconBook size={16} strokeWidth={2} />

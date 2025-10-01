@@ -4,10 +4,19 @@ import { useAgentStream, useCopyText } from '@repo/common/hooks';
 import { useChatStore } from '@repo/common/store';
 import { ChatMode, getChatModeName } from '@repo/shared/config';
 import { ThreadItem } from '@repo/shared/types';
-import { Button } from '@repo/ui';
+import { Button, cn } from '@repo/ui';
 import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
-import { IconCheck, IconCopy, IconMarkdown, IconRefresh, IconTrash } from '@tabler/icons-react';
+import {
+    IconCheck,
+    IconCopy,
+    IconMarkdown,
+    IconRefresh,
+    IconTrash,
+    IconChevronLeft,
+    IconChevronRight,
+} from '@tabler/icons-react';
 import { forwardRef, useState } from 'react';
+import { useBranchNavigation, BRANCH_NAV_BUTTON_CLASSES } from './branch-switcher';
 
 const { DropdownMenu, DropdownMenuTrigger } = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
 type MessageActionsProps = {
@@ -43,6 +52,18 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                     ? `${Math.round(tokensPerSecond).toLocaleString()} tok/s`
                     : `${tokensPerSecond.toFixed(1)} tok/s`
                 : null;
+
+        const {
+            totalBranches,
+            activeIndex: branchActiveIndex,
+            canShowPrevious: canNavigatePreviousBranch,
+            canShowNext: canNavigateNextBranch,
+            selectPrevious: navigatePreviousBranch,
+            selectNext: navigateNextBranch,
+        } = useBranchNavigation(threadItem);
+
+        const branchDisplayIndex = branchActiveIndex >= 0 ? branchActiveIndex : 0;
+        const showBranchControls = totalBranches > 1;
 
         return (
             <div className="flex flex-row items-center gap-1 py-2">
@@ -84,6 +105,34 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                             <IconMarkdown size={16} strokeWidth={2} />
                         )}
                     </Button>
+                )}
+
+                {showBranchControls && (
+                    <div className="flex items-center gap-1 pl-1">
+                        <span className="text-muted-foreground text-xs font-medium">{`<${branchDisplayIndex + 1}/${totalBranches}>`}</span>
+                        <Button
+                            variant="ghost-bordered"
+                            size="icon-sm"
+                            className={cn(BRANCH_NAV_BUTTON_CLASSES, !canNavigatePreviousBranch && 'opacity-40')}
+                            disabled={!canNavigatePreviousBranch}
+                            aria-label="Previous branch"
+                            onClick={navigatePreviousBranch}
+                            tooltip="Previous reply"
+                        >
+                            <IconChevronLeft size={14} strokeWidth={2} />
+                        </Button>
+                        <Button
+                            variant="ghost-bordered"
+                            size="icon-sm"
+                            className={cn(BRANCH_NAV_BUTTON_CLASSES, !canNavigateNextBranch && 'opacity-40')}
+                            disabled={!canNavigateNextBranch}
+                            aria-label="Next branch"
+                            onClick={navigateNextBranch}
+                            tooltip="Next reply"
+                        >
+                            <IconChevronRight size={14} strokeWidth={2} />
+                        </Button>
+                    </div>
                 )}
                 {threadItem.status !== 'ERROR' && threadItem.answer?.status !== 'HUMAN_REVIEW' && (
                     <DropdownMenu>

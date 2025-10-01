@@ -3,7 +3,7 @@ import { ChatModeConfig } from '@repo/shared/config';
 import { Geo, geolocation } from '@vercel/functions';
 import { NextRequest } from 'next/server';
 import { executeStream, sendMessage } from './stream-handlers';
-import { completionRequestSchema, SSE_HEADERS } from './types';
+import { completionRequestSchema, SSE_HEADERS, StreamController } from './types';
 
 export async function POST(request: NextRequest) {
     if (request.method === 'OPTIONS') {
@@ -69,6 +69,24 @@ export async function POST(request: NextRequest) {
     }
 }
 
+type GuardedStreamController = StreamController & { __closed?: boolean };
+
+function markControllerClosed(controller: GuardedStreamController) {
+    if (!controller.__closed) {
+        controller.__closed = true;
+        try {
+            controller.close();
+        } catch (error) {
+            if (
+                !(error instanceof TypeError) ||
+                !error.message.toLowerCase().includes('invalid state')
+            ) {
+                throw error;
+            }
+        }
+    }
+}
+
 function createCompletionStream({
     data,
     userId,
@@ -81,18 +99,34 @@ function createCompletionStream({
     gl: Geo;
 }) {
     const encoder = new TextEncoder();
+    let guardedControllerRef: GuardedStreamController | null = null;
 
     return new ReadableStream({
         async start(controller) {
+            const guardedController = controller as GuardedStreamController;
+            guardedControllerRef = guardedController;
             let heartbeatInterval: NodeJS.Timeout | null = null;
 
             heartbeatInterval = setInterval(() => {
-                controller.enqueue(encoder.encode(': heartbeat\n\n'));
+                if (!guardedController.__closed) {
+                    try {
+                        controller.enqueue(encoder.encode(': heartbeat\n\n'));
+                    } catch (error) {
+                        if (
+                            error instanceof TypeError &&
+                            error.message.toLowerCase().includes('invalid state')
+                        ) {
+                            guardedController.__closed = true;
+                            return;
+                        }
+                        throw error;
+                    }
+                }
             }, 15000);
 
             try {
                 await executeStream({
-                    controller,
+                    controller: guardedController,
                     encoder,
                     data,
                     abortController,
@@ -102,7 +136,7 @@ function createCompletionStream({
             } catch (error) {
                 if (abortController.signal.aborted) {
                     console.log('abortController.signal.aborted');
-                    sendMessage(controller, encoder, {
+                    sendMessage(guardedController, encoder, {
                         type: 'done',
                         status: 'aborted',
                         threadId: data.threadId,
@@ -111,7 +145,7 @@ function createCompletionStream({
                     });
                 } else {
                     console.log('sending error message');
-                    sendMessage(controller, encoder, {
+                    sendMessage(guardedController, encoder, {
                         type: 'done',
                         status: 'error',
                         error: error instanceof Error ? error.message : String(error),
@@ -124,12 +158,15 @@ function createCompletionStream({
                 if (heartbeatInterval) {
                     clearInterval(heartbeatInterval);
                 }
-                controller.close();
+                markControllerClosed(guardedController);
             }
         },
         cancel() {
             console.log('cancelling stream');
             abortController.abort();
+            if (guardedControllerRef) {
+                markControllerClosed(guardedControllerRef);
+            }
         },
     });
 }

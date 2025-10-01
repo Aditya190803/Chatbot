@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { AppwriteException } from 'node-appwrite';
 
 import { auth } from '@repo/common/auth/server';
 import {
@@ -18,17 +19,21 @@ const buildRemotePayload = (payload: ThreadPayload): RemoteThreadDocument => {
 };
 
 export async function GET() {
-    const { userId } = await auth();
+    const session = await auth();
+    const { userId, jwt, sessionId } = session;
 
     if (!userId) {
         return NextResponse.json({ threads: [] }, { status: 200 });
     }
 
     try {
-        const threads = await listThreadDocuments(userId);
+        const threads = await listThreadDocuments(userId, jwt || sessionId ? { jwt, sessionId } : undefined);
         return NextResponse.json({ threads }, { status: 200 });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Failed to load threads from Appwrite', error);
+        if (error instanceof AppwriteException && error.code === 401) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
         return NextResponse.json(
             { error: 'Unable to load chat threads at this time.' },
             { status: 500 }
@@ -37,7 +42,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-    const { userId } = await auth();
+    const session = await auth();
+    const { userId, jwt, sessionId } = session;
 
     if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -56,9 +62,16 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        await createThreadDocument(userId, buildRemotePayload(payload));
-    } catch (error) {
+        await createThreadDocument(
+            userId,
+            buildRemotePayload(payload),
+            jwt || sessionId ? { jwt, sessionId } : undefined
+        );
+    } catch (error: unknown) {
         console.error('Failed to create thread in Appwrite', error);
+        if (error instanceof AppwriteException && error.code === 401) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
         return NextResponse.json(
             { error: 'Unable to create thread on Appwrite' },
             { status: 500 }

@@ -32,6 +32,11 @@ source or raise the API rate limit with the following optional environment varia
 
 **Multiple LLM Provider Support**
 
+**Branching Conversations**
+- Generate alternate replies for any turn using different models or temperatures
+- Navigate branches inline with `<current/total>` indicators and quick prev/next controls
+- Preserve full history for each variant without losing the original response
+
 **Privacy-Focused**
 
 

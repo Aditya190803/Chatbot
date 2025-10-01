@@ -74,6 +74,7 @@ export type ThreadItem = {
     updatedAt: Date;
     id: string;
     parentId?: string;
+    branchRootId?: string;
     threadId: string;
     metadata?: Record<string, any>;
     mode: ChatMode;

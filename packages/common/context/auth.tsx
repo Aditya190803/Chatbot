@@ -56,23 +56,16 @@ const getClient = () => {
     client.setEndpoint(endpoint);
     client.setProject(project);
 
-    const supportsSelfSigned = typeof (client as any)?.setSelfSigned === 'function';
+    const extendedClient = client as Client & {
+        setSelfSigned?: (value: boolean) => Client;
+        setAutoRefresh?: (value: boolean) => Client;
+    };
 
     if (process.env.NODE_ENV !== 'production') {
-        if (supportsSelfSigned) {
-            (client as any).setSelfSigned(true);
-        } else {
-            console.warn('Appwrite client does not support setSelfSigned; continuing with default certificate policy.');
-        }
+        extendedClient.setSelfSigned?.(true);
     }
 
-    const supportsAutoRefresh = typeof (client as any)?.setAutoRefresh === 'function';
-
-    if (supportsAutoRefresh) {
-        (client as any).setAutoRefresh(true);
-    } else if (process.env.NODE_ENV !== 'production') {
-        console.warn('Appwrite client does not support automatic session refresh; falling back to manual refresh.');
-    }
+    extendedClient.setAutoRefresh?.(true);
     return client;
 };
 

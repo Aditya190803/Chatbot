@@ -14,6 +14,12 @@ import { nanoid } from 'nanoid';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { useAppStore } from './app.store';
+import {
+    buildBranchGroups,
+    buildConversationView,
+    ensureBranchRootId,
+    resolveBranchRootId,
+} from './branching-utils';
 
 class ThreadDatabase extends Dexie {
     threads!: Table<Thread>;
@@ -216,7 +222,8 @@ const processBatchUpdate = async () => {
 // Queue an item for batch update
 const queueThreadItemForUpdate = (threadItem: ThreadItem) => {
     // Always update the in-memory Map with the latest version
-    batchUpdateQueue.items.set(threadItem.id, threadItem);
+    const normalized = ensureBranchRootId(threadItem);
+    batchUpdateQueue.items.set(normalized.id, normalized);
 
     // Schedule batch processing if not already scheduled
     if (!batchUpdateQueue.timeoutId) {
@@ -441,6 +448,7 @@ const notifyWorker = (type: string, data: any) => {
 // Create a debounced version of the notification function
 const debouncedNotify = debounce(notifyWorker, 300);
 
+
 export const useChatStore = create(
     immer<State & Actions>((set, get) => {
         const cancelRemoteSync = (threadId: string) => {
@@ -473,7 +481,9 @@ export const useChatStore = create(
                     return;
                 }
 
-                await updateRemoteThread(thread, items);
+                const normalizedItems = items.map(item => ensureBranchRootId(item));
+
+                await updateRemoteThread(thread, normalizedItems);
                 set(state => {
                     state.lastRemoteSyncError = null;
                 });
@@ -527,64 +537,48 @@ export const useChatStore = create(
             }
 
             const state = get();
-            const items = state.threadItems
-                .filter(item => item.threadId === threadId)
-                .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+            const items = state.threadItems.filter(item => item.threadId === threadId);
 
             if (!items.length) {
                 return [];
             }
 
-            const itemsById = new Map(items.map(item => [item.id, item]));
-            const visited = new Set<string>();
-            const result: ThreadItem[] = [];
-
-            const resolveItem = (item: ThreadItem) => {
-                if (visited.has(item.id)) {
-                    return;
-                }
-                visited.add(item.id);
-
-                const selectedChildId = state.branchSelections[item.id];
-                if (selectedChildId && itemsById.has(selectedChildId)) {
-                    resolveItem(itemsById.get(selectedChildId)!);
-                    return;
-                }
-
-                if (item.parentId) {
-                    const parentSelected = state.branchSelections[item.parentId];
-                    if (parentSelected && parentSelected !== item.id) {
-                        return;
-                    }
-                }
-
-                result.push(item);
-            };
-
-            for (const item of items) {
-                if (!item.parentId) {
-                    resolveItem(item);
-                }
-            }
-
-            for (const item of items) {
-                if (!visited.has(item.id)) {
-                    const parentExists = item.parentId ? itemsById.has(item.parentId) : false;
-                    if (!parentExists) {
-                        resolveItem(item);
-                    }
-                }
-            }
-
-            return result;
+            return buildConversationView(items, state.branchSelections);
         };
 
-        const pruneBranchSelections = (state: any) => {
-            const validIds = new Set(state.threadItems.map((item: ThreadItem) => item.id));
-            Object.keys(state.branchSelections).forEach(parentId => {
-                const selectedId = state.branchSelections[parentId];
-                if (!validIds.has(parentId) || !validIds.has(selectedId)) {
-                    delete state.branchSelections[parentId];
+        const pruneBranchSelections = (state: State) => {
+            const items = state.threadItems.map(item => ensureBranchRootId(item));
+            state.threadItems = items;
+
+            const groups = buildBranchGroups(items);
+            const validIds = new Set(items.map(item => item.id));
+
+            Object.entries(state.branchSelections).forEach(([rootId, selectedId]) => {
+                const group = groups.get(rootId);
+                const hasSelected = group?.some(item => item.id === selectedId) ?? false;
+
+                if (!hasSelected) {
+                    if (group && group.length) {
+                        state.branchSelections[rootId] = group[group.length - 1].id;
+                    } else {
+                        delete state.branchSelections[rootId];
+                    }
+                }
+
+                if (!validIds.has(selectedId)) {
+                    const fallbackGroup = groups.get(rootId);
+                    if (fallbackGroup && fallbackGroup.length) {
+                        state.branchSelections[rootId] = fallbackGroup[fallbackGroup.length - 1].id;
+                    } else {
+                        delete state.branchSelections[rootId];
+                    }
+                }
+            });
+
+            groups.forEach((group, rootId) => {
+                if (!group.length) return;
+                if (!state.branchSelections[rootId]) {
+                    state.branchSelections[rootId] = group[group.length - 1].id;
                 }
             });
         };
@@ -645,16 +639,36 @@ export const useChatStore = create(
         },
 
         selectBranch: (rootThreadItemId: string, selectedThreadItemId: string) => {
-            if (!rootThreadItemId) {
+            if (!rootThreadItemId || !selectedThreadItemId) {
                 return;
             }
 
             set(state => {
-                if (!selectedThreadItemId || selectedThreadItemId === rootThreadItemId) {
-                    delete state.branchSelections[rootThreadItemId];
-                } else {
-                    state.branchSelections[rootThreadItemId] = selectedThreadItemId;
+                const groups = buildBranchGroups(state.threadItems);
+                let targetGroup = groups.get(rootThreadItemId);
+                let resolvedRootId = rootThreadItemId;
+
+                if (!targetGroup) {
+                    const fallbackEntry = Array.from(groups.entries()).find(([, items]) =>
+                        items.some(item => item.id === rootThreadItemId)
+                    );
+
+                    if (fallbackEntry) {
+                        resolvedRootId = fallbackEntry[0];
+                        targetGroup = fallbackEntry[1];
+                    }
                 }
+
+                if (!targetGroup || !targetGroup.length) {
+                    delete state.branchSelections[rootThreadItemId];
+                    return;
+                }
+
+                if (targetGroup.some(item => item.id === selectedThreadItemId)) {
+                    state.branchSelections[resolvedRootId] = selectedThreadItemId;
+                }
+
+                pruneBranchSelections(state);
             });
         },
 
@@ -694,7 +708,8 @@ export const useChatStore = create(
                         await db.threads.put(thread);
                         await db.threadItems.where('threadId').equals(thread.id).delete();
                         if (items.length) {
-                            await db.threadItems.bulkPut(items);
+                            const normalizedItems = items.map(item => ensureBranchRootId(item));
+                            await db.threadItems.bulkPut(normalizedItems);
                         }
                     });
                 }
@@ -708,7 +723,8 @@ export const useChatStore = create(
                             .equals(thread.id)
                             .toArray();
                         try {
-                            await createRemoteThread(thread, items);
+                            const normalizedItems = items.map(item => ensureBranchRootId(item));
+                            await createRemoteThread(thread, normalizedItems);
                         } catch (error: any) {
                             if (error?.message === 'unauthorized') {
                                 throw error;
@@ -823,7 +839,7 @@ export const useChatStore = create(
 
         getThreadItems: async (threadId: string) => {
             const threadItems = await db.threadItems.where('threadId').equals(threadId).toArray();
-            return threadItems;
+            return threadItems.map(item => ensureBranchRootId(item));
         },
 
         getConversationThreadItems: (threadId: string) => {
@@ -872,8 +888,9 @@ export const useChatStore = create(
 
         loadThreadItems: async (threadId: string) => {
             const threadItems = await db.threadItems.where('threadId').equals(threadId).toArray();
+            const normalizedItems = threadItems.map(item => ensureBranchRootId(item));
             set(state => {
-                state.threadItems = threadItems;
+                state.threadItems = normalizedItems;
                 pruneBranchSelections(state);
             });
         },
@@ -968,25 +985,36 @@ export const useChatStore = create(
             const threadId = threadItem.threadId || get().currentThreadId;
             if (!threadId) return;
             try {
-                db.threadItems.put(threadItem);
+                const normalizedThreadItem = ensureBranchRootId(
+                    {
+                        ...threadItem,
+                        threadId,
+                    },
+                    threadItem.branchRootId
+                );
+
+                await db.threadItems.put(normalizedThreadItem);
                 set(state => {
-                    if (state.threadItems.find(t => t.id === threadItem.id)) {
-                        state.threadItems = state.threadItems.map(t =>
-                            t.id === threadItem.id ? threadItem : t
-                        );
+                    const existingIndex = state.threadItems.findIndex(
+                        t => t.id === normalizedThreadItem.id
+                    );
+
+                    if (existingIndex !== -1) {
+                        state.threadItems[existingIndex] = normalizedThreadItem;
                     } else {
-                        state.threadItems.push({ ...threadItem, threadId });
+                        state.threadItems.push(normalizedThreadItem);
                     }
 
-                    if (threadItem.parentId) {
-                        state.branchSelections[threadItem.parentId] = threadItem.id;
-                    }
+                    const rootId = resolveBranchRootId(normalizedThreadItem);
+                    state.branchSelections[rootId] = normalizedThreadItem.id;
+
+                    pruneBranchSelections(state);
                 });
 
                 // Notify other tabs
                 debouncedNotify('thread-item-update', {
                     threadId,
-                    id: threadItem.id,
+                    id: normalizedThreadItem.id,
                 });
 
                 scheduleRemoteSync(threadId);
@@ -1000,29 +1028,24 @@ export const useChatStore = create(
             if (!threadItem.id) return;
             if (!threadId) return;
 
+            const existingItem = get().threadItems.find(t => t.id === threadItem.id);
+
             try {
                 console.log('updateThreadItem', threadItem);
 
-                // // Fetch the existing item
-                // let existingItem: ThreadItem | undefined;
-                // try {
-                //     db.threadItems.get(threadItem.id);
-                // } catch (error) {
-                //     console.warn(`Couldn't fetch existing item ${threadItem.id}:`, error);
-                // }
-
-                const existingItem = get().threadItems.find(t => t.id === threadItem.id);
-
                 // Create or update the item
-                const updatedItem = existingItem
-                    ? { ...existingItem, ...threadItem, threadId, updatedAt: new Date() }
-                    : ({
-                          id: threadItem.id,
-                          threadId,
-                          createdAt: new Date(),
-                          updatedAt: new Date(),
-                          ...threadItem,
-                      } as ThreadItem);
+                const updatedItem = ensureBranchRootId(
+                    existingItem
+                        ? { ...existingItem, ...threadItem, threadId, updatedAt: new Date() }
+                        : ({
+                              id: threadItem.id,
+                              threadId,
+                              createdAt: new Date(),
+                              updatedAt: new Date(),
+                              ...threadItem,
+                          } as ThreadItem),
+                        existingItem?.branchRootId || threadItem.branchRootId
+                );
 
                 // Update UI state immediately
                 set(state => {
@@ -1032,6 +1055,8 @@ export const useChatStore = create(
                     } else {
                         state.threadItems.push(updatedItem);
                     }
+
+                    pruneBranchSelections(state);
                 });
 
                 queueThreadItemForUpdate(updatedItem);
@@ -1049,23 +1074,26 @@ export const useChatStore = create(
 
                 // Safety fallback - try to persist directly in case of errors in the main logic
                 try {
-                    const fallbackItem = {
-                        id: threadItem.id,
-                        threadId,
-                        query: threadItem.query || '',
-                        mode: threadItem.mode || ChatMode.GEMINI_2_5_FLASH,
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                        ...threadItem,
-                        error: threadItem.error || `Something went wrong`,
-                    };
+                    const fallbackItem = ensureBranchRootId(
+                        {
+                            id: threadItem.id,
+                            threadId,
+                            query: threadItem.query || '',
+                            mode: threadItem.mode || ChatMode.GEMINI_2_5_FLASH,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                            ...threadItem,
+                            error: threadItem.error || `Something went wrong`,
+                        } as ThreadItem,
+                        existingItem?.branchRootId || threadItem.branchRootId
+                    );
                     await db.threadItems.put(fallbackItem);
                     scheduleRemoteSync(threadId);
                 } catch (fallbackError) {
                     console.error(
                         'Critical: Failed even fallback thread item update:',
                         fallbackError
-                    );
+                        );
                 }
             }
         },

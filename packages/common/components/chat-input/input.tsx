@@ -17,7 +17,13 @@ import { useAgentStream } from '../../hooks/agent-provider';
 import { useChatEditor } from '../../hooks/use-editor';
 import { useChatStore } from '../../store';
 import { ExamplePrompts } from '../exmaple-prompts';
-import { ChatModeButton, GeneratingStatus, SendStopButton, WebSearchButton } from './chat-actions';
+import {
+    ChatModeButton,
+    ComposerBranchControls,
+    GeneratingStatus,
+    SendStopButton,
+    WebSearchButton,
+} from './chat-actions';
 import { ChatEditor } from './chat-editor';
 import { ImageUpload } from './image-upload';
 
@@ -56,6 +62,7 @@ export const ChatInput = ({
     const createThread = useChatStore(state => state.createThread);
     const useWebSearch = useChatStore(state => state.useWebSearch);
     const isGenerating = useChatStore(state => state.isGenerating);
+    const currentThreadItem = useChatStore(useShallow(state => state.getCurrentThreadItem()));
     const isChatPage = usePathname().startsWith('/chat');
     const imageAttachment = useChatStore(state => state.imageAttachment);
     const clearImageAttachment = useChatStore(state => state.clearImageAttachment);
@@ -171,6 +178,10 @@ export const ChatInput = ({
                                         )}
 
                                         <Flex gap="md" items="center" className="ml-auto">
+                                            <ComposerBranchControls
+                                                threadItem={currentThreadItem}
+                                                disabled={isGenerating}
+                                            />
                                             <SendStopButton
                                                 isGenerating={isGenerating}
                                                 isChatPage={isChatPage}

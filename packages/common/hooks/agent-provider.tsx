@@ -1,7 +1,7 @@
 import { useAuth } from '@repo/common/context';
 import { useWorkflowWorker } from '@repo/ai/worker';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
-import { ThreadItem } from '@repo/shared/types';
+import { Answer, ThreadItem } from '@repo/shared/types';
 import { buildCoreMessagesFromThreadItems, plausible } from '@repo/shared/utils';
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
@@ -107,6 +107,62 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             const incomingAnswer = eventType === 'answer' ? eventData.answer || {} : undefined;
             const incomingMetrics = eventType === 'metrics' ? eventData.metrics || {} : undefined;
 
+            let nextAnswer: Answer | undefined = prevItem.answer;
+            let nextThinkingProcess = prevItem.thinkingProcess;
+
+            if (incomingAnswer) {
+                const {
+                    text: incomingText,
+                    finalText: incomingFinalText,
+                    fullText: incomingFullText,
+                    thinkingProcess: incomingThinkingProcess,
+                    status: incomingStatus,
+                    ...incomingRest
+                } = incomingAnswer as {
+                    text?: string;
+                    finalText?: string;
+                    fullText?: string;
+                    thinkingProcess?: string;
+                    status?: string;
+                    [key: string]: unknown;
+                };
+
+                const previousAnswer: Answer = prevItem.answer ?? { text: '' };
+                const previousText = previousAnswer.text ?? '';
+                const hasFinalText =
+                    typeof incomingFinalText === 'string' && incomingFinalText.trim().length > 0;
+                const hasFullText =
+                    typeof incomingFullText === 'string' && incomingFullText.trim().length > 0;
+
+                const resolvedFinalText = hasFinalText
+                    ? incomingFinalText!
+                    : hasFullText
+                        ? incomingFullText!
+                        : typeof previousAnswer.finalText === 'string' && previousAnswer.finalText.length > 0
+                            ? previousAnswer.finalText
+                            : previousText;
+
+                const resolvedText = hasFinalText
+                    ? incomingFinalText!
+                    : hasFullText
+                        ? incomingFullText!
+                        : `${previousText}${incomingText ?? ''}`;
+
+                nextAnswer = {
+                    ...previousAnswer,
+                    ...incomingRest,
+                    status:
+                        typeof incomingStatus === 'string' ? incomingStatus : previousAnswer.status,
+                    text: resolvedText,
+                    finalText: resolvedFinalText,
+                } as Answer;
+
+                nextThinkingProcess =
+                    typeof incomingThinkingProcess === 'string' && incomingThinkingProcess.trim().length > 0
+                        ? incomingThinkingProcess
+                        : prevItem.thinkingProcess;
+            }
+
             const updatedItem: ThreadItem = {
                 ...prevItem,
                 query: eventData?.query || prevItem.query || '',
@@ -114,24 +170,18 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 threadId,
                 parentId: parentThreadItemId || prevItem.parentId,
                 id: threadItemId,
+                branchRootId:
+                    prevItem.branchRootId ||
+                    (parentThreadItemId && parentThreadItemId.length > 0
+                        ? parentThreadItemId
+                        : threadItemId),
                 object: eventData?.object || prevItem.object,
                 createdAt: prevItem.createdAt || new Date(),
                 updatedAt: new Date(),
                 ...(eventType === 'answer'
                     ? {
-                          answer: incomingAnswer
-                              ? {
-                                    ...(prevItem.answer ?? {}),
-                                    ...incomingAnswer,
-                                    text:
-                                        incomingAnswer.finalText ??
-                                        `${prevItem.answer?.text ?? ''}${incomingAnswer.text ?? ''}`,
-                                    finalText:
-                                        incomingAnswer.finalText ?? prevItem.answer?.finalText,
-                                }
-                              : prevItem.answer,
-                          thinkingProcess:
-                              incomingAnswer?.thinkingProcess ?? prevItem.thinkingProcess,
+                          answer: nextAnswer,
+                          thinkingProcess: nextThinkingProcess,
                       }
                     : eventType === 'metrics'
                         ? {
@@ -544,6 +594,12 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             const query = formData.get('query') as string;
             const imageAttachment = formData.get('imageAttachment') as string;
 
+            const inferredBranchRootId = branchParentId
+                ? branchSourceItem?.branchRootId || branchParentId
+                : existingThreadItem?.branchRootId || existingThreadItem?.id;
+
+            const branchRootId = inferredBranchRootId || optimisticAiThreadItemId;
+
             const existingThread = chatState.threads.find(thread => thread.id === threadId);
 
             if (!existingThread || (existingThread.autoTitleVersion ?? 0) < 1) {
@@ -562,6 +618,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 query,
                 imageAttachment,
                 mode,
+                branchRootId,
             };
 
             createThreadItem(aiThreadItem);
