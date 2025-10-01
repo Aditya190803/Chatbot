@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import type { AuthUser } from '@repo/common/auth';
 import { mapAccountToAuthUser } from '@repo/common/auth';
+import { useChatStore } from '@repo/common/store';
 
 const API_SESSION_ENDPOINT = '/api/auth/session';
 const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
@@ -112,6 +113,9 @@ const createSessionCookie = async (account: Account) => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const client = useMemo(() => getClient(), []);
     const account = useMemo(() => (client ? new Account(client) : null), [client]);
+    const enableAppwriteSync = useChatStore(state => state.enableAppwriteSync);
+    const disableAppwriteSync = useChatStore(state => state.disableAppwriteSync);
+    const syncMode = useChatStore(state => state.syncMode);
 
     const [state, setState] = useState<{ user: AuthUser | null; isLoaded: boolean }>({
         user: null,
@@ -156,6 +160,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [refreshUser]);
 
     useEffect(() => {
+        if (!state.isLoaded) {
+            return;
+        }
+
+        if (state.user) {
+            enableAppwriteSync().catch((error: unknown) => {
+                console.error('Failed to enable Appwrite sync after sign-in', error);
+            });
+        } else if (syncMode === 'appwrite') {
+            disableAppwriteSync().catch((error: unknown) => {
+                console.error('Failed to disable Appwrite sync after sign-out', error);
+            });
+        }
+    }, [state.user?.id, state.isLoaded, enableAppwriteSync, disableAppwriteSync, syncMode]);
+
+    useEffect(() => {
         if (!account || !state.user) {
             return;
         }
@@ -187,7 +207,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error('Appwrite account client is not initialized');
             }
 
-            await account.createEmailSession(email, password);
+            await (account as any).createEmailSession(email, password);
             await postAuthentication();
         },
         [account, postAuthentication]
@@ -199,7 +219,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error('Appwrite account client is not initialized');
             }
 
-            const token = await account.createEmailToken({ email });
+            const token = await (account as any).createEmailToken({ email });
             return { userId: token.userId, email };
         },
         [account]
@@ -211,7 +231,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error('Appwrite account client is not initialized');
             }
 
-            await account.updateEmailSession(userId, code);
+            await (account as any).updateEmailSession(userId, code);
             await postAuthentication();
         },
         [account, postAuthentication]
@@ -227,10 +247,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             await account.create(userId, email, password, buildName(firstName, lastName));
 
             if (firstName || lastName) {
-                await account.updateName(buildName(firstName, lastName));
+                await (account as any).updateName(buildName(firstName, lastName) ?? '');
             }
 
-            const token = await account.createEmailToken({ email });
+            const token = await (account as any).createEmailToken({ email });
             return { userId: token.userId, email };
         },
         [account]
@@ -267,7 +287,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const success = new URL(redirectPath, origin).toString();
             const failure = new URL('/sign-in', origin).toString();
 
-            await account.createOAuth2Session('google', success, failure);
+            await (account as any).createOAuth2Session('google', success, failure);
         },
         [account]
     );

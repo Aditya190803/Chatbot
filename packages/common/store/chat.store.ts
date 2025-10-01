@@ -3,6 +3,12 @@
 import { Model, models } from '@repo/ai/models';
 import { ChatMode } from '@repo/shared/config';
 import { MessageGroup, Thread, ThreadItem } from '@repo/shared/types';
+import {
+    fetchRemoteThreads,
+    createRemoteThread,
+    updateRemoteThread,
+    deleteRemoteThread,
+} from '@repo/common/persistence/chat-remote';
 import Dexie, { Table } from 'dexie';
 import { nanoid } from 'nanoid';
 import { create } from 'zustand';
@@ -79,6 +85,10 @@ type State = {
     isLoadingThreads: boolean;
     isLoadingThreadItems: boolean;
     currentSources: string[];
+    syncMode: 'local' | 'appwrite';
+    isSyncingRemote: boolean;
+    lastRemoteSyncError: string | null;
+    branchSelections: Record<string, string>;
 };
 
 type Actions = {
@@ -108,12 +118,16 @@ type Actions = {
     getCurrentThread: () => Thread | null;
     removeFollowupThreadItems: (threadItemId: string) => Promise<void>;
     getThreadItems: (threadId: string) => Promise<ThreadItem[]>;
+    getConversationThreadItems: (threadId: string) => ThreadItem[];
     loadThreadItems: (threadId: string) => Promise<void>;
     setCurrentThreadItem: (threadItem: ThreadItem) => void;
     clearAllThreads: () => void;
     setCurrentSources: (sources: string[]) => void;
     setUseWebSearch: (useWebSearch: boolean) => void;
     setShowSuggestions: (showSuggestions: boolean) => void;
+    enableAppwriteSync: () => Promise<void>;
+    disableAppwriteSync: () => Promise<void>;
+    selectBranch: (rootThreadItemId: string, selectedThreadItemId: string) => void;
 };
 
 // Add these utility functions at the top level
@@ -169,6 +183,8 @@ const batchUpdateQueue: BatchUpdateQueue = {
     items: new Map(),
     timeoutId: null,
 };
+
+const remoteSyncTimers: Record<string, NodeJS.Timeout> = {};
 
 // Process all queued updates as a batch
 const processBatchUpdate = async () => {
@@ -426,27 +442,178 @@ const notifyWorker = (type: string, data: any) => {
 const debouncedNotify = debounce(notifyWorker, 300);
 
 export const useChatStore = create(
-    immer<State & Actions>((set, get) => ({
-        model: models[0],
-        isGenerating: false,
-        editor: undefined,
-        context: '',
-        threads: [],
-        chatMode: ChatMode.GEMINI_2_5_FLASH,
-        threadItems: [],
-        useWebSearch: false,
-        customInstructions: '',
-        currentThreadId: null,
-        activeThreadItemView: null,
-        currentThread: null,
-        currentThreadItem: null,
-        imageAttachment: { base64: undefined, file: undefined },
-        messageGroups: [],
-        abortController: null,
-        isLoadingThreads: false,
-        isLoadingThreadItems: false,
-        currentSources: [],
-        showSuggestions: true,
+    immer<State & Actions>((set, get) => {
+        const cancelRemoteSync = (threadId: string) => {
+            if (threadId && remoteSyncTimers[threadId]) {
+                clearTimeout(remoteSyncTimers[threadId]);
+                delete remoteSyncTimers[threadId];
+            }
+        };
+
+        const syncThreadWithRemote = async (threadId: string) => {
+            if (!threadId || get().syncMode !== 'appwrite') {
+                return;
+            }
+
+            if (!db) {
+                return;
+            }
+
+            set(state => {
+                state.isSyncingRemote = true;
+            });
+
+            try {
+                const [thread, items] = await Promise.all([
+                    db.threads.get(threadId),
+                    db.threadItems.where('threadId').equals(threadId).toArray(),
+                ]);
+
+                if (!thread) {
+                    return;
+                }
+
+                await updateRemoteThread(thread, items);
+                set(state => {
+                    state.lastRemoteSyncError = null;
+                });
+            } catch (error: any) {
+                console.error('Failed to sync thread to Appwrite', error);
+                if (error?.message === 'unauthorized') {
+                    set(state => {
+                        state.syncMode = 'local';
+                        state.lastRemoteSyncError =
+                            'Authentication with Appwrite expired. Please sign in again to resume syncing.';
+                    });
+                } else {
+                    set(state => {
+                        state.lastRemoteSyncError =
+                            error?.message || 'Failed to sync with Appwrite.';
+                    });
+                }
+            } finally {
+                set(state => {
+                    state.isSyncingRemote = false;
+                });
+            }
+        };
+
+        const scheduleRemoteSync = (
+            threadId: string,
+            options: { immediate?: boolean } = {}
+        ) => {
+            if (!threadId || get().syncMode !== 'appwrite') {
+                return;
+            }
+
+            if (options.immediate) {
+                cancelRemoteSync(threadId);
+                void syncThreadWithRemote(threadId);
+                return;
+            }
+
+            cancelRemoteSync(threadId);
+
+            remoteSyncTimers[threadId] = setTimeout(() => {
+                void syncThreadWithRemote(threadId).finally(() => {
+                    delete remoteSyncTimers[threadId];
+                });
+            }, 800);
+        };
+
+        const computeConversation = (threadId?: string | null): ThreadItem[] => {
+            if (!threadId) {
+                return [];
+            }
+
+            const state = get();
+            const items = state.threadItems
+                .filter(item => item.threadId === threadId)
+                .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+            if (!items.length) {
+                return [];
+            }
+
+            const itemsById = new Map(items.map(item => [item.id, item]));
+            const visited = new Set<string>();
+            const result: ThreadItem[] = [];
+
+            const resolveItem = (item: ThreadItem) => {
+                if (visited.has(item.id)) {
+                    return;
+                }
+                visited.add(item.id);
+
+                const selectedChildId = state.branchSelections[item.id];
+                if (selectedChildId && itemsById.has(selectedChildId)) {
+                    resolveItem(itemsById.get(selectedChildId)!);
+                    return;
+                }
+
+                if (item.parentId) {
+                    const parentSelected = state.branchSelections[item.parentId];
+                    if (parentSelected && parentSelected !== item.id) {
+                        return;
+                    }
+                }
+
+                result.push(item);
+            };
+
+            for (const item of items) {
+                if (!item.parentId) {
+                    resolveItem(item);
+                }
+            }
+
+            for (const item of items) {
+                if (!visited.has(item.id)) {
+                    const parentExists = item.parentId ? itemsById.has(item.parentId) : false;
+                    if (!parentExists) {
+                        resolveItem(item);
+                    }
+                }
+            }
+
+            return result;
+        };
+
+        const pruneBranchSelections = (state: any) => {
+            const validIds = new Set(state.threadItems.map((item: ThreadItem) => item.id));
+            Object.keys(state.branchSelections).forEach(parentId => {
+                const selectedId = state.branchSelections[parentId];
+                if (!validIds.has(parentId) || !validIds.has(selectedId)) {
+                    delete state.branchSelections[parentId];
+                }
+            });
+        };
+
+        return {
+            model: models[0],
+            isGenerating: false,
+            editor: undefined,
+            context: '',
+            threads: [],
+            chatMode: ChatMode.GEMINI_2_5_FLASH,
+            threadItems: [],
+            useWebSearch: false,
+            customInstructions: '',
+            currentThreadId: null,
+            activeThreadItemView: null,
+            currentThread: null,
+            currentThreadItem: null,
+            imageAttachment: { base64: undefined, file: undefined },
+            messageGroups: [],
+            abortController: null,
+            isLoadingThreads: false,
+            isLoadingThreadItems: false,
+            currentSources: [],
+            showSuggestions: true,
+            syncMode: 'local',
+            isSyncingRemote: false,
+            lastRemoteSyncError: null,
+            branchSelections: {},
 
         setCustomInstructions: (customInstructions: string) => {
             const existingConfig = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
@@ -477,6 +644,20 @@ export const useChatStore = create(
             });
         },
 
+        selectBranch: (rootThreadItemId: string, selectedThreadItemId: string) => {
+            if (!rootThreadItemId) {
+                return;
+            }
+
+            set(state => {
+                if (!selectedThreadItemId || selectedThreadItemId === rootThreadItemId) {
+                    delete state.branchSelections[rootThreadItemId];
+                } else {
+                    state.branchSelections[rootThreadItemId] = selectedThreadItemId;
+                }
+            });
+        },
+
         setShowSuggestions: (showSuggestions: boolean) => {
             localStorage.setItem(CONFIG_KEY, JSON.stringify({ showSuggestions }));
             set(state => {
@@ -489,6 +670,92 @@ export const useChatStore = create(
             localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...existingConfig, useWebSearch }));
             set(state => {
                 state.useWebSearch = useWebSearch;
+            });
+        },
+
+        enableAppwriteSync: async () => {
+            if (get().syncMode === 'appwrite') {
+                return;
+            }
+
+            set(state => {
+                state.syncMode = 'appwrite';
+                state.isSyncingRemote = true;
+                state.lastRemoteSyncError = null;
+            });
+
+            try {
+                const remoteData = await fetchRemoteThreads();
+                const remoteThreadIds = new Set<string>();
+
+                for (const { thread, items } of remoteData) {
+                    remoteThreadIds.add(thread.id);
+                    await db.transaction('rw', [db.threads, db.threadItems], async () => {
+                        await db.threads.put(thread);
+                        await db.threadItems.where('threadId').equals(thread.id).delete();
+                        if (items.length) {
+                            await db.threadItems.bulkPut(items);
+                        }
+                    });
+                }
+
+                const localThreads = await db.threads.toArray();
+
+                for (const thread of localThreads) {
+                    if (!remoteThreadIds.has(thread.id)) {
+                        const items = await db.threadItems
+                            .where('threadId')
+                            .equals(thread.id)
+                            .toArray();
+                        try {
+                            await createRemoteThread(thread, items);
+                        } catch (error: any) {
+                            if (error?.message === 'unauthorized') {
+                                throw error;
+                            }
+                            console.warn('Failed to upsert thread to Appwrite', error);
+                        }
+                    }
+                }
+
+                const threads = await db.threads.toArray();
+                threads.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+                const currentThreadId = get().currentThreadId;
+                if (currentThreadId) {
+                    await get().loadThreadItems(currentThreadId);
+                }
+
+                set(state => {
+                    state.threads = threads;
+                    if (state.currentThreadId) {
+                        state.currentThread =
+                            threads.find(t => t.id === state.currentThreadId) || null;
+                    }
+                    state.isSyncingRemote = false;
+                    state.lastRemoteSyncError = null;
+                    pruneBranchSelections(state);
+                });
+            } catch (error: any) {
+                console.error('Failed to enable Appwrite sync', error);
+                set(state => {
+                    state.syncMode = 'local';
+                    state.isSyncingRemote = false;
+                    state.lastRemoteSyncError =
+                        error?.message === 'unauthorized'
+                            ? 'Sign in again to sync chats to the cloud.'
+                            : error?.message || 'Unable to sync chats with Appwrite.';
+                });
+            }
+        },
+
+        disableAppwriteSync: async () => {
+            Object.keys(remoteSyncTimers).forEach(threadId => {
+                cancelRemoteSync(threadId);
+            });
+            set(state => {
+                state.syncMode = 'local';
+                state.isSyncingRemote = false;
             });
         },
 
@@ -541,6 +808,7 @@ export const useChatStore = create(
                 state.threadItems = state.threadItems.filter(
                     t => t.createdAt <= threadItem.createdAt || t.threadId !== threadItem.threadId
                 );
+                pruneBranchSelections(state);
             });
 
             // Notify other tabs
@@ -549,11 +817,17 @@ export const useChatStore = create(
                 id: threadItemId,
                 isFollowupRemoval: true,
             });
+
+            scheduleRemoteSync(threadItem.threadId);
         },
 
         getThreadItems: async (threadId: string) => {
             const threadItems = await db.threadItems.where('threadId').equals(threadId).toArray();
             return threadItems;
+        },
+
+        getConversationThreadItems: (threadId: string) => {
+            return computeConversation(threadId);
         },
 
         setCurrentSources: (sources: string[]) => {
@@ -600,6 +874,7 @@ export const useChatStore = create(
             const threadItems = await db.threadItems.where('threadId').equals(threadId).toArray();
             set(state => {
                 state.threadItems = threadItems;
+                pruneBranchSelections(state);
             });
         },
 
@@ -609,6 +884,7 @@ export const useChatStore = create(
             set(state => {
                 state.threads = [];
                 state.threadItems = [];
+                state.branchSelections = {};
             });
         },
 
@@ -641,6 +917,8 @@ export const useChatStore = create(
                 state.currentThreadId = newThread.id;
                 state.currentThread = newThread;
             });
+
+            scheduleRemoteSync(newThread.id, { immediate: true });
 
             // Notify other tabs through the worker
             debouncedNotify('thread-update', { threadId });
@@ -677,6 +955,8 @@ export const useChatStore = create(
             try {
                 await db.threads.put(updatedThread);
 
+                scheduleRemoteSync(thread.id);
+
                 // Notify other tabs about the update
                 debouncedNotify('thread-update', { threadId: thread.id });
             } catch (error) {
@@ -685,7 +965,7 @@ export const useChatStore = create(
         },
 
         createThreadItem: async threadItem => {
-            const threadId = get().currentThreadId;
+            const threadId = threadItem.threadId || get().currentThreadId;
             if (!threadId) return;
             try {
                 db.threadItems.put(threadItem);
@@ -697,6 +977,10 @@ export const useChatStore = create(
                     } else {
                         state.threadItems.push({ ...threadItem, threadId });
                     }
+
+                    if (threadItem.parentId) {
+                        state.branchSelections[threadItem.parentId] = threadItem.id;
+                    }
                 });
 
                 // Notify other tabs
@@ -704,6 +988,8 @@ export const useChatStore = create(
                     threadId,
                     id: threadItem.id,
                 });
+
+                scheduleRemoteSync(threadId);
             } catch (error) {
                 console.error('Failed to create thread item:', error);
                 // Handle error appropriately
@@ -756,6 +1042,8 @@ export const useChatStore = create(
                     id: threadItem.id,
                 });
 
+                scheduleRemoteSync(threadId);
+
             } catch (error) {
                 console.error('Error in updateThreadItem:', error);
 
@@ -772,6 +1060,7 @@ export const useChatStore = create(
                         error: threadItem.error || `Something went wrong`,
                     };
                     await db.threadItems.put(fallbackItem);
+                    scheduleRemoteSync(threadId);
                 } catch (fallbackError) {
                     console.error(
                         'Critical: Failed even fallback thread item update:',
@@ -806,10 +1095,13 @@ export const useChatStore = create(
                 state.threadItems = state.threadItems.filter(
                     (t: ThreadItem) => t.id !== threadItemId
                 );
+                pruneBranchSelections(state);
             });
 
             // Notify other tabs
             debouncedNotify('thread-item-delete', { id: threadItemId, threadId });
+
+            scheduleRemoteSync(threadId);
 
             // Check if there are any thread items left for this thread
             const remainingItems = await db.threadItems.where('threadId').equals(threadId).count();
@@ -827,6 +1119,20 @@ export const useChatStore = create(
                 if (typeof window !== 'undefined') {
                     window.location.href = '/chat';
                 }
+
+                if (get().syncMode === 'appwrite') {
+                    try {
+                        await deleteRemoteThread(threadId);
+                    } catch (error: any) {
+                        if (error?.message === 'unauthorized') {
+                            set(state => {
+                                state.syncMode = 'local';
+                                state.lastRemoteSyncError =
+                                    'Sign in again to keep syncing chats to the cloud.';
+                            });
+                        }
+                    }
+                }
             }
         },
 
@@ -837,46 +1143,50 @@ export const useChatStore = create(
                 state.threads = state.threads.filter((t: Thread) => t.id !== threadId);
                 state.currentThreadId = state.threads[0]?.id;
                 state.currentThread = state.threads[0] || null;
+                state.threadItems = state.threadItems.filter(item => item.threadId !== threadId);
+                pruneBranchSelections(state);
             });
 
             // Notify other tabs
             debouncedNotify('thread-delete', { threadId });
+
+            if (get().syncMode === 'appwrite') {
+                try {
+                    await deleteRemoteThread(threadId);
+                } catch (error: any) {
+                    if (error?.message === 'unauthorized') {
+                        set(state => {
+                            state.syncMode = 'local';
+                            state.lastRemoteSyncError =
+                                'Sign in again to keep syncing chats to the cloud.';
+                        });
+                    }
+                }
+            }
         },
 
         getPreviousThreadItems: threadId => {
-            const state = get();
-
-            const allThreadItems = state.threadItems
-                .filter(item => item.threadId === threadId)
-                .sort((a, b) => {
-                    return a.createdAt.getTime() - b.createdAt.getTime();
-                });
-
-            if (allThreadItems.length > 1) {
-                return allThreadItems.slice(0, -1);
+            const targetThreadId = threadId ?? get().currentThreadId ?? undefined;
+            const conversation = computeConversation(targetThreadId);
+            if (conversation.length > 1) {
+                return conversation.slice(0, -1);
             }
-
             return [];
         },
 
         getCurrentThreadItem: () => {
             const state = get();
-
-            const allThreadItems = state.threadItems
-                .filter(item => item.threadId === state.currentThreadId)
-                .sort((a, b) => {
-                    return a.createdAt.getTime() - b.createdAt.getTime();
-                });
-            return allThreadItems[allThreadItems.length - 1] || null;
+            const conversation = computeConversation(state.currentThreadId);
+            return conversation[conversation.length - 1] || null;
         },
 
         getCurrentThread: () => {
             const state = get();
             return state.threads.find(t => t.id === state.currentThreadId) || null;
         },
-    }))
+        };
+    })
 );
-
 if (typeof window !== 'undefined') {
     // Initialize store with data from IndexedDB
     loadInitialData().then(

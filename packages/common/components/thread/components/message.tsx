@@ -135,7 +135,9 @@ export type TEditMessage = {
 export const EditMessage = memo(({ message, onCancel, threadItem, width }: TEditMessage) => {
     const { handleSubmit } = useAgentStream();
     const removeFollowupThreadItems = useChatStore(state => state.removeFollowupThreadItems);
-    const getThreadItems = useChatStore(state => state.getThreadItems);
+    const getConversationThreadItems = useChatStore(
+        state => state.getConversationThreadItems
+    );
 
     const { editor } = useChatEditor({
         defaultContent: message,
@@ -151,7 +153,7 @@ export const EditMessage = memo(({ message, onCancel, threadItem, width }: TEdit
         const formData = new FormData();
         formData.append('query', query);
         formData.append('imageAttachment', threadItem.imageAttachment || '');
-        const threadItems = await getThreadItems(threadItem.threadId);
+        const threadItems = getConversationThreadItems(threadItem.threadId);
 
         handleSubmit({
             formData,

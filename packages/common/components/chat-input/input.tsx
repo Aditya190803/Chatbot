@@ -50,7 +50,7 @@ export const ChatInput = ({
         },
     });
     const size = currentThreadId ? 'base' : 'sm';
-    const getThreadItems = useChatStore(state => state.getThreadItems);
+    const getConversationThreadItems = useChatStore(state => state.getConversationThreadItems);
     const threadItemsLength = useChatStore(useShallow(state => state.threadItems.length));
     const { handleSubmit } = useAgentStream();
     const createThread = useChatStore(state => state.createThread);
@@ -92,9 +92,9 @@ export const ChatInput = ({
         const formData = new FormData();
         formData.append('query', editor.getText());
         imageAttachment?.base64 && formData.append('imageAttachment', imageAttachment?.base64);
-        const threadItems = currentThreadId ? await getThreadItems(currentThreadId.toString()) : [];
-
-        console.log('threadItems', threadItems);
+        const threadItems = currentThreadId
+            ? getConversationThreadItems(currentThreadId.toString())
+            : [];
 
         handleSubmit({
             formData,

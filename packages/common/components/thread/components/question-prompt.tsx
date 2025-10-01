@@ -1,7 +1,10 @@
+'use client';
+
 import { useAgentStream } from '@repo/common/hooks';
 import { useChatStore } from '@repo/common/store';
 import { ThreadItem } from '@repo/shared/types';
-import { Button, RadioGroup, RadioGroupItem, Textarea } from '@repo/ui';
+import { Button, Textarea } from '@repo/ui';
+import { RadioGroup, RadioGroupItem } from '@repo/ui/src/components/radio-group';
 import { IconCheck, IconQuestionMark, IconSquare } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 
@@ -11,7 +14,9 @@ export const QuestionPrompt = ({ threadItem }: { threadItem: ThreadItem }) => {
     const [customOption, setCustomOption] = useState<string>('');
     const [isCustomSelected, setIsCustomSelected] = useState<boolean>(false);
     const { handleSubmit } = useAgentStream();
-    const getThreadItems = useChatStore(state => state.getThreadItems);
+    const getConversationThreadItems = useChatStore(
+        state => state.getConversationThreadItems
+    );
     const updateThreadItem = useChatStore(state => state.updateThreadItem);
 
     const options: string[] = threadItem.object?.clarifyingQuestion?.options || [];
@@ -124,7 +129,7 @@ export const QuestionPrompt = ({ threadItem }: { threadItem: ThreadItem }) => {
                 disabled={!selectedOption && !selectedOptions.length && !customOption}
                 size="sm"
                 rounded="full"
-                onClick={async () => {
+                onClick={() => {
                     const originalQuery = threadItem.query || '';
                     let clarifyingResponse = '';
 
@@ -140,7 +145,7 @@ export const QuestionPrompt = ({ threadItem }: { threadItem: ThreadItem }) => {
 
                     const formData = new FormData();
                     formData.append('query', query);
-                    const threadItems = await getThreadItems(threadItem.threadId);
+                    const threadItems = getConversationThreadItems(threadItem.threadId);
                     updateThreadItem(threadItem.threadId, {
                         ...threadItem,
                         object: {

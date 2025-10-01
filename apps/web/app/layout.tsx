@@ -116,7 +116,6 @@ export default function ParentLayout({
                 ></script> */}
             </head>
             <body>
-                {/* <PostHogProvider> */}
                 <AuthProvider>
                     <RootProvider>
                         {/* <ThemeProvider
@@ -133,7 +132,7 @@ export default function ParentLayout({
                         {/* </ThemeProvider> */}
                     </RootProvider>
                 </AuthProvider>
-                {/* </PostHogProvider> */}
+
             </body>
         </html>
     );

@@ -19,7 +19,9 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
     ({ threadItem, isLast }, ref) => {
         const { handleSubmit } = useAgentStream();
         const removeThreadItem = useChatStore(state => state.deleteThreadItem);
-        const getThreadItems = useChatStore(state => state.getThreadItems);
+        const getConversationThreadItems = useChatStore(
+            state => state.getConversationThreadItems
+        );
         const useWebSearch = useChatStore(state => state.useWebSearch);
         const [chatMode, setChatMode] = useState<ChatMode>(threadItem.mode);
         const { copyToClipboard, status, copyMarkdown, markdownCopyStatus } = useCopyText();
@@ -97,13 +99,16 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                                 setChatMode(mode);
                                 const formData = new FormData();
                                 formData.append('query', threadItem.query || '');
-                                const threadItems = await getThreadItems(threadItem.threadId);
+                                const threadItems = getConversationThreadItems(
+                                    threadItem.threadId
+                                );
                                 handleSubmit({
                                     formData,
                                     existingThreadItemId: threadItem.id,
                                     newChatMode: mode as any,
                                     messages: threadItems,
                                     useWebSearch: useWebSearch,
+                                    branchParentId: threadItem.id,
                                 });
                             }}
                         />

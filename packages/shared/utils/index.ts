@@ -1,4 +1,3 @@
-export * from './hotjar';
 export * from './messages';
 export * from './plausible';
 export * from './tiptap-extensions';

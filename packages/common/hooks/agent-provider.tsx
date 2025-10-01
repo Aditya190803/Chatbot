@@ -27,6 +27,7 @@ export type AgentContextType = {
         messages?: ThreadItem[];
         useWebSearch?: boolean;
         showSuggestions?: boolean;
+        branchParentId?: string;
     }) => Promise<void>;
     updateContext: (threadId: string, data: any) => void;
 };
@@ -47,6 +48,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
         updateThread,
         chatMode,
         customInstructions,
+        getConversationThreadItems,
     } = useChatStore(state => ({
         updateThreadItem: state.updateThreadItem,
         setIsGenerating: state.setIsGenerating,
@@ -57,6 +59,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
         updateThread: state.updateThread,
         chatMode: state.chatMode,
         customInstructions: state.customInstructions,
+        getConversationThreadItems: state.getConversationThreadItems,
     }));
     const { push } = useRouter();
 
@@ -497,6 +500,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             messages,
             useWebSearch,
             showSuggestions,
+            branchParentId,
         }: {
             formData: FormData;
             newThreadId?: string;
@@ -505,6 +509,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             messages?: ThreadItem[];
             useWebSearch?: boolean;
             showSuggestions?: boolean;
+            branchParentId?: string;
         }) => {
             const mode = (newChatMode || chatMode) as ChatMode;
             if (
@@ -518,18 +523,34 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
             const threadId = currentThreadId?.toString() || newThreadId;
             if (!threadId) return;
+            const chatState = useChatStore.getState();
+            const existingThreadItem = existingThreadItemId
+                ? chatState.threadItems.find(item => item.id === existingThreadItemId)
+                : undefined;
+            const branchSourceItem = branchParentId
+                ? chatState.threadItems.find(item => item.id === branchParentId)
+                : undefined;
 
-            const optimisticAiThreadItemId = existingThreadItemId || nanoid();
+            let parentThreadItemId = existingThreadItem?.parentId ?? '';
+            if (branchParentId) {
+                parentThreadItemId = branchSourceItem
+                    ? branchSourceItem.parentId ?? ''
+                    : branchParentId;
+            }
+
+            const optimisticAiThreadItemId = branchParentId
+                ? nanoid()
+                : existingThreadItemId || nanoid();
             const query = formData.get('query') as string;
             const imageAttachment = formData.get('imageAttachment') as string;
 
-            const existingThread = useChatStore
-                .getState()
-                .threads.find(thread => thread.id === threadId);
+            const existingThread = chatState.threads.find(thread => thread.id === threadId);
 
             if (!existingThread || (existingThread.autoTitleVersion ?? 0) < 1) {
                 updateThread({ id: threadId, title: query });
             }
+
+            const historicalMessages = messages || getConversationThreadItems(threadId);
 
             const aiThreadItem: ThreadItem = {
                 id: optimisticAiThreadItemId,
@@ -537,6 +558,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 updatedAt: new Date(),
                 status: 'QUEUED',
                 threadId,
+                parentId: parentThreadItemId || undefined,
                 query,
                 imageAttachment,
                 mode,
@@ -555,7 +577,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
             // Build core messages array
             const coreMessages = buildCoreMessagesFromThreadItems({
-                messages: messages || [],
+                messages: historicalMessages,
                 query,
                 imageAttachment,
             });
@@ -579,7 +601,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                     messages: coreMessages,
                     mcpConfig: getSelectedMCP(),
                     threadItemId: optimisticAiThreadItemId,
-                    parentThreadItemId: '',
+                    parentThreadItemId,
                     customInstructions,
                     apiKeys: apiKeys(),
                 });
@@ -592,7 +614,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                     mcpConfig: getSelectedMCP(),
                     threadItemId: optimisticAiThreadItemId,
                     customInstructions,
-                    parentThreadItemId: '',
+                    parentThreadItemId,
                     webSearch: useWebSearch,
                     showSuggestions: showSuggestions ?? true,
                 });
@@ -615,6 +637,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             hasApiKeyForChatMode,
             updateThreadItem,
             runAgent,
+            getConversationThreadItems,
         ]
     );
 
