@@ -14,8 +14,9 @@ import {
     IconTrash,
     IconChevronLeft,
     IconChevronRight,
+    IconChevronDown,
 } from '@tabler/icons-react';
-import { forwardRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useState } from 'react';
 import { useBranchNavigation, BRANCH_NAV_BUTTON_CLASSES } from './branch-switcher';
 
 const { DropdownMenu, DropdownMenuTrigger } = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
@@ -32,7 +33,7 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
             state => state.getConversationThreadItems
         );
         const useWebSearch = useChatStore(state => state.useWebSearch);
-        const [chatMode, setChatMode] = useState<ChatMode>(threadItem.mode);
+    const [chatMode, setChatMode] = useState<ChatMode>(threadItem.mode);
         const { copyToClipboard, status, copyMarkdown, markdownCopyStatus } = useCopyText();
         const answerText =
             threadItem.answer?.text?.trim()?.length
@@ -64,6 +65,47 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
 
         const branchDisplayIndex = branchActiveIndex >= 0 ? branchActiveIndex : 0;
         const showBranchControls = totalBranches > 1;
+        const canRewrite = Boolean(threadItem.query?.trim()?.length);
+
+        useEffect(() => {
+            setChatMode(threadItem.mode);
+        }, [threadItem.mode]);
+
+        const submitRewrite = useCallback(
+            async (mode: ChatMode) => {
+                if (!threadItem.query?.trim()) {
+                    return;
+                }
+
+                setChatMode(mode);
+
+                const formData = new FormData();
+                formData.append('query', threadItem.query);
+                if (threadItem.imageAttachment) {
+                    formData.append('imageAttachment', threadItem.imageAttachment);
+                }
+
+                const threadItems = getConversationThreadItems(threadItem.threadId);
+
+                await handleSubmit({
+                    formData,
+                    existingThreadItemId: threadItem.id,
+                    newChatMode: mode as any,
+                    messages: threadItems,
+                    useWebSearch: useWebSearch,
+                    branchParentId: threadItem.id,
+                });
+            },
+            [
+                getConversationThreadItems,
+                handleSubmit,
+                threadItem.id,
+                threadItem.imageAttachment,
+                threadItem.query,
+                threadItem.threadId,
+                useWebSearch,
+            ]
+        );
 
         return (
             <div className="flex flex-row items-center gap-1 py-2">
@@ -135,33 +177,32 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                     </div>
                 )}
                 {threadItem.status !== 'ERROR' && threadItem.answer?.status !== 'HUMAN_REVIEW' && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost-bordered" size="icon-sm" tooltip="Rewrite">
-                                <IconRefresh size={16} strokeWidth={2} />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <ChatModeOptions
-                            chatMode={chatMode}
-                            isRetry
-                            setChatMode={async mode => {
-                                setChatMode(mode);
-                                const formData = new FormData();
-                                formData.append('query', threadItem.query || '');
-                                const threadItems = getConversationThreadItems(
-                                    threadItem.threadId
-                                );
-                                handleSubmit({
-                                    formData,
-                                    existingThreadItemId: threadItem.id,
-                                    newChatMode: mode as any,
-                                    messages: threadItems,
-                                    useWebSearch: useWebSearch,
-                                    branchParentId: threadItem.id,
-                                });
-                            }}
-                        />
-                    </DropdownMenu>
+                    <div className="flex items-center">
+                        <Button
+                            variant="ghost-bordered"
+                            size="icon-sm"
+                            tooltip="Rewrite"
+                            onClick={() => void submitRewrite(chatMode)}
+                            disabled={!canRewrite}
+                            className="rounded-r-none border-r-0"
+                        >
+                            <IconRefresh size={16} strokeWidth={2} />
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost-bordered"
+                                    size="icon-sm"
+                                    tooltip="Rewrite options"
+                                    disabled={!canRewrite}
+                                    className="rounded-l-none"
+                                >
+                                    <IconChevronDown size={14} strokeWidth={2} />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <ChatModeOptions chatMode={chatMode} isRetry setChatMode={submitRewrite} />
+                        </DropdownMenu>
+                    </div>
                 )}
 
                 {isLast && (

@@ -15,6 +15,7 @@
   - Inline branch switcher with `<current/total>` indicator
   - Keyboard-accessible previous/next controls for alternate replies
   - Mode badge for quickly identifying the generating model
+  - Single-click rewrite now spawns a fresh branch while keeping model options available
 
 ### Changed
 - **Chat Store Enhancements**:
