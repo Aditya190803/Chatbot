@@ -545,12 +545,7 @@ export const useChatStore = create(
                 }
                 visited.add(item.id);
 
-                const selectedChildId = state.branchSelections[item.id];
-                if (selectedChildId && itemsById.has(selectedChildId)) {
-                    resolveItem(itemsById.get(selectedChildId)!);
-                    return;
-                }
-
+                // Check if this item should be skipped due to parent's branch selection
                 if (item.parentId) {
                     const parentSelected = state.branchSelections[item.parentId];
                     if (parentSelected && parentSelected !== item.id) {
@@ -558,7 +553,14 @@ export const useChatStore = create(
                     }
                 }
 
+                // Add current item to result
                 result.push(item);
+
+                // Continue with selected child if any
+                const selectedChildId = state.branchSelections[item.id];
+                if (selectedChildId && itemsById.has(selectedChildId)) {
+                    resolveItem(itemsById.get(selectedChildId)!);
+                }
             };
 
             for (const item of items) {
