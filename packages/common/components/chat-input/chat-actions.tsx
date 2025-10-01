@@ -236,10 +236,12 @@ export const ComposerBranchControls = ({
     const {
         totalBranches,
         activeIndex,
+        branches,
         canShowPrevious,
         canShowNext,
         selectPrevious,
         selectNext,
+        selectAtIndex,
     } = useBranchNavigation(threadItem);
 
     if (totalBranches <= 1 || activeIndex < 0) {
@@ -250,12 +252,14 @@ export const ComposerBranchControls = ({
 
     return (
         <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-subtle-sm">
-            <span className="font-medium text-foreground">{`<${displayIndex + 1}/${totalBranches}>`}</span>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-nowrap items-center gap-1">
                 <Button
                     variant="ghost"
                     size="icon-sm"
-                    className={cn(BRANCH_NAV_BUTTON_CLASSES, (!canShowPrevious || disabled) && 'opacity-40')}
+                    className={cn(
+                        BRANCH_NAV_BUTTON_CLASSES,
+                        (!canShowPrevious || disabled) && 'opacity-40'
+                    )}
                     disabled={disabled || !canShowPrevious}
                     aria-label="Previous branch"
                     onClick={selectPrevious}
@@ -263,10 +267,49 @@ export const ComposerBranchControls = ({
                 >
                     <IconChevronLeft size={14} strokeWidth={2} />
                 </Button>
+                <div className="flex flex-nowrap items-center gap-1">
+                    {branches.map((branch, index) => {
+                        const isActive = index === displayIndex;
+                        const customLabel =
+                            branch.metadata &&
+                            typeof branch.metadata.branchLabel === 'string' &&
+                            branch.metadata.branchLabel.trim()?.length
+                                ? (branch.metadata.branchLabel as string)
+                                : null;
+                        const label = customLabel ?? `<${index + 1}/${totalBranches}>`;
+
+                        return (
+                            <Button
+                                key={branch.id}
+                                variant={isActive ? 'default' : 'ghost'}
+                                size="xs"
+                                rounded="full"
+                                className={cn(
+                                    'h-6 min-w-[2.25rem] whitespace-nowrap px-2 text-xs font-medium',
+                                    !isActive && 'border border-border/60 bg-background/80',
+                                    disabled && 'pointer-events-none opacity-60'
+                                )}
+                                aria-label={label}
+                                tooltip={label}
+                                disabled={disabled}
+                                onClick={() => {
+                                    if (!disabled) {
+                                        selectAtIndex(index);
+                                    }
+                                }}
+                            >
+                                {label}
+                            </Button>
+                        );
+                    })}
+                </div>
                 <Button
                     variant="ghost"
                     size="icon-sm"
-                    className={cn(BRANCH_NAV_BUTTON_CLASSES, (!canShowNext || disabled) && 'opacity-40')}
+                    className={cn(
+                        BRANCH_NAV_BUTTON_CLASSES,
+                        (!canShowNext || disabled) && 'opacity-40'
+                    )}
                     disabled={disabled || !canShowNext}
                     aria-label="Next branch"
                     onClick={selectNext}

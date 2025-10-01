@@ -14,10 +14,12 @@ type BranchNavigation = {
     totalBranches: number;
     activeIndex: number;
     currentBranch?: ThreadItem;
+    branches: ThreadItem[];
     canShowPrevious: boolean;
     canShowNext: boolean;
     selectPrevious: () => void;
     selectNext: () => void;
+    selectAtIndex: (index: number) => void;
 };
 
 export const useBranchNavigation = (threadItem: ThreadItem): BranchNavigation => {
@@ -88,16 +90,31 @@ export const useBranchNavigation = (threadItem: ThreadItem): BranchNavigation =>
         }
     }, [activeIndex, canShowNext, rootId, selectBranch, siblings]);
 
+    const selectAtIndex = useCallback(
+        (index: number) => {
+            const isValidIndex = index >= 0 && index < siblings.length;
+            if (!isValidIndex) return;
+
+            const target = siblings[index];
+            if (target) {
+                selectBranch(rootId, target.id);
+            }
+        },
+        [rootId, selectBranch, siblings]
+    );
+
     const currentBranch = activeIndex >= 0 ? siblings[activeIndex] : undefined;
 
     return {
         totalBranches: siblings.length,
         activeIndex,
         currentBranch,
+        branches: siblings,
         canShowPrevious,
         canShowNext,
         selectPrevious,
         selectNext,
+        selectAtIndex,
     };
 };
 
@@ -110,10 +127,12 @@ export const BranchSwitcher = ({ threadItem }: BranchSwitcherProps) => {
         totalBranches,
         activeIndex,
         currentBranch,
+        branches,
         canShowPrevious,
         canShowNext,
         selectPrevious,
         selectNext,
+        selectAtIndex,
     } = useBranchNavigation(threadItem);
 
     if (totalBranches <= 1 || activeIndex < 0) {
@@ -125,8 +144,7 @@ export const BranchSwitcher = ({ threadItem }: BranchSwitcherProps) => {
 
     return (
         <div className="flex items-center gap-2 self-start rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-subtle-sm backdrop-blur">
-            <span className="font-medium text-foreground">{`<${displayIndex + 1}/${totalBranches}>`}</span>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-nowrap items-center gap-1">
                 <Button
                     variant="ghost"
                     size="icon-sm"
@@ -138,6 +156,36 @@ export const BranchSwitcher = ({ threadItem }: BranchSwitcherProps) => {
                 >
                     <IconChevronLeft size={14} strokeWidth={2} />
                 </Button>
+                <div className="flex flex-nowrap items-center gap-1">
+                    {branches.map((branch, index) => {
+                        const isActive = index === displayIndex;
+                        const customLabel =
+                            branch.metadata &&
+                            typeof branch.metadata.branchLabel === 'string' &&
+                            branch.metadata.branchLabel.trim()?.length
+                                ? (branch.metadata.branchLabel as string)
+                                : null;
+                        const label = customLabel ?? `<${index + 1}/${totalBranches}>`;
+
+                        return (
+                            <Button
+                                key={branch.id}
+                                variant={isActive ? 'default' : 'ghost'}
+                                size="xs"
+                                rounded="full"
+                                className={cn(
+                                    'h-6 min-w-[2.25rem] whitespace-nowrap px-2 text-xs font-medium',
+                                    !isActive && 'border border-border/60 bg-background/80'
+                                )}
+                                aria-label={label}
+                                tooltip={label}
+                                onClick={() => selectAtIndex(index)}
+                            >
+                                {label}
+                            </Button>
+                        );
+                    })}
+                </div>
                 <Button
                     variant="ghost"
                     size="icon-sm"

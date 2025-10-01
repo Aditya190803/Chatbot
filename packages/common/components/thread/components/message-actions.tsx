@@ -57,13 +57,15 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
         const {
             totalBranches,
             activeIndex: branchActiveIndex,
+            branches,
             canShowPrevious: canNavigatePreviousBranch,
             canShowNext: canNavigateNextBranch,
             selectPrevious: navigatePreviousBranch,
             selectNext: navigateNextBranch,
+            selectAtIndex: navigateBranchAtIndex,
         } = useBranchNavigation(threadItem);
 
-        const branchDisplayIndex = branchActiveIndex >= 0 ? branchActiveIndex : 0;
+    const branchDisplayIndex = branchActiveIndex >= 0 ? branchActiveIndex : 0;
         const showBranchControls = totalBranches > 1;
         const canRewrite = Boolean(threadItem.query?.trim()?.length);
 
@@ -151,7 +153,6 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
 
                 {showBranchControls && (
                     <div className="flex items-center gap-1 pl-1">
-                        <span className="text-muted-foreground text-xs font-medium">{`<${branchDisplayIndex + 1}/${totalBranches}>`}</span>
                         <Button
                             variant="ghost-bordered"
                             size="icon-sm"
@@ -163,6 +164,36 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                         >
                             <IconChevronLeft size={14} strokeWidth={2} />
                         </Button>
+                        <div className="flex flex-nowrap items-center gap-1">
+                            {branches.map((branch, index) => {
+                                const isActive = index === branchDisplayIndex;
+                                const customLabel =
+                                    branch.metadata &&
+                                    typeof branch.metadata.branchLabel === 'string' &&
+                                    branch.metadata.branchLabel.trim()?.length
+                                        ? (branch.metadata.branchLabel as string)
+                                        : null;
+                                const label = customLabel ?? `<${index + 1}/${totalBranches}>`;
+
+                                return (
+                                    <Button
+                                        key={branch.id}
+                                        variant={isActive ? 'default' : 'ghost-bordered'}
+                                        size="xs"
+                                        rounded="full"
+                                        className={cn(
+                                            'h-6 min-w-[2.25rem] whitespace-nowrap px-2 text-xs font-medium',
+                                            !isActive && 'border border-border/60 bg-background/80'
+                                        )}
+                                        aria-label={label}
+                                        tooltip={label}
+                                        onClick={() => navigateBranchAtIndex(index)}
+                                    >
+                                        {label}
+                                    </Button>
+                                );
+                            })}
+                        </div>
                         <Button
                             variant="ghost-bordered"
                             size="icon-sm"
