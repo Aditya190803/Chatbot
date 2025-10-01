@@ -49,6 +49,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
         chatMode,
         customInstructions,
         getConversationThreadItems,
+        selectBranch,
     } = useChatStore(state => ({
         updateThreadItem: state.updateThreadItem,
         setIsGenerating: state.setIsGenerating,
@@ -60,6 +61,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
         chatMode: state.chatMode,
         customInstructions: state.customInstructions,
         getConversationThreadItems: state.getConversationThreadItems,
+        selectBranch: state.selectBranch,
     }));
     const { push } = useRouter();
 
@@ -566,6 +568,12 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
             createThreadItem(aiThreadItem);
             setCurrentThreadItem(aiThreadItem);
+            
+            // When creating a branch (rewrite), automatically select the new branch
+            if (branchParentId && parentThreadItemId) {
+                selectBranch(parentThreadItemId, optimisticAiThreadItemId);
+            }
+            
             setIsGenerating(true);
             setCurrentSources([]);
 
@@ -638,6 +646,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             updateThreadItem,
             runAgent,
             getConversationThreadItems,
+            selectBranch,
         ]
     );
 
