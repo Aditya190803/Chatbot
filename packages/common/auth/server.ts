@@ -97,7 +97,7 @@ export const auth = async (): Promise<{
     jwt: string | null;
     sessionId: string | null;
 }> => {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const jwt = cookieStore.get(AUTH_COOKIE_NAME)?.value;
 
     if (!jwt) {
