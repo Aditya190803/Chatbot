@@ -1,3 +1,5 @@
+'use client';
+
 import { useChatStore } from '@repo/common/store';
 import { Thread } from '@repo/shared/types';
 import { Button, Flex, Input, cn } from '@repo/ui';

@@ -1,5 +1,5 @@
 'use client';
-import { ChatModeOptions } from '@repo/common/components';
+import { BranchSwitcher, ChatModeOptions } from '@repo/common/components';
 import { useAgentStream, useCopyText } from '@repo/common/hooks';
 import { useChatStore } from '@repo/common/store';
 import { ChatMode, getChatModeName } from '@repo/shared/config';
@@ -12,12 +12,9 @@ import {
     IconMarkdown,
     IconRefresh,
     IconTrash,
-    IconChevronLeft,
-    IconChevronRight,
     IconChevronDown,
 } from '@tabler/icons-react';
-import { forwardRef, useCallback, useEffect, useState, type KeyboardEvent } from 'react';
-import { useBranchNavigation } from './branch-switcher';
+import { forwardRef, useCallback, useEffect, useState } from 'react';
 
 const { DropdownMenu, DropdownMenuTrigger } = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
 type MessageActionsProps = {
@@ -54,47 +51,7 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                     : `${tokensPerSecond.toFixed(1)} tok/s`
                 : null;
 
-        const {
-            totalBranches,
-            activeIndex: branchActiveIndex,
-            branches,
-            canShowPrevious: canNavigatePreviousBranch,
-            canShowNext: canNavigateNextBranch,
-            selectPrevious: navigatePreviousBranch,
-            selectNext: navigateNextBranch,
-            selectAtIndex: navigateBranchAtIndex,
-        } = useBranchNavigation(threadItem);
-
-    const branchDisplayIndex = branchActiveIndex >= 0 ? branchActiveIndex : 0;
-        const showBranchControls = totalBranches > 1;
         const canRewrite = Boolean(threadItem.query?.trim()?.length);
-
-        const handleBranchKeyDown = useCallback(
-            (event: KeyboardEvent<HTMLDivElement>) => {
-                if (!showBranchControls) return;
-
-                if (event.key === 'ArrowLeft') {
-                    event.preventDefault();
-                    navigatePreviousBranch();
-                } else if (event.key === 'ArrowRight') {
-                    event.preventDefault();
-                    navigateNextBranch();
-                } else if (event.key === 'Home') {
-                    event.preventDefault();
-                    navigateBranchAtIndex(0);
-                } else if (event.key === 'End') {
-                    event.preventDefault();
-                    navigateBranchAtIndex(branches.length - 1);
-                }
-            },
-            [
-                branches.length,
-                navigateBranchAtIndex,
-                navigateNextBranch,
-                navigatePreviousBranch,
-                showBranchControls,
-            ]
-        );
 
         useEffect(() => {
             setChatMode(threadItem.mode);
@@ -137,7 +94,8 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
         );
 
         return (
-            <div className="flex flex-row items-center gap-2 py-2">
+            <div className="flex w-full flex-col items-start gap-2">
+                <div className="flex w-full flex-row items-center gap-2 py-2">
                 {/* Copy actions */}
                 {answerText && (
                     <>
@@ -177,72 +135,6 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                             )}
                         </Button>
                     </>
-                )}
-
-                {/* Branch Navigation - Clean and elegant inline controls */}
-                {showBranchControls && (
-                    <div
-                        className="flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 shadow-subtle-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-border/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                        tabIndex={0}
-                        role="group"
-                        aria-label="Branch navigation"
-                        onKeyDown={handleBranchKeyDown}
-                    >
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className={cn('h-6 w-6', !canNavigatePreviousBranch && 'opacity-40')}
-                            disabled={!canNavigatePreviousBranch}
-                            aria-label="Previous branch"
-                            onClick={navigatePreviousBranch}
-                            tooltip="Previous reply"
-                        >
-                            <IconChevronLeft size={14} strokeWidth={2} />
-                        </Button>
-                        
-                        <div className="flex items-center gap-1">
-                            {branches.map((branch, index) => {
-                                const isActive = index === branchDisplayIndex;
-                                const customLabel =
-                                    branch.metadata &&
-                                    typeof branch.metadata.branchLabel === 'string' &&
-                                    branch.metadata.branchLabel.trim()?.length
-                                        ? (branch.metadata.branchLabel as string)
-                                        : null;
-                                const label = customLabel ?? `${index + 1}/${totalBranches}`;
-
-                                return (
-                                    <Button
-                                        key={branch.id}
-                                        variant={isActive ? 'default' : 'ghost'}
-                                        size="xs"
-                                        rounded="full"
-                                        className={cn(
-                                            'h-6 min-w-[2.5rem] px-2 text-xs font-medium',
-                                            !isActive && 'hover:bg-muted/60'
-                                        )}
-                                        aria-label={label}
-                                        tooltip={customLabel ? `Branch ${index + 1}/${totalBranches}` : undefined}
-                                        onClick={() => navigateBranchAtIndex(index)}
-                                    >
-                                        {label}
-                                    </Button>
-                                );
-                            })}
-                        </div>
-
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className={cn('h-6 w-6', !canNavigateNextBranch && 'opacity-40')}
-                            disabled={!canNavigateNextBranch}
-                            aria-label="Next branch"
-                            onClick={navigateNextBranch}
-                            tooltip="Next reply"
-                        >
-                            <IconChevronRight size={14} strokeWidth={2} />
-                        </Button>
-                    </div>
                 )}
 
                 {/* Rewrite button with dropdown */}
@@ -308,6 +200,9 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                         </p>
                     )}
                 </div>
+                </div>
+
+                <BranchSwitcher threadItem={threadItem} />
             </div>
         );
     }

@@ -19,64 +19,7 @@ const bricolage = Bricolage_Grotesque({
 const joinClass = (...inputs: Array<string | false | null | undefined>) =>
     inputs.filter(Boolean).join(' ');
 
-export const metadata: Metadata = {
-    title: 'Chatbot - Go Deeper with AI-Powered Research & Agentic Workflows',
-    description:
-        'Experience deep, AI-powered research with agentic workflows and a wide variety of models for advanced productivity.',
-    keywords: 'AI chat, LLM, language models, privacy, minimal UI, ollama, chatgpt',
-    authors: [{ name: 'Trendy design', url: 'https://trendy.design' }],
-    creator: 'Trendy design',
-    publisher: 'Trendy design',
-    openGraph: {
-        title: 'Chatbot - Go Deeper with AI-Powered Research & Agentic Workflows',
-        siteName: 'chatbot.adityamer.live',
-        description:
-            'Experience deep, AI-powered research with agentic workflows and a wide variety of models for advanced productivity.',
-        url: 'https://chatbot.adityamer.live',
-        type: 'website',
-        locale: 'en_US',
-        images: [
-            {
-                url: 'https://chatbot.adityamer.live/og-image.jpg',
-                width: 1200,
-                height: 630,
-                alt: 'Chatbot Preview',
-            },
-        ],
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'Chatbot - Go Deeper with AI-Powered Research & Agentic Workflows',
-        site: 'chatbot.adityamer.live',
-        creator: '@chatbot_live',
-        description:
-            'Experience deep, AI-powered research with agentic workflows and a wide variety of models for advanced productivity.',
-        images: ['https://chatbot.adityamer.live/twitter-image.jpg'],
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
-    },
-    alternates: {
-        canonical: 'https://chatbot.adityamer.live',
-    },
-    // Provide metadataBase to silence warnings and properly resolve OG/Twitter images
-    metadataBase:
-        typeof process !== 'undefined' &&
-        (process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL)
-            ? new URL(
-                  process.env.NEXT_PUBLIC_APP_URL ||
-                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-              )
-            : new URL('http://localhost:3000'),
-};
+export const metadata: Metadata = {} as any;
 
 export const viewport: Viewport = {
     width: 'device-width',
@@ -115,25 +58,7 @@ export default function ParentLayout({
                     src="//unpkg.com/react-scan/dist/auto.global.js"
                 ></script> */}
             </head>
-            <body>
-                <AuthProvider>
-                    <RootProvider>
-                        {/* <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          > */}
-                        <TooltipProvider>
-                            <ReactQueryProvider>
-                                <RootLayout>{children}</RootLayout>
-                            </ReactQueryProvider>
-                        </TooltipProvider>
-                        {/* </ThemeProvider> */}
-                    </RootProvider>
-                </AuthProvider>
-
-            </body>
+            <body>{children}</body>
         </html>
     );
 }

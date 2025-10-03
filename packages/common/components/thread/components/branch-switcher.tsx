@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, type KeyboardEvent } from 'react';
 import { useChatStore } from '@repo/common/store';
 import { ThreadItem } from '@repo/shared/types';
 import { getChatModeName } from '@repo/shared/config';
@@ -152,8 +152,33 @@ export const BranchSwitcher = ({ threadItem }: BranchSwitcherProps) => {
     const displayIndex = Math.min(activeIndex, totalBranches - 1);
     const modeLabel = currentBranch ? getChatModeName(currentBranch.mode) : null;
 
+    const handleKeyDown = useCallback(
+        (event: KeyboardEvent<HTMLDivElement>) => {
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                selectPrevious();
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                selectNext();
+            } else if (event.key === 'Home') {
+                event.preventDefault();
+                selectAtIndex(0);
+            } else if (event.key === 'End') {
+                event.preventDefault();
+                selectAtIndex(branches.length - 1);
+            }
+        },
+        [branches.length, selectAtIndex, selectNext, selectPrevious]
+    );
+
     return (
-        <div className="flex items-center gap-2 self-start rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-subtle-sm backdrop-blur">
+        <div
+            className="flex items-center gap-2 self-start rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-subtle-sm backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-border/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            tabIndex={0}
+            role="group"
+            aria-label="Branch navigation"
+            onKeyDown={handleKeyDown}
+        >
             <div className="flex flex-nowrap items-center gap-1">
                 <Button
                     variant="ghost"
