@@ -10,16 +10,16 @@
         "setup-appwrite": "bun run scripts/setup-appwrite.ts"
     },
     "devDependencies": {
-        "@typescript-eslint/parser": "^8.25.0",
-        "browserslist": "^4.26.2",
-        "eslint": "^9.21.0",
-        "eslint-plugin-prettier": "^5.2.3",
-        "globals": "^16.0.0",
-        "prettier": "^3.2.5",
-        "prettier-plugin-tailwindcss": "^0.5.12",
+        "@typescript-eslint/parser": "^8.45.0",
+        "browserslist": "^4.26.3",
+        "eslint": "^9.36.0",
+        "eslint-plugin-prettier": "^5.5.4",
+        "globals": "^16.4.0",
+        "prettier": "^3.6.2",
+        "prettier-plugin-tailwindcss": "^0.5.14",
         "tsconfig-paths-webpack-plugin": "^4.2.0",
         "turbo": "latest",
-        "vercel": "^48.1.6"
+        "vercel": "^48.2.0"
     },
     "packageManager": "bun@1.1.19",
     "workspaces": [
@@ -27,6 +27,6 @@
         "packages/*"
     ],
     "dependencies": {
-        "caniuse-lite": "^1.0.30001745"
+        "caniuse-lite": "^1.0.30001747"
     }
 }
