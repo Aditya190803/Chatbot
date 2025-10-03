@@ -107,6 +107,8 @@ export const models: Model[] = [
 
 export const getModelFromChatMode = (mode?: string): ModelEnum => {
     switch (mode) {
+        case ChatMode.Auto:
+            return ModelEnum.GEMINI_2_5_FLASH;
         case ChatMode.GEMINI_2_5_PRO:
             return ModelEnum.GEMINI_2_5_PRO;
         case ChatMode.GEMINI_2_5_FLASH:
@@ -132,6 +134,9 @@ export const getModelFromChatMode = (mode?: string): ModelEnum => {
 
 export const getChatModeMaxTokens = (mode: ChatMode) => {
     switch (mode) {
+        case ChatMode.Auto:
+            // Auto uses Gemini Flash as fallback
+            return 500000;
         case ChatMode.IMAGE_GENERATION:
         case ChatMode.GEMINI_2_5_PRO:
         case ChatMode.GEMINI_2_5_FLASH:
