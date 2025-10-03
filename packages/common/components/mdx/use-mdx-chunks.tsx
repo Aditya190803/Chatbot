@@ -1,4 +1,5 @@
 import { createProcessor } from '@mdx-js/mdx';
+import { useCallback } from 'react';
 
 //
 // Types
@@ -123,7 +124,7 @@ export const useMdxChunker = () => {
     /**
      * Main function to parse MDX text and build an array of MdxChunks.
      */
-    const chunkMdx = async (mdxText: string) => {
+    const chunkMdx = useCallback(async (mdxText: string) => {
         try {
             const processor = createProcessor({ jsx: true });
             const ast = await processor.parse(mdxText);
@@ -159,7 +160,7 @@ export const useMdxChunker = () => {
             console.error('Failed to parse and chunk MDX:', error);
             return { chunks: [] };
         }
-    };
+    }, []);
 
     return {
         chunkMdx,
