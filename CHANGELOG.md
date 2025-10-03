@@ -11,6 +11,10 @@
   - Chat serialization utilities for JSON-safe data transfers
   - Branch selection tracking and conversation computation
   - Comprehensive setup documentation
+- **Speech-to-Text Composer Controls**
+  - In-browser microphone capture powered by the Web Speech API
+  - Live transcript preview with accessible status updates
+  - Seamless insertion of dictated text into the Tiptap composer
 - **Chat Branch Navigation UI**
   - Inline branch switcher with `<current/total>` indicator
   - Keyboard-accessible previous/next controls for alternate replies
@@ -45,6 +49,7 @@
 - Eliminated critical dependency warnings from Sentry's OpenTelemetry instrumentation
 - Removed unnecessary analytics overhead
 - Simplified error handling and logging
+- Branch rewrites now render in-place with synchronized branch switchers and arrow-key navigation in chat actions
 
 ### Technical Details
 **Database Schema** (Appwrite):

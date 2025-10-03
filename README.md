@@ -36,6 +36,13 @@ source or raise the API rate limit with the following optional environment varia
 - Generate alternate replies for any turn using different models or temperatures
 - Navigate branches inline with `<current/total>` indicators and quick prev/next controls
 - Preserve full history for each variant without losing the original response
+- Rewrites stay in-place with a shared branch switcher right above each answer
+- Use keyboard arrow keys in chat actions or the composer to flip between branches
+
+**Voice Input**
+- Capture prompts hands-free with built-in speech-to-text in the chat composer
+- Live transcript preview before committing dictated text
+- Graceful fallback messaging when the Web Speech API is unavailable
 
 **Privacy-Focused**
 

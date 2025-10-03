@@ -38,3 +38,19 @@ DEPLOYMENT.md
 
 apps/web/tsconfig.tsbuildinfo
 .vercel
+
+# TypeScript compiled output (don't commit generated JS files from TS)
+*.d.ts
+*.d.ts.map
+*.js
+*.js.map
+!next.config.mjs
+!postcss.config.mjs
+!tailwind.config.js
+!*.config.js
+!scripts/**/*.js
+
+# Keep specific JS files that are intentional
+!jest.config.js
+!prettier.config.js
+!eslint.config.js
