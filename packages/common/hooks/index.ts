@@ -5,5 +5,7 @@ export * from './use-copy-text';
 export * from './use-documents';
 export * from './use-editor';
 export * from './use-image-attachment';
+export * from './use-is-mobile';
+export * from './use-speech-to-text';
 export * from './use-text-selection';
 export * from './use-title-generation';
