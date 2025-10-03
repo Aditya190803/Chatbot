@@ -108,6 +108,7 @@ export const ThreadItem = memo(
             answerText,
             isLast && isGenerating
         );
+        const displayAnswer = isAnimationComplete ? answerText : animatedText;
         const setCurrentSources = useChatStore(state => state.setCurrentSources);
         const messageRef = useRef<HTMLDivElement>(null);
 
@@ -232,7 +233,7 @@ export const ThreadItem = memo(
                                     {/* Main Answer - Prominently displayed with clear contrast from thinking */}
                                     <div className="relative">
                                         <MarkdownContent
-                                            content={animatedText || ''}
+                                            content={displayAnswer || ''}
                                             key={`answer-${threadItem.id}`}
                                             isCompleted={isFinalStatus}
                                             shouldAnimate={

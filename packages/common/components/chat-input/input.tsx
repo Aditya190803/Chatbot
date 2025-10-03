@@ -5,12 +5,12 @@ import {
     ImageDropzoneRoot,
     MessagesRemainingBadge,
 } from '@repo/common/components';
-import { useImageAttachment } from '@repo/common/hooks';
+import { useImageAttachment, useIsMobile } from '@repo/common/hooks';
 import { ChatModeConfig } from '@repo/shared/config';
 import { cn, Flex } from '@repo/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStream } from '../../hooks/agent-provider';
@@ -19,7 +19,6 @@ import { useChatStore } from '../../store';
 import { ExamplePrompts } from '../exmaple-prompts';
 import {
     ChatModeButton,
-    ComposerBranchControls,
     GeneratingStatus,
     SendStopButton,
     WebSearchButton,
@@ -37,10 +36,12 @@ export const ChatInput = ({
     isFollowUp?: boolean;
 }) => {
     const { isSignedIn } = useAuth();
+    const isMobile = useIsMobile();
 
     const { threadId: currentThreadId } = useParams();
     const { editor } = useChatEditor({
         placeholder: isFollowUp ? 'Ask follow up' : 'Ask anything',
+        enableEnter: isMobile,
         onInit: ({ editor }) => {
             if (typeof window !== 'undefined' && !isFollowUp && !isSignedIn) {
                 const draftMessage = window.localStorage.getItem('draft-message');
@@ -150,6 +151,7 @@ export const ChatInput = ({
                                         <ChatEditor
                                             sendMessage={sendMessage}
                                             editor={editor}
+                                            sendOnEnter={!isMobile}
                                             className="px-3 pt-3"
                                         />
                                     </Flex>
@@ -178,16 +180,13 @@ export const ChatInput = ({
                                         )}
 
                                         <Flex gap="md" items="center" className="ml-auto">
-                                            <ComposerBranchControls
-                                                threadItem={currentThreadItem}
-                                                disabled={isGenerating}
-                                            />
                                             <SendStopButton
                                                 isGenerating={isGenerating}
                                                 isChatPage={isChatPage}
                                                 stopGeneration={stopGeneration}
                                                 hasTextInput={hasTextInput}
                                                 sendMessage={sendMessage}
+                                                isMobile={isMobile}
                                             />
                                         </Flex>
                                     </Flex>
