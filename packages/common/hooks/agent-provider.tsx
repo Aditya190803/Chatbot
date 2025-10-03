@@ -2,7 +2,7 @@ import { useAuth } from '@repo/common/context';
 import { useWorkflowWorker } from '@repo/ai/worker';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
 import { Answer, ThreadItem } from '@repo/shared/types';
-import { buildCoreMessagesFromThreadItems, plausible } from '@repo/shared/utils';
+import { buildCoreMessagesFromThreadItems, plausible, selectModelForQuery } from '@repo/shared/utils';
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -594,6 +594,13 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             const query = formData.get('query') as string;
             const imageAttachment = formData.get('imageAttachment') as string;
 
+            // Auto-select model if in AUTO mode
+            let actualMode = mode;
+            if (mode === ChatMode.Auto) {
+                actualMode = selectModelForQuery(query, !!imageAttachment);
+                console.info('[AutoModel] Selected model:', actualMode, 'for query:', query.substring(0, 50));
+            }
+
             const inferredBranchRootId = branchParentId
                 ? branchSourceItem?.branchRootId || branchParentId
                 : existingThreadItem?.branchRootId || existingThreadItem?.id;
@@ -617,7 +624,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 parentId: parentThreadItemId || undefined,
                 query,
                 imageAttachment,
-                mode,
+                mode: actualMode,
                 branchRootId,
             };
 
@@ -628,7 +635,8 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
             plausible.trackEvent('send_message', {
                 props: {
-                    mode,
+                    mode: actualMode,
+                    originalMode: mode === ChatMode.Auto ? 'auto' : mode,
                 },
             });
 
@@ -639,7 +647,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 imageAttachment,
             });
 
-            if (hasApiKeyForChatMode(mode)) {
+            if (hasApiKeyForChatMode(actualMode)) {
                 const abortController = new AbortController();
                 setAbortController(abortController);
                 setIsGenerating(true);
@@ -652,7 +660,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 });
 
                 startWorkflow({
-                    mode,
+                    mode: actualMode,
                     question: query,
                     threadId,
                     messages: coreMessages,
@@ -664,7 +672,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 });
             } else {
                 runAgent({
-                    mode: newChatMode || chatMode,
+                    mode: actualMode,
                     prompt: query,
                     threadId,
                     messages: coreMessages,
