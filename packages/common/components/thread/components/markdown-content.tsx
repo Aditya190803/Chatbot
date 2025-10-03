@@ -137,7 +137,7 @@ export const MarkdownContent = memo(
                     console.error('Error processing MDX chunks:', error);
                 }
             })();
-        }, [content, isCompleted]);
+        }, [content, isCompleted, chunkMdx]);
 
         if (isCompleted && !isLast) {
             return (

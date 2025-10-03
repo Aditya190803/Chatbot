@@ -19,10 +19,9 @@ const titleGenerationRequestSchema = z.object({
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();
-        if (!session.userId) {
-            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-        }
-
+        // Allow both authenticated and unauthenticated users to generate titles
+        // Authentication is optional for this endpoint
+        
         const body = await request.json();
         const validatedData = titleGenerationRequestSchema.safeParse(body);
 
