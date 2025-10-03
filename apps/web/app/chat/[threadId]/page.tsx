@@ -2,11 +2,12 @@
 import { TableOfMessages, Thread } from '@repo/common/components';
 import { useChatStore } from '@repo/common/store';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useStickToBottom } from 'use-stick-to-bottom';
 
-const ChatSessionPage = ({ params }: { params: { threadId: string } }) => {
+const ChatSessionPage = ({ params }: { params: Promise<{ threadId: string }> }) => {
     const router = useRouter();
+    const unwrappedParams = use(params);
     const isGenerating = useChatStore(state => state.isGenerating);
     const [shouldScroll, setShouldScroll] = useState(isGenerating);
     const { scrollRef, contentRef } = useStickToBottom({
@@ -28,7 +29,7 @@ const ChatSessionPage = ({ params }: { params: { threadId: string } }) => {
     }, [isGenerating]);
 
     useEffect(() => {
-        const { threadId } = params;
+        const { threadId } = unwrappedParams;
         if (!threadId) {
             return;
         }
@@ -39,7 +40,7 @@ const ChatSessionPage = ({ params }: { params: { threadId: string } }) => {
                 router.push('/chat');
             }
         });
-    }, [params]);
+    }, [unwrappedParams, getThread, router, switchThread]);
 
     return (
         <div
