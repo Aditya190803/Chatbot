@@ -1,4 +1,5 @@
 export enum ChatMode {
+    Auto = 'auto',
     Pro = 'pro',
     Deep = 'deep',
     GEMINI_2_5_PRO = 'gemini-pro-2.5',
@@ -25,6 +26,15 @@ export const ChatModeConfig: Record<
         isAuthRequired?: boolean;
     }
 > = {
+    [ChatMode.Auto]: {
+        webSearch: true,
+        imageUpload: true,
+        retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
     [ChatMode.Deep]: {
         webSearch: false,
         imageUpload: false,
@@ -131,6 +141,8 @@ export const ChatModeConfig: Record<
 
 export const getChatModeName = (mode: ChatMode) => {
     switch (mode) {
+        case ChatMode.Auto:
+            return 'Auto';
         case ChatMode.Deep:
             return 'Deep Research';
         case ChatMode.Pro:
