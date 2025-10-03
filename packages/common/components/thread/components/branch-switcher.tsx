@@ -22,33 +22,42 @@ type BranchNavigation = {
     selectAtIndex: (index: number) => void;
 };
 
-export const useBranchNavigation = (threadItem: ThreadItem): BranchNavigation => {
-    const rootId = useMemo(
-        () => threadItem.branchRootId || threadItem.id,
-        [threadItem.branchRootId, threadItem.id]
-    );
-
+export const useBranchNavigation = (threadItem: ThreadItem | null): BranchNavigation => {
     const selectBranch = useChatStore(state => state.selectBranch);
     const threadItems = useChatStore(state => state.threadItems);
 
-    const siblings = useMemo(
-        () =>
-            threadItems
-                .filter(item => item.threadId === threadItem.threadId)
-                .filter(item => (item.branchRootId || item.id) === rootId)
-                .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
-        [threadItems, threadItem.threadId, rootId]
-    );
+    const threadItemId = threadItem?.id ?? null;
+    const threadItemThreadId = threadItem?.threadId ?? null;
+    const threadItemBranchRootId = threadItem?.branchRootId ?? null;
 
-    const selectedBranchId = useChatStore(state => state.branchSelections[rootId]);
+    const rootId = useMemo(() => {
+        if (!threadItemId) return null;
+        return threadItemBranchRootId || threadItemId;
+    }, [threadItemBranchRootId, threadItemId]);
 
-    const fallbackIndex = useMemo(
-        () => siblings.findIndex(item => item.id === threadItem.id),
-        [siblings, threadItem.id]
-    );
+    const siblings = useMemo(() => {
+        if (!threadItemThreadId || !rootId) {
+            return [] as ThreadItem[];
+        }
+
+        return threadItems
+            .filter(item => item.threadId === threadItemThreadId)
+            .filter(item => (item.branchRootId || item.id) === rootId)
+            .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    }, [threadItems, threadItemThreadId, rootId]);
+
+    const selectedBranchId = useChatStore(state => (rootId ? state.branchSelections[rootId] : undefined));
+
+    const fallbackIndex = useMemo(() => {
+        if (!threadItemId) {
+            return -1;
+        }
+
+        return siblings.findIndex(item => item.id === threadItemId);
+    }, [siblings, threadItemId]);
 
     const activeIndex = useMemo(() => {
-        if (siblings.length === 0) return -1;
+        if (!siblings.length) return -1;
         if (selectedBranchId) {
             const index = siblings.findIndex(item => item.id === selectedBranchId);
             if (index !== -1) {
@@ -62,7 +71,7 @@ export const useBranchNavigation = (threadItem: ThreadItem): BranchNavigation =>
     }, [fallbackIndex, selectedBranchId, siblings]);
 
     useEffect(() => {
-        if (!siblings.length) return;
+        if (!siblings.length || !rootId) return;
         if (activeIndex === -1) {
             const fallback = siblings[siblings.length - 1];
             if (fallback) {
@@ -75,7 +84,7 @@ export const useBranchNavigation = (threadItem: ThreadItem): BranchNavigation =>
     const canShowNext = activeIndex !== -1 && activeIndex < siblings.length - 1;
 
     const selectPrevious = useCallback(() => {
-        if (!canShowPrevious) return;
+        if (!canShowPrevious || !rootId) return;
         const target = siblings[activeIndex - 1];
         if (target) {
             selectBranch(rootId, target.id);
@@ -83,7 +92,7 @@ export const useBranchNavigation = (threadItem: ThreadItem): BranchNavigation =>
     }, [activeIndex, canShowPrevious, rootId, selectBranch, siblings]);
 
     const selectNext = useCallback(() => {
-        if (!canShowNext) return;
+        if (!canShowNext || !rootId) return;
         const target = siblings[activeIndex + 1];
         if (target) {
             selectBranch(rootId, target.id);
@@ -92,6 +101,7 @@ export const useBranchNavigation = (threadItem: ThreadItem): BranchNavigation =>
 
     const selectAtIndex = useCallback(
         (index: number) => {
+            if (!rootId) return;
             const isValidIndex = index >= 0 && index < siblings.length;
             if (!isValidIndex) return;
 

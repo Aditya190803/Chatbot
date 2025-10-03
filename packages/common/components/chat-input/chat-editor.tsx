@@ -9,6 +9,7 @@ export type TChatEditor = {
     maxHeight?: string;
     className?: string;
     placeholder?: string;
+    sendOnEnter?: boolean;
 };
 
 export const ChatEditor: FC<TChatEditor> = ({
@@ -17,6 +18,7 @@ export const ChatEditor: FC<TChatEditor> = ({
     placeholder,
     maxHeight = '200px',
     className,
+    sendOnEnter = true,
 }) => {
     const isGenerating = useChatStore(state => state.isGenerating);
 
@@ -28,6 +30,10 @@ export const ChatEditor: FC<TChatEditor> = ({
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (isGenerating) return;
         if (e.key === 'Enter' && !e.shiftKey) {
+            if (!sendOnEnter) {
+                return;
+            }
+            e.preventDefault();
             sendMessage?.(editor.getText());
         }
         if (e.key === 'Enter' && e.shiftKey) {

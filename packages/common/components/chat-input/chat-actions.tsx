@@ -4,6 +4,7 @@ import { useAuth } from '@repo/common/context';
 import { DotSpinner } from '@repo/common/components';
 import { useBranchNavigation, BRANCH_NAV_BUTTON_CLASSES } from '../thread/components/branch-switcher';
 import { useChatStore } from '@repo/common/store';
+import { useIsMobile } from '@repo/common/hooks';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
 import { Button, cn, Kbd } from '@repo/ui';
 import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
@@ -19,11 +20,20 @@ import {
     IconPhoto,
     IconPaperclip,
     IconPlayerStopFilled,
+    IconSparkles,
     IconWorld,
 } from '@tabler/icons-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
-import { type ComponentType, useState } from 'react';
+import {
+    type ComponentType,
+    type KeyboardEvent,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
+import { toast } from 'sonner';
 
 type IconComponent = typeof IconAtom;
 
@@ -70,6 +80,15 @@ export const chatOptions: ChatModeOption[] = [
 ];
 
 export const modelOptions: ChatModeOption[] = [
+    {
+        label: 'Auto',
+        description: 'Automatically selects the best model for your task.',
+        value: ChatMode.Auto,
+        icon: IconSparkles,
+        iconClassName: 'text-gradient-to-r from-purple-500 to-pink-500',
+        badge: 'Smart',
+        badgeClassName: 'border border-purple-200/70 bg-purple-100 text-purple-800 dark:border-purple-800/60 dark:bg-purple-950/40 dark:text-purple-200',
+    },
     {
         label: 'Gemini 2.5 Flash',
         value: ChatMode.GEMINI_2_5_FLASH,
@@ -201,15 +220,26 @@ export const WebSearchButton = () => {
     );
 };
 
+
+
 export const NewLineIndicator = () => {
     const editor = useChatStore(state => state.editor);
     const hasTextInput = !!editor?.getText();
+    const isMobile = useIsMobile();
 
     if (!hasTextInput) return null;
 
     return (
         <p className="flex flex-row items-center gap-1 text-xs text-gray-500">
-            use <Kbd>Shift</Kbd> <Kbd>Enter</Kbd> for new line
+            {isMobile ? (
+                <>
+                    <Kbd>Enter</Kbd> adds a new line · Tap send to submit
+                </>
+            ) : (
+                <>
+                    use <Kbd>Shift</Kbd> <Kbd>Enter</Kbd> for new line
+                </>
+            )}
         </p>
     );
 };
@@ -229,10 +259,6 @@ export const ComposerBranchControls = ({
     threadItem: ThreadItem | null;
     disabled?: boolean;
 }) => {
-    if (!threadItem) {
-        return null;
-    }
-
     const {
         totalBranches,
         activeIndex,
@@ -244,14 +270,39 @@ export const ComposerBranchControls = ({
         selectAtIndex,
     } = useBranchNavigation(threadItem);
 
-    if (totalBranches <= 1 || activeIndex < 0) {
+    const handleKeyDown = useCallback(
+        (event: KeyboardEvent<HTMLDivElement>) => {
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                selectPrevious();
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                selectNext();
+            } else if (event.key === 'Home') {
+                event.preventDefault();
+                selectAtIndex(0);
+            } else if (event.key === 'End') {
+                event.preventDefault();
+                selectAtIndex(branches.length - 1);
+            }
+        },
+        [branches.length, selectAtIndex, selectNext, selectPrevious]
+    );
+
+    if (!threadItem || totalBranches <= 1 || activeIndex < 0) {
         return null;
     }
 
     const displayIndex = Math.min(activeIndex, totalBranches - 1);
 
     return (
-        <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-subtle-sm">
+        <div
+            className="flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-subtle-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-border/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            tabIndex={0}
+            role="group"
+            aria-label="Composer branch navigation"
+            onKeyDown={handleKeyDown}
+        >
             <div className="flex flex-nowrap items-center gap-1">
                 <Button
                     variant="ghost"
@@ -458,12 +509,14 @@ export const SendStopButton = ({
     stopGeneration,
     hasTextInput,
     sendMessage,
+    isMobile = false,
 }: {
     isGenerating: boolean;
     isChatPage: boolean;
     stopGeneration: () => void;
     hasTextInput: boolean;
     sendMessage: () => void;
+    isMobile?: boolean;
 }) => {
     return (
         <div className="flex flex-row items-center gap-2">
@@ -495,7 +548,11 @@ export const SendStopButton = ({
                     >
                         <Button
                             size="icon-sm"
-                            tooltip="Send Message"
+                            tooltip={
+                                isMobile
+                                    ? 'Send message (Enter adds newline)'
+                                    : 'Send message'
+                            }
                             variant={hasTextInput ? 'default' : 'secondary'}
                             disabled={!hasTextInput || isGenerating}
                             onClick={() => {
