@@ -9,6 +9,10 @@ export type TSheetContent = {
 };
 
 export const SheetContent = ({ children, width = 'md', className }: TSheetContent) => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
   return (
     <Drawer.Portal>
       <Drawer.Overlay className="bg-background/70 fixed inset-0 z-30 backdrop-blur-sm" />
