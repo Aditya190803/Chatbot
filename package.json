@@ -27,6 +27,7 @@
         "packages/*"
     ],
     "dependencies": {
+        "@openrouter/ai-sdk-provider": "^1.2.0",
         "caniuse-lite": "^1.0.30001747"
     }
 }
