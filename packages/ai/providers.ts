@@ -136,7 +136,6 @@ export const getProviderInstance = (provider: ProviderEnumType) => {
       return createOpenAI({
         apiKey,
         baseURL: 'https://openrouter.ai/api/v1',
-        compatibility: 'strict',
         headers: getOpenRouterHeaders(),
       });
       }
@@ -157,9 +156,8 @@ export const getLanguageModel = (m: ModelEnum, middleware?: LanguageModelV1Middl
   const model = models.find(model => model.id === m);
   const instance = getProviderInstance(model?.provider as ProviderEnumType);
   const selectedModel = instance(model?.id || 'gpt-4o-mini')
-  // Temporarily disable middleware to fix build issues
-  // if(middleware) {
-  //   return wrapLanguageModel({model: selectedModel, middleware });
-  // }
+  if(middleware) {
+    return wrapLanguageModel({model: selectedModel, middleware });
+  }
   return selectedModel;
 };

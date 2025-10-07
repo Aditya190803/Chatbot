@@ -16,14 +16,14 @@
         "./worker": "./worker/index.ts"
     },
     "dependencies": {
-        "@ai-sdk/google": "^1.1.16",
-    "@ai-sdk/openai": "^2.0.38",
-    "@google/generative-ai": "^0.21.0",
+        "@ai-sdk/google": "^2.0.17",
+	    "@ai-sdk/openai": "^2.0.43",
+	    "@google/generative-ai": "^0.21.0",
         "@modelcontextprotocol/sdk": "^1.6.1",
         "@repo/orchestrator": "*",
         "@repo/shared": "*",
         "@types/node": "^20.11.5",
-        "ai": "^4.1.40",
+        "ai": "^5.0.60",
         "braintrust": "^0.0.187",
         "date-fns": "4.1.0",
         "dotenv": "^16.4.5",
