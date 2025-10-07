@@ -157,10 +157,22 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
         reasoningBuffer.end();
         chunkBuffer.end();
 
+        // If there's no response text but there's reasoning text, use reasoning as the answer
+        // This handles cases where the model only outputs thinking without a final answer
+        const finalAnswer = response || reasoningText || '';
+
+        console.log('🔍 Final response:', {
+            responseLength: response?.length ?? 0,
+            response: response?.substring(0, 100),
+            reasoningTextLength: reasoningText?.length ?? 0,
+            finalAnswerLength: finalAnswer?.length ?? 0
+        });
+
         events?.update('answer', prev => ({
             ...prev,
-            text: '',
-            fullText: response,
+            text: finalAnswer,
+            fullText: finalAnswer,
+            finalText: finalAnswer,
             thinkingProcess: reasoningText,
             status: 'COMPLETED',
         }));
@@ -174,14 +186,14 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
             model: model ?? prev?.model,
         }));
 
-        context.update('answer', _ => response);
+        context.update('answer', _ => finalAnswer);
 
         events?.update('status', prev => 'COMPLETED');
 
         const onFinish = context.get('onFinish');
         if (onFinish) {
             onFinish({
-                answer: response,
+                answer: finalAnswer,
                 threadId: context.get('threadId'),
                 threadItemId: context.get('threadItemId'),
             });

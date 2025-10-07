@@ -109,6 +109,12 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             let nextThinkingProcess = prevItem.thinkingProcess;
 
             if (incomingAnswer) {
+                console.log('📥 Received answer event:', {
+                    text: incomingAnswer?.text?.substring(0, 100),
+                    fullText: incomingAnswer?.fullText?.substring(0, 100),
+                    finalText: incomingAnswer?.finalText?.substring(0, 100),
+                    status: incomingAnswer?.status
+                });
                 const {
                     text: incomingText,
                     finalText: incomingFinalText,

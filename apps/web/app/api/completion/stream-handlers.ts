@@ -111,6 +111,14 @@ export async function executeStream({
         });
 
         workflow.onAll((event, payload) => {
+            if (event === 'answer') {
+                console.log('📤 Sending answer event:', {
+                    text: payload?.text?.substring(0, 100),
+                    fullText: payload?.fullText?.substring(0, 100),
+                    finalText: payload?.finalText?.substring(0, 100),
+                    status: payload?.status
+                });
+            }
             sendMessage(controller, encoder, {
                 type: event,
                 threadId: data.threadId,

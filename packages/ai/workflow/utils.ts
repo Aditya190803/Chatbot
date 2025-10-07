@@ -35,6 +35,8 @@ export class ChunkBuffer {
     }
 
     add(chunk: string): void {
+        if (!chunk) return; // Guard against undefined/null chunks
+        
         this.fullText += chunk;
         this.buffer += chunk;
 
@@ -129,12 +131,18 @@ export const generateText = async ({
             }
 
             if (chunk.type === 'text-delta') {
-                fullText += chunk.textDelta;
-                onChunk?.(chunk.textDelta, fullText);
+                const textDelta = chunk.text || '';
+                fullText += textDelta;
+                if (textDelta) {
+                    onChunk?.(textDelta, fullText);
+                }
             }
-            if (chunk.type === 'reasoning') {
-                reasoning += chunk.textDelta;
-                onReasoning?.(chunk.textDelta, reasoning);
+            if (chunk.type === 'reasoning-delta') {
+                const reasoningDelta = chunk.text || '';
+                reasoning += reasoningDelta;
+                if (reasoningDelta) {
+                    onReasoning?.(reasoningDelta, reasoning);
+                }
             }
             if (chunk.type === 'tool-call') {
                 onToolCall?.(chunk);
@@ -144,7 +152,7 @@ export const generateText = async ({
             }
 
             if (chunk.type === 'finish') {
-                usage = chunk.usage as LanguageModelUsage | undefined;
+                usage = chunk.totalUsage as LanguageModelUsage | undefined;
             }
 
             if (chunk.type === 'error') {
