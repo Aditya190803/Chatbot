@@ -19,7 +19,7 @@ const bricolage = Bricolage_Grotesque({
 const joinClass = (...inputs: Array<string | false | null | undefined>) =>
     inputs.filter(Boolean).join(' ');
 
-export const metadata: Metadata = {} as any;
+// export const metadata: Metadata = {} as any;
 
 export const viewport: Viewport = {
     width: 'device-width',
@@ -37,6 +37,8 @@ const clash = localFont({
     src: './ClashGrotesk-Variable.woff2',
     variable: '--font-clash',
 });
+
+export const dynamic = 'force-dynamic';
 
 export default function ParentLayout({
     children,
@@ -58,7 +60,17 @@ export default function ParentLayout({
                     src="//unpkg.com/react-scan/dist/auto.global.js"
                 ></script> */}
             </head>
-            <body>{children}</body>
+            <body>
+                <TooltipProvider>
+                    <AuthProvider>
+                        <ReactQueryProvider>
+                            <RootProvider>
+                                <RootLayout>{children}</RootLayout>
+                            </RootProvider>
+                        </ReactQueryProvider>
+                    </AuthProvider>
+                </TooltipProvider>
+            </body>
         </html>
     );
 }
