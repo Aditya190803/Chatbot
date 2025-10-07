@@ -16,8 +16,6 @@ export type Thread = {
     pinned: boolean;
     pinnedAt: Date;
     projectId?: string;
-    autoTitleVersion?: number;
-    autoTitleUpdatedAt?: Date;
 };
 
 export type SubStep = {
@@ -74,7 +72,6 @@ export type ThreadItem = {
     updatedAt: Date;
     id: string;
     parentId?: string;
-    branchRootId?: string;
     threadId: string;
     metadata?: Record<string, any>;
     mode: ChatMode;
