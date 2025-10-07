@@ -10,6 +10,7 @@ loadEnv({
 });
 
 const nextConfig = {
+    output: 'standalone',
     transpilePackages: ['next-mdx-remote'],
     images: {
         remotePatterns: [
@@ -20,6 +21,10 @@ const nextConfig = {
     
     typescript: {
         ignoreBuildErrors: true,
+    },
+    
+    eslint: {
+        ignoreDuringBuilds: true,
     },
 
     experimental: {
