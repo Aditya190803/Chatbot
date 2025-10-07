@@ -15,7 +15,6 @@ import {
     useRef,
 } from 'react';
 import { useApiKeysStore, useAppStore, useChatStore, useMcpToolsStore } from '../store';
-import { useTitleGeneration } from './use-title-generation';
 
 export type AgentContextType = {
     runAgent: (body: any) => Promise<void>;
@@ -66,7 +65,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
     const getSelectedMCP = useMcpToolsStore(state => state.getSelectedMCP);
     const apiKeys = useApiKeysStore(state => state.getAllKeys);
     const hasApiKeyForChatMode = useApiKeysStore(state => state.hasApiKeyForChatMode);
-    const { generateAndUpdateTitle } = useTitleGeneration();
 
     // In-memory store for thread items
     const threadItemMap = useMemo(() => new Map<string, ThreadItem>(), []);
@@ -170,11 +168,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 threadId,
                 parentId: parentThreadItemId || prevItem.parentId,
                 id: threadItemId,
-                branchRootId:
-                    prevItem.branchRootId ||
-                    (parentThreadItemId && parentThreadItemId.length > 0
-                        ? parentThreadItemId
-                        : threadItemId),
                 object: eventData?.object || prevItem.object,
                 createdAt: prevItem.createdAt || new Date(),
                 updatedAt: new Date(),
@@ -374,111 +367,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                                                     status: 'COMPLETED',
                                                     persistToDB: true,
                                                 });
-
-                                                const chatState = useChatStore.getState();
-                                                const threadItems = chatState.threadItems
-                                                    .filter(item => item.threadId === data.threadId)
-                                                    .sort(
-                                                        (a, b) =>
-                                                            (a.createdAt?.getTime?.() || 0) -
-                                                            (b.createdAt?.getTime?.() || 0)
-                                                    );
-
-                                                const conversationTurns = threadItems
-                                                    .filter(item => item.query)
-                                                    .map(item => ({
-                                                        id: item.id,
-                                                        user: (item.query || '').trim(),
-                                                        assistant: (
-                                                            item.answer?.finalText || item.answer?.text || ''
-                                                        ).trim(),
-                                                    }));
-
-                                                const latestTurn = conversationTurns.find(
-                                                    turn => turn.id === data.threadItemId
-                                                );
-                                                const latestAnswerCandidate =
-                                                    (data as any)?.answer?.finalText ||
-                                                    (data as any)?.answer?.text ||
-                                                    '';
-                                                const finalAnswerText =
-                                                    typeof latestAnswerCandidate === 'string'
-                                                        ? latestAnswerCandidate.trim()
-                                                        : '';
-
-                                                if (latestTurn && finalAnswerText.length) {
-                                                    latestTurn.assistant = finalAnswerText;
-                                                }
-
-                                                const completedTurns = conversationTurns.filter(
-                                                    turn => turn.user.length && turn.assistant.length
-                                                );
-
-                                                const currentThread = chatState.threads.find(
-                                                    thread => thread.id === data.threadId
-                                                );
-                                                const currentVersion = currentThread?.autoTitleVersion ?? 0;
-
-                                                const requestTitleGeneration = (
-                                                    stage: 'initial' | 'refine',
-                                                    conversation: { role: 'user' | 'assistant'; content: string }[],
-                                                    fallbackTitle?: string
-                                                ) => {
-                                                    const pending =
-                                                        pendingTitleStages.current.get(data.threadId) || new Set();
-                                                    if (pending.has(stage)) {
-                                                        return;
-                                                    }
-                                                    pending.add(stage);
-                                                    pendingTitleStages.current.set(data.threadId, pending);
-
-                                                    generateAndUpdateTitle({
-                                                        threadId: data.threadId,
-                                                        stage,
-                                                        conversation,
-                                                        fallbackTitle,
-                                                    })
-                                                        .catch(console.error)
-                                                        .finally(() => {
-                                                            const current = pendingTitleStages.current.get(data.threadId);
-                                                            if (!current) return;
-                                                            current.delete(stage);
-                                                            if (current.size === 0) {
-                                                                pendingTitleStages.current.delete(data.threadId);
-                                                            }
-                                                        });
-                                                };
-
-                                                if (currentVersion < 1 && completedTurns.length >= 1) {
-                                                    const firstTurn = completedTurns[0];
-                                                    console.log('[TitleGeneration] Requesting initial title', {
-                                                        threadId: data.threadId,
-                                                        user: firstTurn.user.substring(0, 50),
-                                                        assistant: firstTurn.assistant.substring(0, 50)
-                                                    });
-                                                    requestTitleGeneration(
-                                                        'initial',
-                                                        [
-                                                            { role: 'user' as const, content: firstTurn.user },
-                                                            {
-                                                                role: 'assistant' as const,
-                                                                content: firstTurn.assistant,
-                                                            },
-                                                        ],
-                                                        firstTurn.user
-                                                    );
-                                                } else if (currentVersion < 2 && completedTurns.length >= 3) {
-                                                    const refinedTurns = completedTurns.slice(0, 3);
-                                                    const messages: { role: 'user' | 'assistant'; content: string }[] =
-                                                        refinedTurns.flatMap(turn => [
-                                                            { role: 'user' as const, content: turn.user },
-                                                            {
-                                                                role: 'assistant' as const,
-                                                                content: turn.assistant,
-                                                            },
-                                                        ]);
-                                                    requestTitleGeneration('refine', messages, refinedTurns[0].user);
-                                                }
                                             }
                                         }
                                     }
@@ -550,7 +438,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             messages,
             useWebSearch,
             showSuggestions,
-            branchParentId,
         }: {
             formData: FormData;
             newThreadId?: string;
@@ -559,7 +446,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             messages?: ThreadItem[];
             useWebSearch?: boolean;
             showSuggestions?: boolean;
-            branchParentId?: string;
         }) => {
             const mode = (newChatMode || chatMode) as ChatMode;
             if (
@@ -577,20 +463,10 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             const existingThreadItem = existingThreadItemId
                 ? chatState.threadItems.find(item => item.id === existingThreadItemId)
                 : undefined;
-            const branchSourceItem = branchParentId
-                ? chatState.threadItems.find(item => item.id === branchParentId)
-                : undefined;
 
-            let parentThreadItemId = existingThreadItem?.parentId ?? '';
-            if (branchParentId) {
-                parentThreadItemId = branchSourceItem
-                    ? branchSourceItem.parentId ?? ''
-                    : branchParentId;
-            }
+            const parentThreadItemId = existingThreadItem?.parentId ?? '';
 
-            const optimisticAiThreadItemId = branchParentId
-                ? nanoid()
-                : existingThreadItemId || nanoid();
+            const optimisticAiThreadItemId = existingThreadItemId || nanoid();
             const query = formData.get('query') as string;
             const imageAttachment = formData.get('imageAttachment') as string;
 
@@ -601,15 +477,9 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 console.info('[AutoModel] Selected model:', actualMode, 'for query:', query.substring(0, 50));
             }
 
-            const inferredBranchRootId = branchParentId
-                ? branchSourceItem?.branchRootId || branchParentId
-                : existingThreadItem?.branchRootId || existingThreadItem?.id;
-
-            const branchRootId = inferredBranchRootId || optimisticAiThreadItemId;
-
             const existingThread = chatState.threads.find(thread => thread.id === threadId);
 
-            if (!existingThread || (existingThread.autoTitleVersion ?? 0) < 1) {
+            if (!existingThread) {
                 updateThread({ id: threadId, title: query });
             }
 
@@ -625,7 +495,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 query,
                 imageAttachment,
                 mode: actualMode,
-                branchRootId,
             };
 
             createThreadItem(aiThreadItem);

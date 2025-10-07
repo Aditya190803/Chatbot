@@ -70,6 +70,22 @@ const ToolStep = memo(({ toolCall, toolResult }: ToolStepProps) => (
     </div>
 ));
 
+const normalizeText = (value?: string) =>
+    typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+
+const hasMeaningfulData = (value: unknown) => {
+    if (Array.isArray(value)) {
+        return value.length > 0;
+    }
+    if (typeof value === 'object' && value !== null) {
+        return Object.keys(value).length > 0;
+    }
+    if (typeof value === 'string') {
+        return value.trim().length > 0;
+    }
+    return Boolean(value);
+};
+
 export const Steps = ({ steps, threadItem }: { steps: Step[]; threadItem: ThreadItem }) => {
     const openSideDrawer = useAppStore(state => state.openSideDrawer);
     const dismissSideDrawer = useAppStore(state => state.dismissSideDrawer);
@@ -119,7 +135,11 @@ export const Steps = ({ steps, threadItem }: { steps: Step[]; threadItem: Thread
                 renderContent: () => (
                     <div className="flex w-full flex-1 flex-col px-2 py-4">
                         {steps.map((step, index) => (
-                            <StepRenderer key={index} step={step} />
+                            <StepRenderer
+                                key={index}
+                                step={step}
+                                thinkingProcess={threadItem.thinkingProcess}
+                            />
                         ))}
                     </div>
                 ),
@@ -139,7 +159,11 @@ export const Steps = ({ steps, threadItem }: { steps: Step[]; threadItem: Thread
                 renderContent: () => (
                     <div className="flex w-full flex-1 flex-col px-2 py-4">
                         {steps.map((step, index) => (
-                            <StepRenderer key={index} step={step} />
+                            <StepRenderer
+                                key={index}
+                                step={step}
+                                thinkingProcess={threadItem.thinkingProcess}
+                            />
                         ))}
                     </div>
                 ),
@@ -171,7 +195,25 @@ export const Steps = ({ steps, threadItem }: { steps: Step[]; threadItem: Thread
         );
     };
 
-    if (steps.length === 0 && !toolCallAndResults.length) {
+    const normalizedThinking = normalizeText(threadItem.thinkingProcess);
+    const hasRenderableSteps = steps.some(step => {
+        const stepText = normalizeText(step.text);
+        const reasoningData = normalizeText(
+            typeof step.steps?.reasoning?.data === 'string' ? step.steps.reasoning.data : ''
+        );
+        const showReasoning =
+            reasoningData.length > 0 &&
+            (normalizedThinking.length === 0 || reasoningData !== normalizedThinking);
+
+        const hasOtherSubSteps = Object.entries(step.steps || {}).some(([key, subStep]) => {
+            if (key === 'reasoning') return false;
+            return hasMeaningfulData(subStep?.data);
+        });
+
+        return showReasoning || hasOtherSubSteps || stepText.length > 0;
+    });
+
+    if (!hasRenderableSteps && !toolCallAndResults.length) {
         return null;
     }
 

@@ -1,5 +1,5 @@
 'use client';
-import { BranchSwitcher, ChatModeOptions } from '@repo/common/components';
+import { ChatModeOptions } from '@repo/common/components';
 import { useAgentStream, useCopyText } from '@repo/common/hooks';
 import { useChatStore } from '@repo/common/store';
 import { ChatMode, getChatModeName } from '@repo/shared/config';
@@ -201,8 +201,6 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                     )}
                 </div>
                 </div>
-
-                <BranchSwitcher threadItem={threadItem} />
             </div>
         );
     }

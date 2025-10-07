@@ -21,20 +21,25 @@ import { useInView } from 'react-intersection-observer';
 import type { ImageGenerationResultData } from '@repo/common/components';
 
 const THINK_BLOCK_REGEX = /<think>([\s\S]*?)<\/think>/gi;
-const THINK_TAG_REGEX = /<\/?think>/gi;
+const ANSWER_BLOCK_REGEX = /<answer>([\s\S]*?)<\/answer>/gi;
+const HIDDEN_TAG_REGEX = /<\/?(?:think|answer|final_answer|finalanswer|response|result|output|analysis|reasoning|thought|assistant_response)>/gi;
 
 const cloneRegex = (regex: RegExp) => new RegExp(regex.source, regex.flags);
-const stripThinkTags = (value: string) => value.replace(cloneRegex(THINK_TAG_REGEX), '');
+const stripAssistantTags = (value: string) => value.replace(cloneRegex(HIDDEN_TAG_REGEX), '');
 
 const extractAnswerAndThinking = (
     rawAnswer?: string,
     explicitThinking?: string
 ): { answer: string; thinking: string } => {
     const thinkingParts = new Set<string>();
+    const answerSegments: string[] = [];
 
     const normalizedExplicit = explicitThinking?.trim();
     if (normalizedExplicit) {
-        thinkingParts.add(normalizedExplicit);
+        const cleanedExplicit = stripAssistantTags(normalizedExplicit).trim();
+        if (cleanedExplicit) {
+            thinkingParts.add(cleanedExplicit);
+        }
     }
 
     let sanitizedAnswer = rawAnswer ?? '';
@@ -47,7 +52,10 @@ const extractAnswerAndThinking = (
             hasBlockMatch = true;
             const part = group?.trim();
             if (part) {
-                thinkingParts.add(stripThinkTags(part).trim());
+                const cleanedPart = stripAssistantTags(part).trim();
+                if (cleanedPart) {
+                    thinkingParts.add(cleanedPart);
+                }
             }
             return '';
         });
@@ -57,7 +65,7 @@ const extractAnswerAndThinking = (
             const openIndex = lowerCaseAnswer.indexOf('<think>');
             if (openIndex !== -1) {
                 const tail = sanitizedAnswer.slice(openIndex + '<think>'.length);
-                const cleanedTail = stripThinkTags(tail).trim();
+                const cleanedTail = stripAssistantTags(tail).trim();
                 if (cleanedTail) {
                     thinkingParts.add(cleanedTail);
                 }
@@ -66,7 +74,56 @@ const extractAnswerAndThinking = (
         }
     }
 
-    sanitizedAnswer = stripThinkTags(sanitizedAnswer).trim();
+    if (sanitizedAnswer) {
+        sanitizedAnswer = sanitizedAnswer.replace(cloneRegex(ANSWER_BLOCK_REGEX), (_: string, group: string) => {
+            const cleaned = stripAssistantTags(group).trim();
+            if (cleaned) {
+                answerSegments.push(cleaned);
+            }
+            return cleaned;
+        });
+    }
+
+    sanitizedAnswer = stripAssistantTags(sanitizedAnswer).trim();
+
+    if (!sanitizedAnswer && answerSegments.length > 0) {
+        sanitizedAnswer = answerSegments.join('\n\n');
+    }
+
+    if (!sanitizedAnswer && thinkingParts.size > 0) {
+        const thinkingArray = Array.from(thinkingParts);
+        const finalCue = thinkingArray
+            .slice()
+            .reverse()
+            .find(part => /(^|\n)\s*(final (answer|response)|answer)\s*[:\-]?/i.test(part));
+
+        if (finalCue) {
+            const lines = finalCue
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean);
+            const cueLine = [...lines]
+                .reverse()
+                .find(line => /^(final (answer|response)|answer)\s*[:\-]?/i.test(line));
+
+            const extracted = cueLine
+                ? cueLine.replace(/^(final (answer|response)|answer)\s*[:\-]?\s*/i, '').trim()
+                : finalCue.trim();
+
+            if (extracted) {
+                sanitizedAnswer = extracted;
+                thinkingParts.delete(finalCue);
+            }
+        }
+    }
+
+    if (!sanitizedAnswer && thinkingParts.size > 0) {
+        const fallback = Array.from(thinkingParts).pop();
+        if (fallback) {
+            sanitizedAnswer = fallback;
+            thinkingParts.delete(fallback);
+        }
+    }
 
     const thinking = Array.from(thinkingParts)
         .map(part => part.trim())

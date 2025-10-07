@@ -14,7 +14,7 @@ import { Badge, Button, Flex, Toaster } from '@repo/ui';
 import { IconMoodSadDizzy, IconX } from '@tabler/icons-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { useStickToBottom } from 'use-stick-to-bottom';
 import { Drawer } from 'vaul';
 
@@ -25,12 +25,17 @@ export type TRootLayout = {
 export const RootLayout: FC<TRootLayout> = ({ children }) => {
     const { isSidebarOpen, isMobileSidebarOpen, setIsMobileSidebarOpen } = useRootContext();
     const setIsSettingOpen = useAppStore(state => state.setIsSettingsOpen);
+    const [isMounted, setIsMounted] = useState(false);
 
     const containerClass =
         'relative flex flex-1 flex-row h-[calc(99dvh)] border border-border rounded-sm bg-secondary w-full overflow-hidden shadow-sm';
 
     useEffect(() => {
         plausible.trackPageview();
+    }, []);
+
+    useEffect(() => {
+        setIsMounted(true);
     }, []);
 
     return (
@@ -54,17 +59,22 @@ export const RootLayout: FC<TRootLayout> = ({ children }) => {
                     }
                 }}
             >
-                <Drawer.Portal>
-                    <Drawer.Overlay className="fixed inset-0 z-30 backdrop-blur-sm" aria-hidden="false" />
-                    <Drawer.Content 
-                        className="fixed bottom-0 left-0 top-0 z-[50] outline-none" 
-                        aria-label="Navigation sidebar"
-                    >
-                        <Flex className="pr-2">
-                            <Sidebar />
-                        </Flex>
-                    </Drawer.Content>
-                </Drawer.Portal>
+                {isMounted && (
+                    <Drawer.Portal>
+                        <Drawer.Overlay
+                            className="fixed inset-0 z-30 backdrop-blur-sm"
+                            aria-hidden="false"
+                        />
+                        <Drawer.Content
+                            className="fixed bottom-0 left-0 top-0 z-[50] outline-none"
+                            aria-label="Navigation sidebar"
+                        >
+                            <Flex className="pr-2">
+                                <Sidebar />
+                            </Flex>
+                        </Drawer.Content>
+                    </Drawer.Portal>
+                )}
             </Drawer.Root>
 
             {/* Main Content */}

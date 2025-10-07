@@ -1,7 +1,7 @@
 import { useChatStore } from '@repo/common/store';
 import { cn, Flex } from '@repo/ui';
 import { Editor, EditorContent } from '@tiptap/react';
-import { FC } from 'react';
+import { FC, KeyboardEvent } from 'react';
 
 export type TChatEditor = {
     sendMessage?: (message: string) => void;
@@ -27,8 +27,12 @@ export const ChatEditor: FC<TChatEditor> = ({
     const editorContainerClass =
         'no-scrollbar [&>*]:no-scrollbar wysiwyg min-h-[60px] w-full cursor-text overflow-y-auto p-1 text-base outline-none focus:outline-none [&>*]:leading-6 [&>*]:outline-none [&>*]:break-all [&>*]:word-break-break-word [&>*]:whitespace-pre-wrap';
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
         if (isGenerating) return;
+        // Check if IME composition is in progress
+        if (e.nativeEvent?.isComposing) {
+            return;
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
             if (!sendOnEnter) {
                 return;
@@ -50,6 +54,7 @@ export const ChatEditor: FC<TChatEditor> = ({
                 style={{
                     maxHeight,
                 }}
+                enterKeyHint="send"
                 disabled={isGenerating}
                 onKeyDown={handleKeyDown}
                 className={cn(editorContainerClass, className)}

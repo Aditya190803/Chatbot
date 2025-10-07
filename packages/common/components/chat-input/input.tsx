@@ -151,7 +151,7 @@ export const ChatInput = ({
                                         <ChatEditor
                                             sendMessage={sendMessage}
                                             editor={editor}
-                                            sendOnEnter={!isMobile}
+                                            sendOnEnter
                                             className="px-3 pt-3"
                                         />
                                     </Flex>

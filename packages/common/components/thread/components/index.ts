@@ -3,7 +3,6 @@ export * from './goals';
 export * from './markdown-content';
 export * from './message';
 export * from './message-actions';
-export * from './branch-switcher';
 export * from './question-prompt';
 export * from './image-generation-result';
 export * from './source-grid';

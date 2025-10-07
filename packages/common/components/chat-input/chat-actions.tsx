@@ -2,7 +2,6 @@
 
 import { useAuth } from '@repo/common/context';
 import { DotSpinner } from '@repo/common/components';
-import { useBranchNavigation, BRANCH_NAV_BUTTON_CLASSES } from '../thread/components/branch-switcher';
 import { useChatStore } from '@repo/common/store';
 import { useIsMobile } from '@repo/common/hooks';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
@@ -248,127 +247,6 @@ export const GeneratingStatus = () => {
     return (
         <div className="text-muted-foreground flex flex-row items-center gap-1 px-2 text-xs">
             <DotSpinner /> Generating...
-        </div>
-    );
-};
-
-export const ComposerBranchControls = ({
-    threadItem,
-    disabled = false,
-}: {
-    threadItem: ThreadItem | null;
-    disabled?: boolean;
-}) => {
-    const {
-        totalBranches,
-        activeIndex,
-        branches,
-        canShowPrevious,
-        canShowNext,
-        selectPrevious,
-        selectNext,
-        selectAtIndex,
-    } = useBranchNavigation(threadItem);
-
-    const handleKeyDown = useCallback(
-        (event: KeyboardEvent<HTMLDivElement>) => {
-            if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                selectPrevious();
-            } else if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                selectNext();
-            } else if (event.key === 'Home') {
-                event.preventDefault();
-                selectAtIndex(0);
-            } else if (event.key === 'End') {
-                event.preventDefault();
-                selectAtIndex(branches.length - 1);
-            }
-        },
-        [branches.length, selectAtIndex, selectNext, selectPrevious]
-    );
-
-    if (!threadItem || totalBranches <= 1 || activeIndex < 0) {
-        return null;
-    }
-
-    const displayIndex = Math.min(activeIndex, totalBranches - 1);
-
-    return (
-        <div
-            className="flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-subtle-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-border/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            tabIndex={0}
-            role="group"
-            aria-label="Composer branch navigation"
-            onKeyDown={handleKeyDown}
-        >
-            <div className="flex flex-nowrap items-center gap-1">
-                <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className={cn(
-                        BRANCH_NAV_BUTTON_CLASSES,
-                        (!canShowPrevious || disabled) && 'opacity-40'
-                    )}
-                    disabled={disabled || !canShowPrevious}
-                    aria-label="Previous branch"
-                    onClick={selectPrevious}
-                    tooltip="Previous reply"
-                >
-                    <IconChevronLeft size={14} strokeWidth={2} />
-                </Button>
-                <div className="flex flex-nowrap items-center gap-1">
-                    {branches.map((branch, index) => {
-                        const isActive = index === displayIndex;
-                        const customLabel =
-                            branch.metadata &&
-                            typeof branch.metadata.branchLabel === 'string' &&
-                            branch.metadata.branchLabel.trim()?.length
-                                ? (branch.metadata.branchLabel as string)
-                                : null;
-                        const label = customLabel ?? `<${index + 1}/${totalBranches}>`;
-
-                        return (
-                            <Button
-                                key={branch.id}
-                                variant={isActive ? 'default' : 'ghost'}
-                                size="xs"
-                                rounded="full"
-                                className={cn(
-                                    'h-6 min-w-[2.25rem] whitespace-nowrap px-2 text-xs font-medium',
-                                    !isActive && 'border border-border/60 bg-background/80',
-                                    disabled && 'pointer-events-none opacity-60'
-                                )}
-                                aria-label={label}
-                                tooltip={label}
-                                disabled={disabled}
-                                onClick={() => {
-                                    if (!disabled) {
-                                        selectAtIndex(index);
-                                    }
-                                }}
-                            >
-                                {label}
-                            </Button>
-                        );
-                    })}
-                </div>
-                <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className={cn(
-                        BRANCH_NAV_BUTTON_CLASSES,
-                        (!canShowNext || disabled) && 'opacity-40'
-                    )}
-                    disabled={disabled || !canShowNext}
-                    aria-label="Next branch"
-                    onClick={selectNext}
-                    tooltip="Next reply"
-                >
-                    <IconChevronRight size={14} strokeWidth={2} />
-                </Button>
-            </div>
         </div>
     );
 };

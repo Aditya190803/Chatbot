@@ -5,13 +5,17 @@ import { IconSearch, IconChevronDown, IconChevronRight } from '@tabler/icons-rea
 import { motion } from 'framer-motion';
 import React, { useState } from 'react';
 
+const normalizeText = (value?: string) =>
+    typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+
 export type StepRendererType = {
     step: Step;
+    thinkingProcess?: string;
 };
 
-export const StepRenderer = ({ step }: StepRendererType) => {
+export const StepRenderer = ({ step, thinkingProcess }: StepRendererType) => {
     const [thinkingExpanded, setThinkingExpanded] = useState(false);
-    console.log(step);
+    const normalizedThinking = normalizeText(thinkingProcess);
     const renderTextStep = () => {
         if (step?.text) {
             return (
@@ -101,6 +105,16 @@ export const StepRenderer = ({ step }: StepRendererType) => {
         if (step?.steps && 'reasoning' in step.steps) {
             const reasoningData =
                 typeof step.steps?.reasoning?.data === 'string' ? step.steps.reasoning.data : '';
+
+            const normalizedReasoning = normalizeText(reasoningData);
+            const isDuplicateReasoning =
+                normalizedReasoning.length > 0 &&
+                normalizedThinking.length > 0 &&
+                normalizedReasoning === normalizedThinking;
+
+            if (isDuplicateReasoning) {
+                return null;
+            }
 
             return (
                 <motion.div
