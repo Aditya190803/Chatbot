@@ -1,11 +1,8 @@
-import { RootLayout } from '@repo/common/components';
-import { AuthProvider, ReactQueryProvider, RootProvider } from '@repo/common/context';
-import { TooltipProvider } from '@repo/ui';
 import { GeistMono } from 'geist/font/mono';
 import type { Viewport } from 'next';
-import { Metadata } from 'next';
 import { Bricolage_Grotesque } from 'next/font/google';
 import localFont from 'next/font/local';
+import ClientProviders from './client-providers';
 
 import './globals.css';
 
@@ -18,8 +15,6 @@ const bricolage = Bricolage_Grotesque({
 // Use a tiny local join helper for className composition.
 const joinClass = (...inputs: Array<string | false | null | undefined>) =>
     inputs.filter(Boolean).join(' ');
-
-// export const metadata: Metadata = {} as any;
 
 export const viewport: Viewport = {
     width: 'device-width',
@@ -38,8 +33,6 @@ const clash = localFont({
     variable: '--font-clash',
 });
 
-export const dynamic = 'force-dynamic';
-
 export default function ParentLayout({
     children,
 }: Readonly<{
@@ -54,22 +47,9 @@ export default function ParentLayout({
             <head>
                 <link rel="icon" href="/icon.svg" type="image/svg+xml" />
                 <link rel="icon" href="/favicon.ico" sizes="32x32" />
-
-                {/* <script
-                    crossOrigin="anonymous"
-                    src="//unpkg.com/react-scan/dist/auto.global.js"
-                ></script> */}
             </head>
             <body>
-                <TooltipProvider>
-                    <AuthProvider>
-                        <ReactQueryProvider>
-                            <RootProvider>
-                                <RootLayout>{children}</RootLayout>
-                            </RootProvider>
-                        </ReactQueryProvider>
-                    </AuthProvider>
-                </TooltipProvider>
+                <ClientProviders>{children}</ClientProviders>
             </body>
         </html>
     );
