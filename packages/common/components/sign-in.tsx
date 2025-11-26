@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaGoogle } from 'react-icons/fa';
 import { IconEye, IconEyeOff, IconX } from '@tabler/icons-react';
+import { logger } from '@repo/shared/logger';
 
 import { useAuth, useAuthActions } from '@repo/common/context';
 import { Button, Input } from '@repo/ui';
@@ -76,7 +77,7 @@ export const CustomSignIn = ({
             await signInWithPassword(email.trim(), password);
             router.push('/chat');
         } catch (err: unknown) {
-            console.error('Password authentication error:', err);
+            logger.error('Password authentication error', err as Error);
             const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
             if (message.toLowerCase().includes('invalid credentials')) {
                 setError('Invalid email or password. Please try again.');
@@ -111,7 +112,7 @@ export const CustomSignIn = ({
             setEmailToken(token);
             setVerifying(true);
         } catch (err: unknown) {
-            console.error('Email authentication error:', err);
+            logger.error('Email authentication error', err as Error);
             const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
             setError(message);
         } finally {
@@ -138,7 +139,7 @@ export const CustomSignIn = ({
             await verifyEmailCode(emailToken.userId, code);
             router.push('/chat');
         } catch (err: unknown) {
-            console.error('Verification failed:', err);
+            logger.error('Verification failed', err as Error);
             const message = err instanceof Error ? err.message : 'Verification failed. Please try again.';
             if (message.toLowerCase().includes('code')) {
                 setError('Invalid verification code. Please try again.');
@@ -163,7 +164,7 @@ export const CustomSignIn = ({
             const token = await requestEmailCode(emailToken.email);
             setEmailToken(token);
         } catch (err: unknown) {
-            console.error('Error resending code:', err);
+            logger.error('Error resending code', err as Error);
             setError('Failed to resend code. Please try again.');
         } finally {
             setTimeout(() => setResending(false), 3000);
@@ -177,7 +178,7 @@ export const CustomSignIn = ({
         try {
             await signInWithGoogle(redirectUrl);
         } catch (error) {
-            console.error('Google authentication error:', error);
+            logger.error('Google authentication error', error as Error);
             setError('Google authentication failed. Please try again.');
         } finally {
             setIsLoading(null);
