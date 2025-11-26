@@ -219,7 +219,7 @@
       "name": "@repo/actions",
       "version": "0.1.0",
       "dependencies": {
-        "@repo/prisma": "workspace:*",
+        "@repo/prisma": "*",
       },
       "devDependencies": {
         "@repo/typescript-config": "*",
