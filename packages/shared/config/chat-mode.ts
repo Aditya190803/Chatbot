@@ -4,12 +4,15 @@ export enum ChatMode {
     Deep = 'deep',
     GEMINI_2_5_PRO = 'gemini-pro-2.5',
     GEMINI_2_5_FLASH = 'gemini-flash-2.5',
-    GROK_4_FAST = 'grok-4-fast',
+    GROK_4_1_FAST = 'grok-4-1-fast',
     GLM_4_5_AIR = 'glm-4-5-air',
     DEEPSEEK_CHAT_V3_1 = 'deepseek-chat-v3-1',
     DEEPSEEK_R1 = 'deepseek-r1',
     GPT_OSS_120B = 'gpt-oss-120b',
     DOLPHIN_MISTRAL_24B_VENICE = 'dolphin-mistral-24b-venice',
+    BERT_NEBULON_ALPHA = 'bert-nebulon-alpha',
+    KAT_CODER_PRO = 'kat-coder-pro',
+    LONGCAT_FLASH_CHAT = 'longcat-flash-chat',
     DOCUMENT_QA = 'document-qa',
     IMAGE_GENERATION = 'image-generation',
 }
@@ -65,7 +68,7 @@ export const ChatModeConfig: Record<
         nativeInternetAccess: true,
         isAuthRequired: false,
     },
-    [ChatMode.GROK_4_FAST]: {
+    [ChatMode.GROK_4_1_FAST]: {
         webSearch: true,
         imageUpload: false,
         retry: true,
@@ -119,6 +122,33 @@ export const ChatModeConfig: Record<
         isNew: true,
         isAuthRequired: false,
     },
+    [ChatMode.BERT_NEBULON_ALPHA]: {
+        webSearch: true,
+        imageUpload: false,
+        retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
+    [ChatMode.KAT_CODER_PRO]: {
+        webSearch: true,
+        imageUpload: false,
+        retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
+    [ChatMode.LONGCAT_FLASH_CHAT]: {
+        webSearch: true,
+        imageUpload: false,
+        retry: true,
+        documentAnalysis: true,
+        nativeInternetAccess: true,
+        isNew: true,
+        isAuthRequired: false,
+    },
     [ChatMode.DOCUMENT_QA]: {
         webSearch: false,
         imageUpload: false,
@@ -151,8 +181,8 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'Gemini 2.5 Pro';
         case ChatMode.GEMINI_2_5_FLASH:
             return 'Gemini 2.5 Flash';
-        case ChatMode.GROK_4_FAST:
-            return 'Grok 4 Fast';
+        case ChatMode.GROK_4_1_FAST:
+            return 'Grok 4.1 Fast';
         case ChatMode.GLM_4_5_AIR:
             return 'GLM 4.5 Air';
         case ChatMode.DEEPSEEK_CHAT_V3_1:
@@ -163,6 +193,12 @@ export const getChatModeName = (mode: ChatMode) => {
             return 'GPT-OSS 120B';
         case ChatMode.DOLPHIN_MISTRAL_24B_VENICE:
             return 'Dolphin Mistral 24B Venice';
+        case ChatMode.BERT_NEBULON_ALPHA:
+            return 'Bert Nebulon Alpha';
+        case ChatMode.KAT_CODER_PRO:
+            return 'Kat Coder Pro';
+        case ChatMode.LONGCAT_FLASH_CHAT:
+            return 'Longcat Flash Chat';
         case ChatMode.DOCUMENT_QA:
             return 'Document Q&A';
         case ChatMode.IMAGE_GENERATION:

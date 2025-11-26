@@ -16,6 +16,7 @@ export type Thread = {
     pinned: boolean;
     pinnedAt: Date;
     projectId?: string;
+    isTemporary?: boolean;
 };
 
 export type SubStep = {
@@ -82,6 +83,10 @@ export type ThreadItem = {
     object?: Record<string, any>;
     imageAttachment?: string;
     thinkingProcess?: string;
+    // Branch support fields
+    branchParentId?: string; // ID of the thread item this branches from (for rewrite/alternate responses)
+    branchIndex?: number; // Index within the branch group (0, 1, 2, ...)
+    branchGroupId?: string; // Shared ID for all items in the same branch group
 };
 
 export type MessageGroup = {
