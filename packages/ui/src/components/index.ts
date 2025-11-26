@@ -19,6 +19,7 @@ export * from './input';
 export * from './kbd';
 export * from './label-divider';
 export * from './link-block';
+export * from './link-favicon';
 export * from './loading-spinner';
 export * from './popover';
 export * from './radio-group';

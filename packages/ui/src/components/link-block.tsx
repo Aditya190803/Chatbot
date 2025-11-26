@@ -1,16 +1,35 @@
 'use client';
 
-import { LinkFavicon } from '@repo/common/components';
-import { Source } from '@repo/shared/types';
-import { getHost } from '@repo/shared/utils';
-import React, { memo } from 'react';
+import { memo } from 'react';
+import type { ReactNode } from 'react';
+
+import { LinkFavicon } from './link-favicon';
+
+type SourceLike = {
+    link: string;
+    title: string;
+    snippet?: string;
+    index?: number;
+};
+
+const getHost = (url: string) => {
+    if (!url) {
+        return undefined;
+    }
+
+    try {
+        return new URL(url).hostname;
+    } catch (error) {
+        return undefined;
+    }
+};
 
 export type LinkPreviewType = {
     url: string;
-    children: React.ReactNode;
+    children: ReactNode;
 };
 
-export const WebsitePreview = memo(({ source }: { source: Source }) => {
+export const WebsitePreview = memo(({ source }: { source: SourceLike }) => {
     return (
         <div className="not-prose">
             <div className="flex flex-col items-start">
