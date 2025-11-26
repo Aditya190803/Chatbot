@@ -1,5 +1,6 @@
 import moment from 'moment';
 import { customAlphabet } from 'nanoid';
+import { logger } from '../logger';
 
 export const getRelativeDate = (date: string | Date) => {
   const today = moment().startOf('day');
@@ -52,7 +53,7 @@ export const convertFileToBase64 = (file: File, onChange: (base64: string) => vo
   };
 
   reader.onerror = (error: ProgressEvent<FileReader>) => {
-    console.error('Error: ', error);
+    logger.error('Error converting file to base64', error);
     alert('Error reading file!');
   };
 
