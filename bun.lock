@@ -293,6 +293,9 @@
     "packages/orchestrator": {
       "name": "@repo/orchestrator",
       "version": "0.1.0",
+      "dependencies": {
+        "@repo/shared": "*",
+      },
       "devDependencies": {
         "@repo/typescript-config": "*",
         "eslint": "^8.56.0",
