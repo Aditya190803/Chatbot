@@ -16,7 +16,7 @@
     },
     "dependencies": {
         "@langchain/core": "^0.1.62",
-        "@tiptap/react": "^2.4.0",
+        "@tiptap/react": "^2.26.4",
         "@types/pdfkit": "^0.13.9",
         "drizzle-orm": "^0.33.0",
         "drizzle-zod": "^0.5.1",

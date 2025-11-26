@@ -11,7 +11,18 @@ loadEnv({
 
 const nextConfig = {
     output: 'standalone',
-    transpilePackages: ['next-mdx-remote'],
+    transpilePackages: [
+        'next-mdx-remote',
+        '@repo/common',
+        '@repo/shared',
+        '@repo/ui',
+        '@repo/ai',
+        '@repo/actions',
+        '@repo/orchestrator',
+        '@repo/prisma',
+        '@repo/tailwind-config',
+        '@repo/typescript-config',
+    ],
     images: {
         remotePatterns: [
             { hostname: 'www.google.com' },
