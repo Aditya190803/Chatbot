@@ -3,23 +3,28 @@
 import { useRootContext } from '@repo/common/context';
 import { useChatStore } from '@repo/common/store';
 import { Button } from '@repo/ui';
+import type { Thread } from '@repo/shared/types';
 import { IconArrowRight, IconMessageCircleFilled } from '@tabler/icons-react';
 import moment from 'moment';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 export const RecentThreads = () => {
     const { setIsCommandSearchOpen } = useRootContext();
-    const threads = useChatStore(state => state.threads.slice(0, 4));
+    const threads = useChatStore(state => state.threads);
+    const displayedThreads = useMemo(
+        () => threads.filter((thread: Thread) => !thread.isTemporary).slice(0, 4),
+        [threads]
+    );
     const router = useRouter();
 
     useEffect(() => {
-        threads.forEach(thread => {
+        displayedThreads.forEach((thread: Thread) => {
             router.prefetch(`/chat/${thread.id}`);
         });
-    }, [threads]);
+    }, [displayedThreads, router]);
 
-    if (threads.length === 0) {
+    if (displayedThreads.length === 0) {
         return null;
     }
     return (
@@ -38,9 +43,9 @@ export const RecentThreads = () => {
                 </Button>
             </div>
             <div className="grid grid-cols-4 gap-2">
-                {threads
-                    ?.sort((a, b) => b.createdAt?.getTime() - a.createdAt?.getTime())
-                    .map(thread => (
+                {displayedThreads
+                    ?.sort((a: Thread, b: Thread) => b.createdAt?.getTime() - a.createdAt?.getTime())
+                    .map((thread: Thread) => (
                         <div
                             key={thread.id}
                             className="bg-background border-border flex cursor-pointer flex-col gap-1 rounded-2xl border p-4 text-sm transition-all duration-200 hover:border-yellow-900/20 hover:bg-yellow-700/5 hover:shadow-sm"

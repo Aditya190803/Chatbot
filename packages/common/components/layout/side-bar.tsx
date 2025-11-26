@@ -3,7 +3,14 @@ import { useAuth, useRootContext } from '@repo/common/context';
 import { useAppStore, useChatStore } from '@repo/common/store';
 import type { Thread } from '@repo/shared/types';
 import { Button, cn, Flex } from '@repo/ui';
-import { IconArrowBarLeft, IconArrowBarRight, IconPlus, IconSearch } from '@tabler/icons-react';
+import {
+    IconArrowBarLeft,
+    IconArrowBarRight,
+    IconGhost,
+    IconPlus,
+    IconSearch,
+    IconX,
+} from '@tabler/icons-react';
 import moment from 'moment';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 
@@ -14,6 +21,11 @@ export const Sidebar = () => {
     const { push } = useRouter();
     const isChatPage = pathname.startsWith('/chat');
     const threads = useChatStore(state => state.threads);
+    const startTemporaryThread = useChatStore(state => state.startTemporaryThread);
+    const endTemporaryThread = useChatStore(state => state.endTemporaryThread);
+    const temporaryThreadId = useChatStore(state => state.temporaryThreadId);
+    const temporaryThread = threads.find((thread: Thread) => thread.isTemporary);
+    const persistentThreads = threads.filter((thread: Thread) => !thread.isTemporary);
     const pinThread = useChatStore(state => state.pinThread);
     const unpinThread = useChatStore(state => state.unpinThread);
     const { isSignedIn, user, signOut } = useAuth();
@@ -31,7 +43,7 @@ export const Sidebar = () => {
         previousMonths: [],
     };
 
-    sortThreads(threads, 'createdAt')?.forEach(thread => {
+    sortThreads(persistentThreads, 'createdAt')?.forEach(thread => {
         const createdAt = moment(thread.createdAt);
         const now = moment();
         if (createdAt.isSame(now, 'day')) {
@@ -118,6 +130,35 @@ export const Sidebar = () => {
                         />
                         {isSidebarOpen && 'Search'}
                     </Button>
+                    <Button
+                        size={isSidebarOpen ? 'sm' : 'icon'}
+                        variant={temporaryThreadId ? 'ghost' : 'bordered'}
+                        rounded="full"
+                        tooltip={
+                            temporaryThreadId
+                                ? 'Temporary chat already active'
+                                : isSidebarOpen
+                                    ? undefined
+                                    : 'Temporary Chat'
+                        }
+                        tooltipSide="right"
+                        className={cn('relative w-full shadow-sm', 'justify-center')}
+                        disabled={!!temporaryThreadId}
+                        onClick={() => {
+                            if (temporaryThreadId) return;
+                            void startTemporaryThread('Temporary Chat').then((thread: Thread) => {
+                                if (!thread) return;
+                                push(`/chat/${thread.id}`);
+                            });
+                        }}
+                    >
+                        <IconGhost
+                            size={16}
+                            strokeWidth={2}
+                            className={cn(isSidebarOpen && 'absolute left-2')}
+                        />
+                        {isSidebarOpen && 'Temp Chat'}
+                    </Button>
                 </Flex>
 
                 {false ? (
@@ -131,6 +172,34 @@ export const Sidebar = () => {
                             isSidebarOpen ? 'flex' : 'hidden'
                         )}
                     >
+                        {temporaryThread && isSidebarOpen && (
+                            <Flex
+                                direction="col"
+                                gap="xs"
+                                className="border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/5 w-full rounded-md border p-3 text-xs"
+                            >
+                                <Flex items="center" justify="between">
+                                    <p className="font-semibold text-amber-700 dark:text-amber-300">
+                                        Temporary session
+                                    </p>
+                                    <Button
+                                        size="icon-xs"
+                                        variant="ghost"
+                                        className="text-amber-700 dark:text-amber-300"
+                                        tooltip="End temporary chat"
+                                        onClick={() => {
+                                            endTemporaryThread();
+                                            push('/chat');
+                                        }}
+                                    >
+                                        <IconX size={14} strokeWidth={2} />
+                                    </Button>
+                                </Flex>
+                                <p className="text-muted-foreground text-xs">
+                                    Messages here are not saved. Close the session when you are done.
+                                </p>
+                            </Flex>
+                        )}
                         {renderGroup('Today', groupedThreads.today)}
                         {renderGroup('Yesterday', groupedThreads.yesterday)}
                         {renderGroup('Last 7 Days', groupedThreads.last7Days)}
@@ -150,7 +219,7 @@ export const Sidebar = () => {
                             <Button
                                 variant="ghost"
                                 size={isSidebarOpen ? 'sm' : 'icon'}
-                                onClick={() => setIsSidebarOpen(prev => !prev)}
+                                onClick={() => setIsSidebarOpen((prev: boolean) => !prev)}
                                 className={cn(!isSidebarOpen && 'mx-auto')}
                                 tooltip="Close Sidebar"
                             >
@@ -162,7 +231,7 @@ export const Sidebar = () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setIsSidebarOpen(prev => !prev)}
+                            onClick={() => setIsSidebarOpen((prev: boolean) => !prev)}
                             className={cn(!isSidebarOpen && 'mx-auto')}
                         >
                             <IconArrowBarRight size={16} strokeWidth={2} />

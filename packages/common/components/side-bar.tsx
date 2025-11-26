@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 
-import { FullPageLoader, HistoryItem, Logo } from '@repo/common/components';
+import { FullPageLoader, HistoryItem, Logo, SyncStatus } from '@repo/common/components';
 import { useAuth, useRootContext } from '@repo/common/context';
 import type { AuthUser } from '@repo/common/auth';
 import { useAppStore, useChatStore } from '@repo/common/store';
@@ -108,6 +108,11 @@ const UserMenu: React.FC<{
                 side={isSidebarOpen ? 'top' : 'right'}
                 sideOffset={isSidebarOpen ? 12 : 8}
             >
+                <div className="flex items-center justify-between px-2 py-1.5 mb-1">
+                    <span className="text-xs text-muted-foreground">Cloud sync</span>
+                    <SyncStatus showLabel={true} />
+                </div>
+                <MenuSeparator />
                 <MenuItem
                     className="flex w-full items-center gap-2 text-sm"
                     onSelect={() => {
