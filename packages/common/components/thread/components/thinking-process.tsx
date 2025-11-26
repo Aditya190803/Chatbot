@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react';
-import { IconChevronDown, IconBrain } from '@tabler/icons-react';
+import { IconChevronDown, IconBrain, IconCopy, IconCheck } from '@tabler/icons-react';
 import { cn } from '@repo/ui';
 
 interface ThinkingProcessProps {
@@ -32,6 +32,7 @@ export function ThinkingProcess({
     const shouldForceOpen = isGenerating && !isAnswerReady;
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
     const contentId = useId();
 
     if (!sanitizedContent) {
@@ -55,6 +56,17 @@ export function ThinkingProcess({
         setIsExpanded(prev => !prev);
     };
 
+    const handleCopy = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(sanitizedContent);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
     // Format thinking content with proper structure
     const formattedContent = useMemo(() => {
         const lines = sanitizedContent.split('\n');
@@ -67,7 +79,7 @@ export function ThinkingProcess({
             return parts.map((part, i) => {
                 if (part.startsWith('**') && part.endsWith('**')) {
                     const boldText = part.slice(2, -2);
-                    return <strong key={i} className="font-semibold text-foreground/95">{boldText}</strong>;
+                    return <strong key={i} className="font-semibold text-purple-700 dark:text-purple-300">{boldText}</strong>;
                 }
                 return part;
             });
@@ -103,7 +115,7 @@ export function ThinkingProcess({
                 const content = numberedMatch[2].trim();
                 formatted.push(
                     <div key={`num-${index}`} className="mb-2 flex gap-2">
-                        <span className="font-semibold text-foreground/90 shrink-0">{numberedMatch[1]}.</span>
+                        <span className="font-semibold text-purple-600 dark:text-purple-400 shrink-0">{numberedMatch[1]}.</span>
                         <span className="flex-1">
                             {renderWithBold(content)}
                         </span>
@@ -118,8 +130,8 @@ export function ThinkingProcess({
                 flushParagraph(index);
                 const content = bulletMatch[1].trim();
                 formatted.push(
-                    <div key={`bullet-${index}`} className="mb-2 ml-6 flex gap-2">
-                        <span className="text-foreground/70 shrink-0">•</span>
+                    <div key={`bullet-${index}`} className="mb-2 ml-4 flex gap-2">
+                        <span className="text-purple-500 dark:text-purple-400 shrink-0">•</span>
                         <span className="flex-1">
                             {renderWithBold(content)}
                         </span>
@@ -132,7 +144,7 @@ export function ThinkingProcess({
             if (trimmedLine.endsWith(':') && trimmedLine.length < 100) {
                 flushParagraph(index);
                 formatted.push(
-                    <div key={`header-${index}`} className="mb-2 mt-4 font-semibold text-foreground/90">
+                    <div key={`header-${index}`} className="mb-2 mt-4 font-semibold text-purple-700 dark:text-purple-300">
                         {renderWithBold(trimmedLine)}
                     </div>
                 );
@@ -150,31 +162,49 @@ export function ThinkingProcess({
     }, [sanitizedContent]);
 
     return (
-        <div className="group mb-3 rounded-lg border border-border/40 bg-muted/20 transition-colors hover:border-border/60 hover:bg-muted/30">
-            <button
-                onClick={toggleExpansion}
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors md:px-4"
-                aria-expanded={isExpanded}
-                aria-controls={contentId}
-            >
-                <IconBrain size={16} className="shrink-0 text-muted-foreground/70" />
-                <span className="flex-1 text-xs font-medium text-muted-foreground md:text-sm">
-                    Model thinking
-                </span>
-                {isGenerating && !isAnswerReady && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-400/10 dark:text-amber-300">
-                        Active
+        <div className="group w-full mb-4 rounded-xl border border-purple-200/50 dark:border-purple-800/40 bg-gradient-to-br from-purple-50/80 via-purple-50/50 to-violet-50/30 dark:from-purple-950/30 dark:via-purple-950/20 dark:to-violet-950/10 transition-all duration-200 hover:border-purple-300/60 dark:hover:border-purple-700/50 shadow-sm">
+            <div className="flex w-full items-center gap-2.5 px-4 py-3">
+                <button
+                    onClick={toggleExpansion}
+                    type="button"
+                    className="flex flex-1 items-center gap-2.5 text-left transition-colors"
+                    aria-expanded={isExpanded}
+                    aria-controls={contentId}
+                >
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/50">
+                        <IconBrain size={16} className="text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <span className="flex-1 text-sm font-medium text-purple-800 dark:text-purple-200">
+                        Model Reasoning
                     </span>
-                )}
-                <IconChevronDown
-                    size={16}
-                    className={cn(
-                        'shrink-0 text-muted-foreground/70 transition-transform duration-200',
-                        isExpanded && 'rotate-180'
+                    {isGenerating && !isAnswerReady && (
+                        <span className="rounded-full bg-purple-100 dark:bg-purple-900/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300 animate-pulse">
+                            Thinking…
+                        </span>
                     )}
-                />
-            </button>
+                    <IconChevronDown
+                        size={18}
+                        className={cn(
+                            'shrink-0 text-purple-500 dark:text-purple-400 transition-transform duration-300',
+                            isExpanded && 'rotate-180'
+                        )}
+                    />
+                </button>
+                {showCopyButton && isExpanded && (
+                    <button
+                        onClick={handleCopy}
+                        type="button"
+                        className="p-1.5 rounded-md hover:bg-purple-200/50 dark:hover:bg-purple-800/50 transition-colors"
+                        title="Copy thinking process"
+                    >
+                        {isCopied ? (
+                            <IconCheck size={14} className="text-green-600 dark:text-green-400" />
+                        ) : (
+                            <IconCopy size={14} className="text-purple-500 dark:text-purple-400" />
+                        )}
+                    </button>
+                )}
+            </div>
 
             <div
                 id={contentId}
@@ -185,8 +215,8 @@ export function ThinkingProcess({
                 aria-live={isGenerating ? 'polite' : 'off'}
                 role="region"
             >
-                <div className="border-t border-border/40 px-3 py-3 md:px-4 md:py-4">
-                    <div className="max-h-[60vh] overflow-y-auto text-[13px] leading-relaxed text-muted-foreground">
+                <div className="border-t border-purple-200/40 dark:border-purple-800/30 px-4 py-4">
+                    <div className="max-h-[60vh] overflow-y-auto text-[13px] leading-relaxed text-purple-900/80 dark:text-purple-100/70 font-mono">
                         {formattedContent}
                     </div>
                 </div>

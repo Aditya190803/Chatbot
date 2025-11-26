@@ -313,6 +313,24 @@ export const ThreadItem = memo(
                                     {typeof threadItem.error === 'string'
                                         ? threadItem.error
                                         : 'Something went wrong while processing your request. Please try again.'}
+                                    {/* If the error message is recoverable, show a Retry button that calls an onRetry handler if provided */}
+                                    {typeof threadItem.error === 'string' &&
+                                        threadItem.error.includes('Something went wrong while processing your request') && (
+                                            <button
+                                                className="ml-3 inline-flex items-center rounded-md bg-white/5 px-3 py-1 text-sm font-medium text-foreground/90"
+                                                onClick={() => {
+                                                    if ((threadItem as any).onRetry) {
+                                                        try {
+                                                            (threadItem as any).onRetry();
+                                                        } catch (e) {
+                                                            // ignore
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                Retry
+                                            </button>
+                                        )}
                                 </AlertDescription>
                             </Alert>
                         )}

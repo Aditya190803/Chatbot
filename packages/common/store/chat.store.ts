@@ -8,7 +8,7 @@ import {
     createRemoteThread,
     updateRemoteThread,
     deleteRemoteThread,
-} from '@repo/common/persistence/chat-remote';
+} from '../persistence/chat-remote';
 import Dexie, { Table } from 'dexie';
 import { nanoid } from 'nanoid';
 import { create } from 'zustand';
@@ -78,6 +78,7 @@ type State = {
     threads: Thread[];
     threadItems: ThreadItem[];
     currentThreadId: string | null;
+    temporaryThreadId: string | null;
     activeThreadItemView: string | null;
     currentThread: Thread | null;
     currentThreadItem: ThreadItem | null;
@@ -99,14 +100,24 @@ type Actions = {
     setIsGenerating: (isGenerating: boolean) => void;
     stopGeneration: () => void;
     setAbortController: (abortController: AbortController) => void;
-    createThread: (optimisticId: string, thread?: Pick<Thread, 'title'>) => Promise<Thread>;
+    createThread: (
+        optimisticId: string,
+        thread?: Pick<Thread, 'title'>,
+        options?: { isTemporary?: boolean }
+    ) => Promise<Thread>;
+    startTemporaryThread: (title?: string) => Promise<Thread>;
+    endTemporaryThread: () => void;
     setChatMode: (chatMode: ChatMode) => void;
     updateThread: (thread: { id: string } & Partial<Omit<Thread, 'id'>>) => Promise<void>;
     getThread: (threadId: string) => Promise<Thread | null>;
     pinThread: (threadId: string) => Promise<void>;
     unpinThread: (threadId: string) => Promise<void>;
     createThreadItem: (threadItem: ThreadItem) => Promise<void>;
-    updateThreadItem: (threadId: string, threadItem: Partial<ThreadItem>) => Promise<void>;
+    updateThreadItem: (
+        threadId: string,
+        threadItem: Partial<ThreadItem>,
+        options?: { persist?: boolean }
+    ) => Promise<void>;
     switchThread: (threadId: string) => void;
     setActiveThreadItemView: (threadItemId: string) => void;
     setCustomInstructions: (customInstructions: string) => void;
@@ -507,6 +518,11 @@ export const useChatStore = create(
                 return;
             }
 
+            const thread = get().threads.find(t => t.id === threadId);
+            if (thread?.isTemporary) {
+                return;
+            }
+
             if (options.immediate) {
                 cancelRemoteSync(threadId);
                 void syncThreadWithRemote(threadId);
@@ -534,7 +550,60 @@ export const useChatStore = create(
                 return [];
             }
 
-            return items.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+            // Sort by creation time first
+            const sortedItems = items.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+            // Group items by their branch group
+            const branchGroups = new Map<string, ThreadItem[]>();
+            const nonBranchItems: ThreadItem[] = [];
+
+            for (const item of sortedItems) {
+                const groupId = item.branchGroupId || item.branchParentId;
+                if (groupId) {
+                    if (!branchGroups.has(groupId)) {
+                        branchGroups.set(groupId, []);
+                    }
+                    branchGroups.get(groupId)!.push(item);
+                } else {
+                    nonBranchItems.push(item);
+                }
+            }
+
+            // For each branch group, select only the currently active branch
+            // Use currentThreadItem to determine which branch is selected
+            const selectedBranchItems: ThreadItem[] = [];
+            const currentItem = state.currentThreadItem;
+
+            for (const [groupId, groupItems] of branchGroups) {
+                // Sort by branch index
+                groupItems.sort((a, b) => {
+                    if (typeof a.branchIndex === 'number' && typeof b.branchIndex === 'number') {
+                        return a.branchIndex - b.branchIndex;
+                    }
+                    return a.createdAt.getTime() - b.createdAt.getTime();
+                });
+
+                // Check if currentThreadItem belongs to this group
+                const currentInGroup = currentItem && groupItems.some(item => item.id === currentItem.id);
+                
+                if (currentInGroup && currentItem) {
+                    // Use the currently selected item
+                    selectedBranchItems.push(currentItem);
+                } else {
+                    // Default to the first item (original) in the group
+                    const originalItem = groupItems.find(item => item.id === groupId) || groupItems[0];
+                    if (originalItem) {
+                        selectedBranchItems.push(originalItem);
+                    }
+                }
+            }
+
+            // Combine non-branch items with selected branch items, sorted by creation time
+            const result = [...nonBranchItems, ...selectedBranchItems].sort(
+                (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+            );
+
+            return result;
         };
 
         return {
@@ -548,6 +617,7 @@ export const useChatStore = create(
             useWebSearch: false,
             customInstructions: '',
             currentThreadId: null,
+            temporaryThreadId: null,
             activeThreadItemView: null,
             currentThread: null,
             currentThreadItem: null,
@@ -561,7 +631,6 @@ export const useChatStore = create(
             syncMode: 'local',
             isSyncingRemote: false,
             lastRemoteSyncError: null,
-            branchSelections: {},
 
         setCustomInstructions: (customInstructions: string) => {
             const existingConfig = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
@@ -703,6 +772,10 @@ export const useChatStore = create(
         },
 
         pinThread: async (threadId: string) => {
+            const thread = get().threads.find(t => t.id === threadId);
+            if (!thread || thread.isTemporary) {
+                return;
+            }
             await db.threads.update(threadId, { pinned: true, pinnedAt: new Date() });
             set(state => {
                 state.threads = state.threads.map(thread =>
@@ -714,6 +787,10 @@ export const useChatStore = create(
         },
 
         unpinThread: async (threadId: string) => {
+            const thread = get().threads.find(t => t.id === threadId);
+            if (!thread || thread.isTemporary) {
+                return;
+            }
             await db.threads.update(threadId, { pinned: false, pinnedAt: new Date() });
             set(state => {
                 state.threads = state.threads.map(thread =>
@@ -730,34 +807,51 @@ export const useChatStore = create(
         },
 
         removeFollowupThreadItems: async (threadItemId: string) => {
-            const threadItem = await db.threadItems.get(threadItemId);
-            if (!threadItem) return;
-            const threadItems = await db.threadItems
-                .where('createdAt')
-                .above(threadItem.createdAt)
-                .and(item => item.threadId === threadItem.threadId)
-                .toArray();
-            for (const threadItem of threadItems) {
-                await db.threadItems.delete(threadItem.id);
+            const persistentThreadItem = await db.threadItems.get(threadItemId);
+            const inMemoryItem = get().threadItems.find(item => item.id === threadItemId);
+            const targetItem = persistentThreadItem ?? inMemoryItem;
+            if (!targetItem) return;
+
+            const thread = get().threads.find(t => t.id === targetItem.threadId);
+            const isTemporary = thread?.isTemporary ?? false;
+
+            if (!isTemporary && persistentThreadItem) {
+                const threadItems = await db.threadItems
+                    .where('createdAt')
+                    .above(targetItem.createdAt)
+                    .and(item => item.threadId === targetItem.threadId)
+                    .toArray();
+                for (const item of threadItems) {
+                    await db.threadItems.delete(item.id);
+                }
             }
+
             set(state => {
                 state.threadItems = state.threadItems.filter(
-                    t => t.createdAt <= threadItem.createdAt || t.threadId !== threadItem.threadId
+                    t => t.createdAt <= targetItem.createdAt || t.threadId !== targetItem.threadId
                 );
                 
             });
 
-            // Notify other tabs
-            debouncedNotify('thread-item-delete', {
-                threadId: threadItem.threadId,
-                id: threadItemId,
-                isFollowupRemoval: true,
-            });
+            if (!isTemporary) {
+                // Notify other tabs
+                debouncedNotify('thread-item-delete', {
+                    threadId: targetItem.threadId,
+                    id: threadItemId,
+                    isFollowupRemoval: true,
+                });
 
-            scheduleRemoteSync(threadItem.threadId);
+                scheduleRemoteSync(targetItem.threadId);
+            }
         },
 
         getThreadItems: async (threadId: string) => {
+            const thread = get().threads.find(t => t.id === threadId);
+            if (thread?.isTemporary) {
+                return get()
+                    .threadItems
+                    .filter(item => item.threadId === threadId);
+            }
             const threadItems = await db.threadItems.where('threadId').equals(threadId).toArray();
             return threadItems;
         },
@@ -807,6 +901,14 @@ export const useChatStore = create(
             }),
 
         loadThreadItems: async (threadId: string) => {
+            const thread = get().threads.find(t => t.id === threadId);
+            if (thread?.isTemporary) {
+                set(state => {
+                    state.threadItems = state.threadItems.filter(item => item.threadId === threadId);
+                });
+                return;
+            }
+
             const threadItems = await db.threadItems.where('threadId').equals(threadId).toArray();
             const normalizedItems = threadItems;
             set(state => {
@@ -821,16 +923,22 @@ export const useChatStore = create(
             set(state => {
                 state.threads = [];
                 state.threadItems = [];
+                state.temporaryThreadId = null;
                 
             });
         },
 
         getThread: async (threadId: string) => {
-            const thread = await db.threads.get(threadId);
-            return thread || null;
+            const persistedThread = await db.threads.get(threadId);
+            if (persistedThread) {
+                return persistedThread;
+            }
+            const inMemoryThread = get().threads.find(t => t.id === threadId) || null;
+            return inMemoryThread;
         },
 
-        createThread: async (optimisticId: string, thread?: Pick<Thread, 'title'>) => {
+        createThread: async (optimisticId: string, thread?: Pick<Thread, 'title'>, options = {}) => {
+            const { isTemporary = false } = options as { isTemporary?: boolean };
             const threadId = optimisticId || nanoid();
             const providedTitle = thread?.title?.trim() ?? '';
             const initialTitle = providedTitle.length
@@ -845,20 +953,61 @@ export const useChatStore = create(
                 createdAt: new Date(),
                 pinned: false,
                 pinnedAt: new Date(),
+                isTemporary,
             };
-            db.threads.add(newThread);
+            if (!isTemporary) {
+                await db.threads.add(newThread);
+            }
             set(state => {
                 state.threads.push(newThread);
                 state.currentThreadId = newThread.id;
                 state.currentThread = newThread;
+                state.temporaryThreadId = isTemporary ? newThread.id : state.temporaryThreadId;
+                if (isTemporary) {
+                    state.threadItems = [];
+                }
             });
+            if (!isTemporary) {
+                scheduleRemoteSync(newThread.id, { immediate: true });
 
-            scheduleRemoteSync(newThread.id, { immediate: true });
-
-            // Notify other tabs through the worker
-            debouncedNotify('thread-update', { threadId });
+                // Notify other tabs through the worker
+                debouncedNotify('thread-update', { threadId });
+            }
 
             return newThread;
+        },
+
+        startTemporaryThread: async (title?: string) => {
+            const existingTempId = get().temporaryThreadId;
+            if (existingTempId) {
+                get().endTemporaryThread();
+            }
+            const tempId = `temp-${nanoid()}`;
+            return get().createThread(tempId, title ? { title } : undefined, {
+                isTemporary: true,
+            });
+        },
+
+        endTemporaryThread: () => {
+            const tempId = get().temporaryThreadId;
+            if (!tempId) {
+                return;
+            }
+
+            set(state => {
+                state.threads = state.threads.filter(thread => thread.id !== tempId);
+                if (state.currentThreadId === tempId) {
+                    state.currentThreadId = null;
+                    state.currentThread = null;
+                    state.threadItems = [];
+                }
+                state.temporaryThreadId = null;
+            });
+
+            const nextThread = get().threads.find(thread => !thread.isTemporary);
+            if (nextThread) {
+                get().switchThread(nextThread.id);
+            }
         },
 
         setModel: async (model: Model) => {
@@ -871,6 +1020,7 @@ export const useChatStore = create(
         updateThread: async thread => {
             const existingThread = get().threads.find(t => t.id === thread.id);
             if (!existingThread) return;
+            const isTemporary = existingThread.isTemporary;
 
             const updatedThread: Thread = {
                 ...existingThread,
@@ -887,28 +1037,36 @@ export const useChatStore = create(
                 }
             });
 
-            try {
-                await db.threads.put(updatedThread);
+            if (!isTemporary) {
+                try {
+                    await db.threads.put(updatedThread);
 
-                scheduleRemoteSync(thread.id);
+                    scheduleRemoteSync(thread.id);
 
-                // Notify other tabs about the update
-                debouncedNotify('thread-update', { threadId: thread.id });
-            } catch (error) {
-                console.error('Failed to update thread in database:', error);
+                    // Notify other tabs about the update
+                    debouncedNotify('thread-update', { threadId: thread.id });
+                } catch (error) {
+                    console.error('Failed to update thread in database:', error);
+                }
             }
         },
 
         createThreadItem: async threadItem => {
             const threadId = threadItem.threadId || get().currentThreadId;
             if (!threadId) return;
+            const thread = get().threads.find(t => t.id === threadId);
+            const isTemporary = thread?.isTemporary ?? false;
+
             try {
                 const normalizedThreadItem = {
                     ...threadItem,
                     threadId,
                 };
 
-                await db.threadItems.put(normalizedThreadItem);
+                if (!isTemporary) {
+                    await db.threadItems.put(normalizedThreadItem);
+                }
+
                 set(state => {
                     const existingIndex = state.threadItems.findIndex(
                         t => t.id === normalizedThreadItem.id
@@ -921,28 +1079,32 @@ export const useChatStore = create(
                     }
                 });
 
-                // Notify other tabs
-                debouncedNotify('thread-item-update', {
-                    threadId,
-                    id: normalizedThreadItem.id,
-                });
+                if (!isTemporary) {
+                    // Notify other tabs
+                    debouncedNotify('thread-item-update', {
+                        threadId,
+                        id: normalizedThreadItem.id,
+                    });
 
-                scheduleRemoteSync(threadId);
+                    scheduleRemoteSync(threadId);
+                }
             } catch (error) {
                 console.error('Failed to create thread item:', error);
                 // Handle error appropriately
             }
         },
 
-        updateThreadItem: async (threadId, threadItem) => {
+        updateThreadItem: async (threadId, threadItem, options = {}) => {
             if (!threadItem.id) return;
             if (!threadId) return;
 
             const existingItem = get().threadItems.find(t => t.id === threadItem.id);
+            const thread = get().threads.find(t => t.id === threadId);
+            const isTemporary = thread?.isTemporary ?? false;
+            const shouldPersist = (options as { persist?: boolean }).persist;
+            const persistToDb = shouldPersist !== undefined ? shouldPersist : !isTemporary;
 
             try {
-                console.log('updateThreadItem', threadItem);
-
                 // Create or update the item
                 const updatedItem = existingItem
                     ? { ...existingItem, ...threadItem, threadId, updatedAt: new Date() }
@@ -964,63 +1126,84 @@ export const useChatStore = create(
                     }
                 });
 
-                queueThreadItemForUpdate(updatedItem);
+                if (persistToDb) {
+                    queueThreadItemForUpdate(updatedItem);
 
-                // Notify other tabs about the update
-                debouncedNotify('thread-item-update', {
-                    threadId,
-                    id: threadItem.id,
-                });
+                    // Notify other tabs about the update
+                    debouncedNotify('thread-item-update', {
+                        threadId,
+                        id: threadItem.id,
+                    });
 
-                scheduleRemoteSync(threadId);
+                    scheduleRemoteSync(threadId);
+                }
 
             } catch (error) {
                 console.error('Error in updateThreadItem:', error);
 
                 // Safety fallback - try to persist directly in case of errors in the main logic
-                try {
-                    const fallbackItem = {
-                        id: threadItem.id,
-                        threadId,
-                        query: threadItem.query || '',
-                        mode: threadItem.mode || ChatMode.GEMINI_2_5_FLASH,
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                        ...threadItem,
-                        error: threadItem.error || `Something went wrong`,
-                    } as ThreadItem;
-                    await db.threadItems.put(fallbackItem);
-                    scheduleRemoteSync(threadId);
-                } catch (fallbackError) {
-                    console.error(
-                        'Critical: Failed even fallback thread item update:',
-                        fallbackError
+                if (persistToDb) {
+                    try {
+                        const fallbackItem = {
+                            id: threadItem.id,
+                            threadId,
+                            query: threadItem.query || '',
+                            mode: threadItem.mode || ChatMode.GEMINI_2_5_FLASH,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                            ...threadItem,
+                            error: threadItem.error || `Something went wrong`,
+                        } as ThreadItem;
+                        await db.threadItems.put(fallbackItem);
+                        scheduleRemoteSync(threadId);
+                    } catch (fallbackError) {
+                        console.error(
+                            'Critical: Failed even fallback thread item update:',
+                            fallbackError
                         );
+                    }
                 }
             }
         },
 
         switchThread: async (threadId: string) => {
             const thread = get().threads.find(t => t.id === threadId);
-            localStorage.setItem(
-                CONFIG_KEY,
-                JSON.stringify({
-                    model: get().model.id,
-                    currentThreadId: threadId,
-                })
-            );
+            if (thread && !thread.isTemporary) {
+                localStorage.setItem(
+                    CONFIG_KEY,
+                    JSON.stringify({
+                        model: get().model.id,
+                        currentThreadId: threadId,
+                    })
+                );
+            }
             set(state => {
                 state.currentThreadId = threadId;
                 state.currentThread = thread || null;
+                if (thread?.isTemporary) {
+                    state.temporaryThreadId = thread.id;
+                }
             });
-            get().loadThreadItems(threadId);
+
+            if (thread?.isTemporary) {
+                set(state => {
+                    state.threadItems = state.threadItems.filter(item => item.threadId === threadId);
+                });
+            } else {
+                await get().loadThreadItems(threadId);
+            }
         },
 
         deleteThreadItem: async threadItemId => {
             const threadId = get().currentThreadId;
             if (!threadId) return;
+            const thread = get().threads.find(t => t.id === threadId);
+            const isTemporary = thread?.isTemporary ?? false;
 
-            await db.threadItems.delete(threadItemId);
+            if (!isTemporary) {
+                await db.threadItems.delete(threadItemId);
+            }
+
             set(state => {
                 state.threadItems = state.threadItems.filter(
                     (t: ThreadItem) => t.id !== threadItemId
@@ -1028,27 +1211,74 @@ export const useChatStore = create(
                 
             });
 
-            // Notify other tabs
-            debouncedNotify('thread-item-delete', { id: threadItemId, threadId });
+            if (!isTemporary) {
+                // Notify other tabs
+                debouncedNotify('thread-item-delete', { id: threadItemId, threadId });
 
-            scheduleRemoteSync(threadId);
+                scheduleRemoteSync(threadId);
+            }
 
-            // Check if there are any thread items left for this thread
-            const remainingItems = await db.threadItems.where('threadId').equals(threadId).count();
+            const remainingItems = isTemporary
+                ? get().threadItems.filter(item => item.threadId === threadId).length
+                : await db.threadItems.where('threadId').equals(threadId).count();
 
-            // If no items remain, delete the thread and redirect
             if (remainingItems === 0) {
-                await db.threads.delete(threadId);
-                set(state => {
-                    state.threads = state.threads.filter((t: Thread) => t.id !== threadId);
-                    state.currentThreadId = state.threads[0]?.id;
-                    state.currentThread = state.threads[0] || null;
-                });
+                if (isTemporary) {
+                    get().endTemporaryThread();
 
-                // Redirect to /chat page
-                if (typeof window !== 'undefined') {
-                    window.location.href = '/chat';
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/chat';
+                    }
+                } else {
+                    await db.threads.delete(threadId);
+                    set(state => {
+                        state.threads = state.threads.filter((t: Thread) => t.id !== threadId);
+                        state.currentThreadId = state.threads[0]?.id;
+                        state.currentThread = state.threads[0] || null;
+                    });
+
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/chat';
+                    }
+
+                    if (get().syncMode === 'appwrite') {
+                        try {
+                            await deleteRemoteThread(threadId);
+                        } catch (error: any) {
+                            if (error?.message === 'unauthorized') {
+                                set(state => {
+                                    state.syncMode = 'local';
+                                    state.lastRemoteSyncError =
+                                        'Sign in again to keep syncing chats to the cloud.';
+                                });
+                            }
+                        }
+                    }
                 }
+            }
+        },
+
+        deleteThread: async threadId => {
+            const thread = get().threads.find(t => t.id === threadId);
+            const isTemporary = thread?.isTemporary ?? false;
+
+            if (!isTemporary) {
+                await db.threads.delete(threadId);
+                await db.threadItems.where('threadId').equals(threadId).delete();
+            }
+            set(state => {
+                state.threads = state.threads.filter((t: Thread) => t.id !== threadId);
+                state.currentThreadId = state.threads[0]?.id;
+                state.currentThread = state.threads[0] || null;
+                state.threadItems = state.threadItems.filter(item => item.threadId !== threadId);
+                if (isTemporary && state.temporaryThreadId === threadId) {
+                    state.temporaryThreadId = null;
+                }
+            });
+
+            if (!isTemporary) {
+                // Notify other tabs
+                debouncedNotify('thread-delete', { threadId });
 
                 if (get().syncMode === 'appwrite') {
                     try {
@@ -1061,35 +1291,6 @@ export const useChatStore = create(
                                     'Sign in again to keep syncing chats to the cloud.';
                             });
                         }
-                    }
-                }
-            }
-        },
-
-        deleteThread: async threadId => {
-            await db.threads.delete(threadId);
-            await db.threadItems.where('threadId').equals(threadId).delete();
-            set(state => {
-                state.threads = state.threads.filter((t: Thread) => t.id !== threadId);
-                state.currentThreadId = state.threads[0]?.id;
-                state.currentThread = state.threads[0] || null;
-                state.threadItems = state.threadItems.filter(item => item.threadId !== threadId);
-                
-            });
-
-            // Notify other tabs
-            debouncedNotify('thread-delete', { threadId });
-
-            if (get().syncMode === 'appwrite') {
-                try {
-                    await deleteRemoteThread(threadId);
-                } catch (error: any) {
-                    if (error?.message === 'unauthorized') {
-                        set(state => {
-                            state.syncMode = 'local';
-                            state.lastRemoteSyncError =
-                                'Sign in again to keep syncing chats to the cloud.';
-                        });
                     }
                 }
             }

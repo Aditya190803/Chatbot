@@ -1,3 +1,4 @@
+export * from './branch-navigation';
 export * from './followup-suggestion';
 export * from './goals';
 export * from './markdown-content';

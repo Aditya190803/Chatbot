@@ -1,3 +1,5 @@
+'use client';
+
 import { useAuth } from '@repo/common/context';
 import { useWorkflowWorker } from '@repo/ai/worker';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
@@ -14,7 +16,7 @@ import {
     useMemo,
     useRef,
 } from 'react';
-import { useApiKeysStore, useAppStore, useChatStore, useMcpToolsStore } from '../store';
+import { useApiKeysStore, useChatStore, useMcpToolsStore } from '../store';
 
 export type AgentContextType = {
     runAgent: (body: any) => Promise<void>;
@@ -37,29 +39,16 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
     const { threadId: currentThreadId } = useParams();
     const { isSignedIn } = useAuth();
 
-    const {
-        updateThreadItem,
-        setIsGenerating,
-        setAbortController,
-        createThreadItem,
-        setCurrentThreadItem,
-        setCurrentSources,
-        updateThread,
-        chatMode,
-        customInstructions,
-        getConversationThreadItems,
-    } = useChatStore(state => ({
-        updateThreadItem: state.updateThreadItem,
-        setIsGenerating: state.setIsGenerating,
-        setAbortController: state.setAbortController,
-        createThreadItem: state.createThreadItem,
-        setCurrentThreadItem: state.setCurrentThreadItem,
-        setCurrentSources: state.setCurrentSources,
-        updateThread: state.updateThread,
-        chatMode: state.chatMode,
-        customInstructions: state.customInstructions,
-        getConversationThreadItems: state.getConversationThreadItems,
-    }));
+    const updateThreadItem = useChatStore(state => state.updateThreadItem);
+    const setIsGenerating = useChatStore(state => state.setIsGenerating);
+    const setAbortController = useChatStore(state => state.setAbortController);
+    const createThreadItem = useChatStore(state => state.createThreadItem);
+    const setCurrentThreadItem = useChatStore(state => state.setCurrentThreadItem);
+    const setCurrentSources = useChatStore(state => state.setCurrentSources);
+    const updateThread = useChatStore(state => state.updateThread);
+    const chatMode = useChatStore(state => state.chatMode);
+    const customInstructions = useChatStore(state => state.customInstructions);
+    const getConversationThreadItems = useChatStore(state => state.getConversationThreadItems);
     const { push } = useRouter();
 
     const getSelectedMCP = useMcpToolsStore(state => state.getSelectedMCP);
@@ -69,6 +58,103 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
     // In-memory store for thread items
     const threadItemMap = useMemo(() => new Map<string, ThreadItem>(), []);
     const pendingTitleStages = useRef<Map<string, Set<'initial' | 'refine'>>>(new Map());
+
+    const maybeGenerateTitle = useCallback(
+        async (threadId: string) => {
+            const state = useChatStore.getState();
+            const targetThread = state.threads.find(thread => thread.id === threadId);
+
+            if (!targetThread || targetThread.isTemporary) {
+                return;
+            }
+
+            const conversationItems = getConversationThreadItems(threadId);
+            if (!conversationItems.length) {
+                return;
+            }
+
+            const messages = conversationItems.flatMap(item => {
+                const parts: { role: 'user' | 'assistant'; content: string }[] = [];
+                if (item.query?.trim()) {
+                    parts.push({ role: 'user', content: item.query.trim() });
+                }
+
+                const answerText = item.answer?.finalText || item.answer?.text;
+                if (answerText?.trim()) {
+                    parts.push({ role: 'assistant', content: answerText.trim() });
+                }
+
+                return parts;
+            });
+
+            if (messages.length < 2) {
+                return;
+            }
+
+            const existingStages = pendingTitleStages.current.get(threadId) ?? new Set();
+            let stage: 'initial' | 'refine' | null = null;
+
+            if (!existingStages.has('initial')) {
+                stage = 'initial';
+            } else if (messages.length >= 6 && !existingStages.has('refine')) {
+                stage = 'refine';
+            }
+
+            if (!stage) {
+                return;
+            }
+
+            const limitedMessages =
+                stage === 'initial'
+                    ? messages.slice(0, 2)
+                    : messages.slice(-6);
+
+            const payloadMessages = limitedMessages.map(message => ({
+                role: message.role,
+                content: message.content.slice(0, 4000),
+            }));
+
+            const nextStages = new Set(existingStages);
+            nextStages.add(stage);
+            pendingTitleStages.current.set(threadId, nextStages);
+
+            try {
+                const response = await fetch('/api/title-generation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        threadId,
+                        conversation: payloadMessages,
+                        stage,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Title generation failed');
+                }
+
+                const result = await response.json();
+                const title = typeof result.title === 'string' ? result.title.trim() : '';
+
+                if (title) {
+                    await updateThread({ id: threadId, title });
+                }
+            } catch (error) {
+                console.error('Auto title generation failed:', error);
+                const stages = pendingTitleStages.current.get(threadId);
+                if (stages) {
+                    stages.delete(stage);
+                    if (stages.size === 0) {
+                        pendingTitleStages.current.delete(threadId);
+                    }
+                }
+            }
+        },
+        [getConversationThreadItems, updateThread]
+    );
 
     // Define common event types to reduce repetition
     const EVENT_TYPES = [
@@ -94,13 +180,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             parentThreadItemId?: string,
             shouldPersistToDB: boolean = true
         ) => {
-            console.log(
-                'handleThreadItemUpdate',
-                threadItemId,
-                eventType,
-                eventData,
-                shouldPersistToDB
-            );
             const prevItem = threadItemMap.get(threadItemId) || ({} as ThreadItem);
             const incomingAnswer = eventType === 'answer' ? eventData.answer || {} : undefined;
             const incomingMetrics = eventType === 'metrics' ? eventData.metrics || {} : undefined;
@@ -109,12 +188,6 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             let nextThinkingProcess = prevItem.thinkingProcess;
 
             if (incomingAnswer) {
-                console.log('📥 Received answer event:', {
-                    text: incomingAnswer?.text?.substring(0, 100),
-                    fullText: incomingAnswer?.fullText?.substring(0, 100),
-                    finalText: incomingAnswer?.finalText?.substring(0, 100),
-                    status: incomingAnswer?.status
-                });
                 const {
                     text: incomingText,
                     finalText: incomingFinalText,
@@ -197,7 +270,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             };
 
             threadItemMap.set(threadItemId, updatedItem);
-            updateThreadItem(threadId, { ...updatedItem, persistToDB: true });
+            updateThreadItem(threadId, updatedItem, { persist: shouldPersistToDB });
         },
         [threadItemMap, updateThreadItem]
     );
@@ -225,9 +298,12 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                     if (data?.threadItemId) {
                         threadItemMap.delete(data.threadItemId);
                     }
+                    if (data?.threadId && data.status === 'complete') {
+                        void maybeGenerateTitle(data.threadId);
+                    }
                 }
             },
-            [handleThreadItemUpdate, setIsGenerating, threadItemMap]
+            [handleThreadItemUpdate, setIsGenerating, threadItemMap, maybeGenerateTitle]
         )
     );
 
@@ -241,11 +317,14 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             abortController.signal.addEventListener('abort', () => {
                 console.info('Abort controller triggered');
                 setIsGenerating(false);
-                updateThreadItem(body.threadId, {
-                    id: body.threadItemId,
-                    status: 'ABORTED',
-                    persistToDB: true,
-                });
+                updateThreadItem(
+                    body.threadId,
+                    {
+                        id: body.threadItemId,
+                        status: 'ABORTED',
+                    },
+                    { persist: true }
+                );
             });
 
             try {
@@ -272,12 +351,15 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                     }
 
                     setIsGenerating(false);
-                    updateThreadItem(body.threadId, {
-                        id: body.threadItemId,
-                        status: 'ERROR',
-                        error: errorText,
-                        persistToDB: true,
-                    });
+                    updateThreadItem(
+                        body.threadId,
+                        {
+                            id: body.threadItemId,
+                            status: 'ERROR',
+                            error: errorText,
+                        },
+                        { persist: true }
+                    );
                     console.error('Error response:', errorText);
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -349,30 +431,40 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                                         if (data.status === 'error') {
                                             console.error('Stream error:', data.error);
                                             if (data.threadId && data.threadItemId) {
-                                                updateThreadItem(data.threadId, {
-                                                    id: data.threadItemId,
-                                                    status: 'ERROR',
-                                                    error:
-                                                        data.error ||
-                                                        'Something went wrong. Please try again.',
-                                                    persistToDB: true,
-                                                });
+                                                updateThreadItem(
+                                                    data.threadId,
+                                                    {
+                                                        id: data.threadItemId,
+                                                        status: 'ERROR',
+                                                        error:
+                                                            data.error ||
+                                                            'Something went wrong. Please try again.',
+                                                    },
+                                                    { persist: true }
+                                                );
                                             }
                                         } else if (data.status === 'aborted') {
                                             if (data.threadId && data.threadItemId) {
-                                                updateThreadItem(data.threadId, {
-                                                    id: data.threadItemId,
-                                                    status: 'ABORTED',
-                                                    persistToDB: true,
-                                                });
+                                                updateThreadItem(
+                                                    data.threadId,
+                                                    {
+                                                        id: data.threadItemId,
+                                                        status: 'ABORTED',
+                                                    },
+                                                    { persist: true }
+                                                );
                                             }
                                         } else if (data.status === 'complete') {
                                             if (data.threadId && data.threadItemId) {
-                                                updateThreadItem(data.threadId, {
-                                                    id: data.threadItemId,
-                                                    status: 'COMPLETED',
-                                                    persistToDB: true,
-                                                });
+                                                updateThreadItem(
+                                                    data.threadId,
+                                                    {
+                                                        id: data.threadItemId,
+                                                        status: 'COMPLETED',
+                                                    },
+                                                    { persist: true }
+                                                );
+                                                void maybeGenerateTitle(data.threadId);
                                             }
                                         }
                                     }
@@ -400,23 +492,35 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 );
                 setIsGenerating(false);
                 if (streamError.name === 'AbortError') {
-                    updateThreadItem(body.threadId, {
-                        id: body.threadItemId,
-                        status: 'ABORTED',
-                        error: 'Generation aborted',
-                    });
+                    updateThreadItem(
+                        body.threadId,
+                        {
+                            id: body.threadItemId,
+                            status: 'ABORTED',
+                            error: 'Generation aborted',
+                        },
+                        { persist: true }
+                    );
                 } else if (streamError.message.includes('429')) {
-                    updateThreadItem(body.threadId, {
-                        id: body.threadItemId,
-                        status: 'ERROR',
-                        error: 'You have reached the daily limit of requests. Please try again tomorrow or Use your own API key.',
-                    });
+                    updateThreadItem(
+                        body.threadId,
+                        {
+                            id: body.threadItemId,
+                            status: 'ERROR',
+                            error: 'You have reached the daily limit of requests. Please try again tomorrow or Use your own API key.',
+                        },
+                        { persist: true }
+                    );
                 } else {
-                    updateThreadItem(body.threadId, {
-                        id: body.threadItemId,
-                        status: 'ERROR',
-                        error: 'Something went wrong. Please try again.',
-                    });
+                    updateThreadItem(
+                        body.threadId,
+                        {
+                            id: body.threadItemId,
+                            status: 'ERROR',
+                            error: 'Something went wrong. Please try again.',
+                        },
+                        { persist: true }
+                    );
                 }
             } finally {
                 setIsGenerating(false);
@@ -432,6 +536,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             handleThreadItemUpdate,
             EVENT_TYPES,
             threadItemMap,
+            maybeGenerateTitle,
         ]
     );
 
@@ -444,6 +549,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             messages,
             useWebSearch,
             showSuggestions,
+            branchParentId,
         }: {
             formData: FormData;
             newThreadId?: string;
@@ -452,6 +558,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             messages?: ThreadItem[];
             useWebSearch?: boolean;
             showSuggestions?: boolean;
+            branchParentId?: string;
         }) => {
             const mode = (newChatMode || chatMode) as ChatMode;
             if (
@@ -472,7 +579,8 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
             const parentThreadItemId = existingThreadItem?.parentId ?? '';
 
-            const optimisticAiThreadItemId = existingThreadItemId || nanoid();
+            // Generate a new thread item ID for the branch
+            const optimisticAiThreadItemId = nanoid();
             const query = formData.get('query') as string;
             const imageAttachment = formData.get('imageAttachment') as string;
 
@@ -491,6 +599,33 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
             const historicalMessages = messages || getConversationThreadItems(threadId);
 
+            // For branch operations, determine the branch info
+            let branchGroupId: string | undefined;
+            let branchIndex: number | undefined;
+            
+            if (branchParentId) {
+                // Find all existing branches for this parent
+                const existingBranches = chatState.threadItems.filter(
+                    item => item.branchParentId === branchParentId || item.id === branchParentId
+                );
+                
+                // Get the branch group ID from existing items or create a new one
+                const parentItem = chatState.threadItems.find(item => item.id === branchParentId);
+                branchGroupId = parentItem?.branchGroupId || branchParentId;
+                
+                // If the parent doesn't have branch info, update it
+                if (parentItem && !parentItem.branchGroupId) {
+                    updateThreadItem(threadId, {
+                        id: branchParentId,
+                        branchGroupId: branchGroupId,
+                        branchIndex: 0,
+                    }, { persist: true });
+                }
+                
+                // Calculate the next branch index
+                branchIndex = existingBranches.length;
+            }
+
             const aiThreadItem: ThreadItem = {
                 id: optimisticAiThreadItemId,
                 createdAt: new Date(),
@@ -501,6 +636,10 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 query,
                 imageAttachment,
                 mode: actualMode,
+                // Branch fields
+                branchParentId,
+                branchGroupId,
+                branchIndex,
             };
 
             createThreadItem(aiThreadItem);
@@ -515,12 +654,27 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 },
             });
 
-            // Build core messages array
-            const coreMessages = buildCoreMessagesFromThreadItems({
-                messages: historicalMessages,
-                query,
-                imageAttachment,
-            });
+            // Build core messages array - for branches, use messages up to the branch parent
+            let coreMessages;
+            if (branchParentId) {
+                // Find the branch parent's position and use messages before it
+                const branchParentIndex = historicalMessages.findIndex(m => m.id === branchParentId);
+                const messagesForBranch = branchParentIndex >= 0 
+                    ? historicalMessages.slice(0, branchParentIndex)
+                    : historicalMessages.filter(m => m.id !== branchParentId);
+                
+                coreMessages = buildCoreMessagesFromThreadItems({
+                    messages: messagesForBranch,
+                    query,
+                    imageAttachment,
+                });
+            } else {
+                coreMessages = buildCoreMessagesFromThreadItems({
+                    messages: historicalMessages,
+                    query,
+                    imageAttachment,
+                });
+            }
 
             if (hasApiKeyForChatMode(actualMode)) {
                 const abortController = new AbortController();

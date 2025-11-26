@@ -15,6 +15,7 @@ import {
     IconChevronDown,
 } from '@tabler/icons-react';
 import { forwardRef, useCallback, useEffect, useState } from 'react';
+import { BranchNavigation } from './branch-navigation';
 
 const { DropdownMenu, DropdownMenuTrigger } = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
 type MessageActionsProps = {
@@ -181,7 +182,7 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                     </Button>
                 )}
 
-                {/* Metadata info */}
+                {/* Metadata info with branch navigation */}
                 <div className="ml-auto flex items-center gap-2">
                     {threadItem.status === 'COMPLETED' && formattedTokensPerSecond && (
                         <p className="text-muted-foreground text-xs">
@@ -199,6 +200,8 @@ export const MessageActions = forwardRef<HTMLDivElement, MessageActionsProps>(
                             {getChatModeName(threadItem.mode)}
                         </p>
                     )}
+                    {/* Branch Navigation - inline with metadata */}
+                    <BranchNavigation threadItem={threadItem} />
                 </div>
                 </div>
             </div>
