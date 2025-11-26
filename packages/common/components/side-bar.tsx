@@ -6,8 +6,17 @@ import { useAuth, useRootContext } from '@repo/common/context';
 import type { AuthUser } from '@repo/common/auth';
 import { useAppStore, useChatStore } from '@repo/common/store';
 import { Thread } from '@repo/shared/types';
-import { Badge, Button, cn, Flex } from '@repo/ui';
-import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
+import {
+    Badge,
+    Button,
+    cn,
+    Flex,
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+} from '@repo/ui';
 import {
     IconArrowBarLeft,
     IconArrowBarRight,
@@ -26,20 +35,6 @@ import moment from 'moment';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 
-const {
-    DropdownMenu: DropdownMenuRoot,
-    DropdownMenuTrigger: DropdownMenuTriggerComponent,
-    DropdownMenuContent: DropdownMenuContentComponent,
-    DropdownMenuItem: DropdownMenuItemComponent,
-    DropdownMenuSeparator: DropdownMenuSeparatorComponent,
-} = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
-
-const MenuRoot = DropdownMenuRoot as unknown as React.ComponentType<any>;
-const MenuTrigger = DropdownMenuTriggerComponent as unknown as React.ComponentType<any>;
-const MenuContent = DropdownMenuContentComponent as unknown as React.ComponentType<any>;
-const MenuItem = DropdownMenuItemComponent as unknown as React.ComponentType<any>;
-const MenuSeparator = DropdownMenuSeparatorComponent as unknown as React.ComponentType<any>;
-
 const UserMenu: React.FC<{
     user: AuthUser | null;
     isSidebarOpen: boolean;
@@ -52,8 +47,8 @@ const UserMenu: React.FC<{
         user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || 'Account';
 
     return (
-        <MenuRoot open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <MenuTrigger asChild>
+        <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <DropdownMenuTrigger asChild>
                 <Button
                     variant="ghost"
                     className={cn(
@@ -101,8 +96,8 @@ const UserMenu: React.FC<{
                         />
                     )}
                 </Button>
-            </MenuTrigger>
-            <MenuContent
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
                 align="start"
                 className="min-w-[220px]"
                 side={isSidebarOpen ? 'top' : 'right'}
@@ -112,8 +107,8 @@ const UserMenu: React.FC<{
                     <span className="text-xs text-muted-foreground">Cloud sync</span>
                     <SyncStatus showLabel={true} />
                 </div>
-                <MenuSeparator />
-                <MenuItem
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
                     className="flex w-full items-center gap-2 text-sm"
                     onSelect={() => {
                         setIsSettingsOpen(true);
@@ -121,9 +116,9 @@ const UserMenu: React.FC<{
                 >
                     <IconSettings size={16} strokeWidth={2} />
                     Settings
-                </MenuItem>
-                <MenuSeparator />
-                <MenuItem
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
                     className="flex w-full items-center gap-2 text-sm text-destructive"
                     onSelect={() => {
                         void signOut();
@@ -131,9 +126,9 @@ const UserMenu: React.FC<{
                 >
                     <IconLogout size={16} strokeWidth={2} />
                     Log out
-                </MenuItem>
-            </MenuContent>
-        </MenuRoot>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 };
 

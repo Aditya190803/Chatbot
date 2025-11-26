@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 export default function NotFound() {
     return (
         <div
@@ -51,7 +49,7 @@ export default function NotFound() {
                 Let&apos;s get you back on track.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <Link
+                <a
                     href="/"
                     style={{
                         padding: '0.75rem 1.5rem',
@@ -65,8 +63,8 @@ export default function NotFound() {
                     }}
                 >
                     Go home
-                </Link>
-                <Link
+                </a>
+                <a
                     href="/chat"
                     style={{
                         padding: '0.75rem 1.5rem',
@@ -80,7 +78,7 @@ export default function NotFound() {
                     }}
                 >
                     Start chatting
-                </Link>
+                </a>
             </div>
         </div>
     );

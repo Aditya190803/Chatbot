@@ -3,8 +3,7 @@
 import { useAgentStream } from '@repo/common/hooks';
 import { useChatStore } from '@repo/common/store';
 import { ThreadItem } from '@repo/shared/types';
-import { Button, Textarea } from '@repo/ui';
-import { RadioGroup, RadioGroupItem } from '@repo/ui/src/components/radio-group';
+import { Button, Textarea, RadioGroup, RadioGroupItem } from '@repo/ui';
 import { IconCheck, IconQuestionMark, IconSquare } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 

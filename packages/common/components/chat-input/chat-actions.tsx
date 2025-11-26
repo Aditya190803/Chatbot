@@ -5,8 +5,17 @@ import { DotSpinner } from '@repo/common/components';
 import { useChatStore } from '@repo/common/store';
 import { useIsMobile } from '@repo/common/hooks';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
-import { Button, cn, Kbd } from '@repo/ui';
-import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
+import {
+    Button,
+    cn,
+    Kbd,
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+} from '@repo/ui';
 import type { ThreadItem } from '@repo/shared/types';
 import {
     IconArrowUp,
@@ -25,7 +34,6 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-    type ComponentType,
     type KeyboardEvent,
     useCallback,
     useEffect,
@@ -137,21 +145,7 @@ export const modelOptions: ChatModeOption[] = [
     },
 ];
 
-const {
-    DropdownMenu: DropdownMenuRoot,
-    DropdownMenuTrigger: DropdownMenuTriggerComponent,
-    DropdownMenuContent: DropdownMenuContentComponent,
-    DropdownMenuItem: DropdownMenuItemComponent,
-    DropdownMenuLabel: DropdownMenuLabelComponent,
-    DropdownMenuSeparator: DropdownMenuSeparatorComponent,
-} = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
 
-const DropdownMenu = DropdownMenuRoot as unknown as ComponentType<any>;
-const DropdownMenuTrigger = DropdownMenuTriggerComponent as unknown as ComponentType<any>;
-const DropdownMenuContent = DropdownMenuContentComponent as unknown as ComponentType<any>;
-const DropdownMenuItem = DropdownMenuItemComponent as unknown as ComponentType<any>;
-const DropdownMenuLabel = DropdownMenuLabelComponent as unknown as ComponentType<any>;
-const DropdownMenuSeparator = DropdownMenuSeparatorComponent as unknown as ComponentType<any>;
 
 export const AttachmentButton = () => {
     return (

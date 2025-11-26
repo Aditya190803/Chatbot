@@ -1,28 +1,19 @@
-import { IconPlus } from '@tabler/icons-react';
+import { IconPlus, IconCheck, IconTools } from '@tabler/icons-react';
 
 import { useMcpToolsStore } from '@repo/common/store';
-import { Badge, Button } from '@repo/ui';
-import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
-
-import { IconCheck, IconTools } from '@tabler/icons-react';
+import {
+    Badge,
+    Button,
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+} from '@repo/ui';
 import { useMemo, useState } from 'react';
 import { SETTING_TABS, useAppStore } from '../store/app.store';
 import { useChatStore } from '../store/chat.store';
 import { ToolIcon } from './icons';
-
-const {
-    DropdownMenu: DropdownMenuRoot,
-    DropdownMenuTrigger: DropdownMenuTriggerComponent,
-    DropdownMenuContent: DropdownMenuContentComponent,
-    DropdownMenuItem: DropdownMenuItemComponent,
-    DropdownMenuSeparator: DropdownMenuSeparatorComponent,
-} = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
-
-const MenuRoot = DropdownMenuRoot as unknown as React.ComponentType<any>;
-const MenuTrigger = DropdownMenuTriggerComponent as unknown as React.ComponentType<any>;
-const MenuContent = DropdownMenuContentComponent as unknown as React.ComponentType<any>;
-const MenuItem = DropdownMenuItemComponent as unknown as React.ComponentType<any>;
-const MenuSeparator = DropdownMenuSeparatorComponent as unknown as React.ComponentType<any>;
 
 export const ToolsMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -38,9 +29,8 @@ export const ToolsMenu = () => {
 
     return (
         <>
-            {!MenuRoot || !MenuTrigger || !MenuContent || !MenuItem || !MenuSeparator ? null : (
-                <MenuRoot open={isOpen} onOpenChange={setIsOpen}>
-                    <MenuTrigger asChild>
+            <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+                    <DropdownMenuTrigger asChild>
                         <Button
                             size={selectedMCP.length > 0 ? 'sm' : 'icon'}
                             tooltip="Tools"
@@ -62,10 +52,10 @@ export const ToolsMenu = () => {
                                 </Badge>
                             )}
                         </Button>
-                    </MenuTrigger>
-                    <MenuContent align="start" side="bottom" className="w-[320px]">
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" side="bottom" className="w-[320px]">
                         {Object.keys(mcpConfig).map(key => (
-                            <MenuItem
+                            <DropdownMenuItem
                                 key={key}
                                 onClick={() =>
                                     updateSelectedMCP(prev => {
@@ -84,7 +74,7 @@ export const ToolsMenu = () => {
                                         <IconCheck size={16} className="text-foreground" />
                                     )}
                                 </div>
-                            </MenuItem>
+                            </DropdownMenuItem>
                         ))}
                         {mcpConfig && Object.keys(mcpConfig).length === 0 && (
                             <div className="flex h-[150px] flex-col items-center justify-center gap-2">
@@ -112,9 +102,9 @@ export const ToolsMenu = () => {
                                 </Button>
                             </div>
                         )}
-                        {mcpConfig && Object.keys(mcpConfig).length > 0 && <MenuSeparator />}
+                        {mcpConfig && Object.keys(mcpConfig).length > 0 && <DropdownMenuSeparator />}
                         {mcpConfig && Object.keys(mcpConfig).length > 0 && (
-                            <MenuItem
+                            <DropdownMenuItem
                                 onClick={() => {
                                     setIsSettingsOpen(true);
                                     setSettingTab(SETTING_TABS.MCP_TOOLS);
@@ -122,11 +112,10 @@ export const ToolsMenu = () => {
                             >
                                 <IconPlus size={14} strokeWidth={2} className="text-muted-foreground" />
                                 Add Tool
-                            </MenuItem>
+                            </DropdownMenuItem>
                         )}
-                    </MenuContent>
-                </MenuRoot>
-            )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
         </>
     );
 };

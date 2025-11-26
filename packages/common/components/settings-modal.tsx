@@ -1,10 +1,8 @@
 'use client';
 import { useMcpToolsStore, useApiKeysStore } from '@repo/common/store';
 
-import { Button } from '@repo/ui/src/components/button';
+import { Badge, Button, Input } from '@repo/ui';
 import { IconSettings2, IconTrash, IconX } from '@tabler/icons-react';
-
-import { Badge, Input } from '@repo/ui';
 
 import { useChatEditor } from '@repo/common/hooks';
 

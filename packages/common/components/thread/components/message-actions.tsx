@@ -4,8 +4,7 @@ import { useAgentStream, useCopyText } from '@repo/common/hooks';
 import { useChatStore } from '@repo/common/store';
 import { ChatMode, getChatModeName } from '@repo/shared/config';
 import { ThreadItem } from '@repo/shared/types';
-import { Button, cn } from '@repo/ui';
-import * as DropdownMenuComponents from '@repo/ui/src/components/dropdown-menu';
+import { Button, cn, DropdownMenu, DropdownMenuTrigger } from '@repo/ui';
 import {
     IconCheck,
     IconCopy,
@@ -16,8 +15,6 @@ import {
 } from '@tabler/icons-react';
 import { forwardRef, useCallback, useEffect, useState } from 'react';
 import { BranchNavigation } from './branch-navigation';
-
-const { DropdownMenu, DropdownMenuTrigger } = DropdownMenuComponents as typeof import('@repo/ui/src/components/dropdown-menu');
 type MessageActionsProps = {
     threadItem: ThreadItem;
     isLast: boolean;
