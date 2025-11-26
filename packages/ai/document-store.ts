@@ -1,4 +1,5 @@
 import { generateText } from 'ai';
+import { logger } from '@repo/shared/logger';
 import { ModelEnum } from './models';
 import { getLanguageModel } from './providers';
 
@@ -220,7 +221,7 @@ Answer:`;
                 sources: relevantChunks,
             };
         } catch (error) {
-            console.error('Error generating RAG response:', error);
+            logger.error('Error generating RAG response', error as Error);
             return {
                 response: 'I encountered an error while processing your question. Please try again.',
                 sources: relevantChunks,

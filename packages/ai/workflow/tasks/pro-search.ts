@@ -1,4 +1,5 @@
 import { createTask } from '@repo/orchestrator';
+import { logger } from '@repo/shared/logger';
 import { z } from 'zod';
 import { ModelEnum } from '../../models';
 import { WorkflowContextSchema, WorkflowEventSchema } from '../flow';
@@ -170,7 +171,7 @@ export const proSearchTask = createTask<WorkflowEventSchema, WorkflowContextSche
             let searchResults: SearchResult[] = [];
             try {
                 const gl = context?.get('gl');
-                console.log('gl', gl);
+                logger.debug('Search geo location', { gl });
                 searchResults = await getSERPResults([query.query], gl);
                 if (!searchResults || searchResults.length === 0) {
                     throw new Error('No search results found');
@@ -331,7 +332,7 @@ export const proSearchTask = createTask<WorkflowEventSchema, WorkflowContextSche
                 result: 'success',
             };
         } catch (error) {
-            console.error('Error in proSearchTask:', error);
+            logger.error('Error in proSearchTask', error as Error);
 
             // Update flow with error status
             events?.update('error', prev => ({

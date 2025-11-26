@@ -1,3 +1,5 @@
+import { logger } from '@repo/shared/logger';
+
 export type Geo = {
     country?: string;
     city?: string;
@@ -200,7 +202,7 @@ export class SerperProvider implements SearchProvider {
             }))
         );
 
-        console.log('Serper request:', requestBody);
+        logger.debug('Serper request', { requestBody });
 
         try {
             const controller = new AbortController();
@@ -236,7 +238,7 @@ export class SerperProvider implements SearchProvider {
                 snippet: item.snippet,
             }));
         } catch (error) {
-            console.error('Serper API error:', error);
+            logger.error('Serper API error', error as Error);
             throw new Error(`Serper failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -252,7 +254,7 @@ export class SearchManager {
         try {
             this.primaryProvider = new LangSearchProvider();
         } catch (error) {
-            console.warn('LangSearch not available:', error);
+            logger.warn('LangSearch not available', { error });
         }
 
         // Try to initialize Serper as fallback
@@ -266,7 +268,7 @@ export class SearchManager {
             try {
                 this.fallbackProvider = new SerperProvider();
             } catch (error) {
-                console.warn('Serper not available:', error);
+                logger.warn('Serper not available', { error });
             }
         }
 
@@ -280,7 +282,7 @@ export class SearchManager {
 
         if (this.primaryProvider) {
             try {
-                console.log(`Using primary provider: ${this.primaryProvider.name}`);
+                logger.debug(`Using primary provider: ${this.primaryProvider.name}`);
                 const results = await this.primaryProvider.search(queries, gl);
                 if (results && results.length > 0) {
                     return results;
@@ -288,7 +290,7 @@ export class SearchManager {
                 primaryError = new Error('LangSearch returned no results');
             } catch (error) {
                 primaryError = error instanceof Error ? error : new Error(String(error));
-                console.error(`Primary provider ${this.primaryProvider.name} failed:`, primaryError);
+                logger.error(`Primary provider ${this.primaryProvider.name} failed`, primaryError);
             }
 
             if (!this.fallbackProvider) {
@@ -301,7 +303,7 @@ export class SearchManager {
         }
 
         if (this.fallbackProvider) {
-            console.log(`Using fallback provider: ${this.fallbackProvider.name}`);
+            logger.debug(`Using fallback provider: ${this.fallbackProvider.name}`);
             return await this.fallbackProvider.search(queries, gl);
         }
 

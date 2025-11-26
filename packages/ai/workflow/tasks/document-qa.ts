@@ -1,4 +1,5 @@
 import { createTask } from '@repo/orchestrator';
+import { logger } from '@repo/shared/logger';
 import { documentStore } from '../../document-store';
 import { getModelFromChatMode } from '../../models';
 import { WorkflowContextSchema, WorkflowEventSchema } from '../flow';
@@ -90,7 +91,7 @@ export const documentQATask = createTask<WorkflowEventSchema, WorkflowContextSch
             return result.response;
 
         } catch (error) {
-            console.error('Document Q&A error:', error);
+            logger.error('Document Q&A error', error as Error);
             
             if (stepId) {
                 updateStep({

@@ -1,3 +1,5 @@
+import { logger } from '@repo/shared/logger';
+
 export const generateErrorMessage = (error: Error | string) => {
     if (error instanceof Error) {
         if (error.name === 'MissingProviderKeyError') {
@@ -68,7 +70,7 @@ export const generateErrorMessage = (error: Error | string) => {
         }
 
         // Log the actual error for debugging in development
-        console.error('[generateErrorMessage] Unhandled error:', error.message);
+        logger.debug('[generateErrorMessage] Unhandled error', { message: error.message });
         
         return 'Something went wrong. Please try again later.';
     }

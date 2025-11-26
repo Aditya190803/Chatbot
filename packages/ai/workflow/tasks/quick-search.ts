@@ -199,8 +199,6 @@ export const quickSearchTask = createTask<WorkflowEventSchema, WorkflowContextSc
 
         const stepId = nextStepId();
 
-        console.log('stepId', stepId);
-
         updateStep({
             stepId,
             stepStatus: 'COMPLETED',

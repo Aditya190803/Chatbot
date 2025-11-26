@@ -1,4 +1,5 @@
 import { TaskParams, TypedEventEmitter } from '@repo/orchestrator';
+import { logger } from '@repo/shared/logger';
 import { Geo } from '@vercel/functions';
 import {
     CoreMessage,
@@ -183,7 +184,7 @@ export const generateText = async ({
                     }
 
                     if (chunk.type === 'error') {
-                        console.error('LLM chunk error:', chunk.error);
+                        logger.error('LLM chunk error', chunk.error as Error);
                         clearTimeout(timeoutId);
                         throw chunk.error;
                     }
@@ -219,7 +220,7 @@ export const generateText = async ({
             return result;
         } catch (err) {
             lastError = err;
-            console.warn(`generateText attempt ${attempt + 1} failed for model ${model}:`, err);
+            logger.warn(`generateText attempt ${attempt + 1} failed for model ${model}`, { error: err });
             if (String(err).toLowerCase().includes('aborted') || String(err).toLowerCase().includes('operation aborted')) {
                 throw err;
             }
@@ -236,11 +237,11 @@ export const generateText = async ({
                 }
 
                 const result = await attemptWithModel(fallbackModel, attempt);
-                console.info(`generateText succeeded with fallback model ${fallbackModel}`);
+                logger.info(`generateText succeeded with fallback model ${fallbackModel}`);
                 return result;
             } catch (err) {
                 lastError = err;
-                console.warn(`generateText fallback attempt ${attempt + 1} failed for model ${fallbackModel}:`, err);
+                logger.warn(`generateText fallback attempt ${attempt + 1} failed for model ${fallbackModel}`, { error: err });
                 if (String(err).toLowerCase().includes('aborted') || String(err).toLowerCase().includes('operation aborted')) {
                     throw err;
                 }
@@ -248,7 +249,7 @@ export const generateText = async ({
         }
     }
 
-    console.error('All generateText attempts failed:', lastError);
+    logger.error('All generateText attempts failed', lastError as Error);
     return Promise.reject(lastError ?? new Error('LLM request failed after retries'));
 };
 
@@ -288,7 +289,7 @@ export const generateObject = async ({
 
         return JSON.parse(JSON.stringify(object));
     } catch (error) {
-        console.error(error);
+        logger.error('generateObject failed', error as Error);
         return null;
     }
 };
@@ -384,7 +385,7 @@ export const getSERPResults = async (queries: string[], gl?: Geo) => {
         const searchManager = new SearchManager();
         return await searchManager.search(queries, gl);
     } catch (error) {
-        console.error('Enhanced search failed, falling back to legacy Serper:', error);
+        logger.error('Enhanced search failed, falling back to legacy Serper', error as Error);
         
         // Legacy Serper fallback implementation
         const myHeaders = new Headers();
@@ -439,7 +440,7 @@ export const getSERPResults = async (queries: string[], gl?: Geo) => {
                 snippet: item.snippet,
             }));
         } catch (legacyError) {
-            console.error('Legacy Serper fallback also failed:', legacyError);
+            logger.error('Legacy Serper fallback also failed', legacyError as Error);
             return [];
         }
     }
@@ -459,7 +460,7 @@ export const getWebPageContent = async (url: string) => {
 
         return `${title}${description}${content}${sourceUrl}`;
     } catch (error) {
-        console.error(error);
+        logger.error('Error fetching web page content', error as Error);
         return `No Result Found for ${url}`;
     }
 };
@@ -527,12 +528,12 @@ export const readURL = async (url: string): Promise<TReaderResult> => {
         if (process.env.JINA_API_KEY) {
             return await fetchWithJina(url);
         } else {
-            console.log('No Jina API key found');
+            logger.debug('No Jina API key found');
         }
 
         return { success: false };
     } catch (error) {
-        console.error('Error in readURL:', error);
+        logger.error('Error in readURL', error as Error);
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
@@ -575,7 +576,7 @@ export const processWebPages = async (
 
         return processedResults.slice(0, options.maxPages);
     } catch (error) {
-        console.error('Error in processWebPages:', error);
+        logger.error('Error in processWebPages', error as Error);
         return processedResults.slice(0, options.maxPages);
     } finally {
         // Clean up event listeners to prevent memory leaks
@@ -620,7 +621,7 @@ export type TReaderResult = {
 
 export const handleError = (error: Error, { context, events }: TaskParams) => {
     const errorMessage = generateErrorMessage(error);
-    console.error('Task failed', error);
+    logger.error('Task failed', error);
 
     events?.update('error', prev => ({
         ...prev,

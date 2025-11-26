@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { jsonSchema, tool, ToolSet } from 'ai';
+import { logger } from '@repo/shared/logger';
 
 
 
@@ -16,16 +17,16 @@ async function getMcpClients(config: MCPServersConfig): Promise<Client[]> {
         // Ping proxy endpoint to ensure it's ready
         try {
                 await fetch(config.proxyEndpoint, { method: 'HEAD' });
-                console.log(`Successfully pinged proxy endpoint: ${config.proxyEndpoint}`);
+                logger.debug(`Successfully pinged proxy endpoint: ${config.proxyEndpoint}`);
         } catch (error) {
-                console.warn(`Failed to ping proxy endpoint: ${config.proxyEndpoint}`, error);
+                logger.warn(`Failed to ping proxy endpoint: ${config.proxyEndpoint}`, { error });
         }
 
         for (const key in config.mcpServers) {
                 const baseUrl = config.mcpServers[key];
                 const proxyEndpoint = config.proxyEndpoint;
 
-                console.log(`Creating MCP client for ${key} with URL: ${baseUrl}`);
+                logger.debug(`Creating MCP client for ${key} with URL: ${baseUrl}`);
                 
                 // The SSE transport will append /sse to baseUrl if needed
                 const client = new Client(
@@ -46,7 +47,7 @@ async function getMcpClients(config: MCPServersConfig): Promise<Client[]> {
 
 
                 try {
-                        console.log(`Connecting to ${baseUrl}`);
+                        logger.debug(`Connecting to ${baseUrl}`);
                         await client.connect(new SSEClientTransport(new URL(`${proxyEndpoint}?server=${baseUrl}`), {
                                 requestInit: {
                                         headers: {
@@ -55,10 +56,10 @@ async function getMcpClients(config: MCPServersConfig): Promise<Client[]> {
                                 },
 
                         }));
-                        console.log(`Successfully connected to ${baseUrl}`);
+                        logger.debug(`Successfully connected to ${baseUrl}`);
                         clients.push(client);
                 } catch (error) {
-                        console.error(`Failed to connect to ${baseUrl}:`, error);
+                        logger.error(`Failed to connect to ${baseUrl}`, error as Error);
                 }
         }
         return clients;
@@ -67,7 +68,7 @@ async function getMcpClients(config: MCPServersConfig): Promise<Client[]> {
 export async function buildAllTools(config: MCPServersConfig): Promise<{ allTools: ToolSet, toolServerMap: Map<string, Client>, onClose: () => void } | undefined> {
         try {
                 const mcpClients = await getMcpClients(config);
-                console.log("mcpClients", mcpClients);
+                logger.debug("mcpClients initialized", { count: mcpClients.length });
                 let allTools: ToolSet = {};
                 const toolServerMap = new Map();
 
@@ -81,7 +82,7 @@ export async function buildAllTools(config: MCPServersConfig): Promise<{ allTool
                     });
 
                     nextCursor = toolList.nextCursor;
-                    console.log(mcpClient, "toolList", toolList);
+                    logger.debug("MCP tools list retrieved", { toolCount: toolList.tools.length });
                     
                     const mcpTools = toolList.tools.map((tool) => {
                         toolServerMap.set(tool.name, mcpClient);
@@ -96,7 +97,7 @@ export async function buildAllTools(config: MCPServersConfig): Promise<{ allTool
                 } while (nextCursor);
 
                 const aiSdkTools = allMcpTools.map((t) => {
-                    console.log(t.input_schema);
+                    logger.debug("Processing tool schema", { toolName: t.name });
                     return {
                         name: t.name,
                         tool: tool({
@@ -126,7 +127,7 @@ export async function buildAllTools(config: MCPServersConfig): Promise<{ allTool
         } };
 
         } catch (error) {
-                console.error('Error building tools:', error);
+                logger.error('Error building tools', error as Error);
                 throw error;    
         }
 

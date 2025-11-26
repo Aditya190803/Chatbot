@@ -1,4 +1,5 @@
 import { ChatMode } from '@repo/shared/config';
+import { logger } from '@repo/shared/logger';
 import { runWorkflow } from '../workflow/flow';
 import { clearProviderCaches } from '../providers';
 
@@ -26,7 +27,7 @@ ctx.addEventListener('message', async (event: MessageEvent) => {
                     activeWorkflow.abort?.(false);
                     activeWorkflow = null;
                 } catch (e) {
-                    console.error('[Worker] Error aborting previous workflow:', e);
+                    logger.error('[Worker] Error aborting previous workflow', e as Error);
                 }
             }
 
@@ -110,7 +111,7 @@ ctx.addEventListener('message', async (event: MessageEvent) => {
                     activeWorkflow.abort?.(payload.graceful);
                     activeWorkflow = null;
                 } catch (e) {
-                    console.error('[Worker] Error aborting workflow:', e);
+                    logger.error('[Worker] Error aborting workflow', e as Error);
                 }
             }
 
@@ -123,7 +124,7 @@ ctx.addEventListener('message', async (event: MessageEvent) => {
             });
         }
     } catch (error) {
-        console.error('[Worker] Error in worker:', error);
+        logger.error('[Worker] Error in worker', error as Error);
 
         ctx.postMessage({
             type: 'done',

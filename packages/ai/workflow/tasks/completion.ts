@@ -1,4 +1,5 @@
 import { createTask } from '@repo/orchestrator';
+import { logger } from '@repo/shared/logger';
 import { ChatModeConfig } from '@repo/shared/config';
 import { getModelFromChatMode } from '../../models';
 import { WorkflowContextSchema, WorkflowEventSchema } from '../flow';
@@ -27,7 +28,7 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
                         !!message.content
                 ) || [];
 
-        console.log('customInstructions', customInstructions);
+        logger.debug('Custom instructions loaded', { length: customInstructions?.length });
 
         if (
             customInstructions &&
@@ -161,9 +162,8 @@ export const completionTask = createTask<WorkflowEventSchema, WorkflowContextSch
         // This handles cases where the model only outputs thinking without a final answer
         const finalAnswer = response || reasoningText || '';
 
-        console.log('🔍 Final response:', {
+        logger.debug('Final response generated', {
             responseLength: response?.length ?? 0,
-            response: response?.substring(0, 100),
             reasoningTextLength: reasoningText?.length ?? 0,
             finalAnswerLength: finalAnswer?.length ?? 0
         });

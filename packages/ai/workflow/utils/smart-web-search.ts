@@ -1,4 +1,5 @@
 import { generateObject } from '../utils';
+import { logger } from '@repo/shared/logger';
 import { ModelEnum } from '../../models';
 import { z } from 'zod';
 import { CoreMessage } from 'ai';
@@ -92,7 +93,7 @@ Be conservative - only recommend web search when it's clearly necessary for accu
             reasoning: result.reasoning
         };
     } catch (error) {
-        console.error('Error in shouldUseWebSearch:', error);
+        logger.error('Error in shouldUseWebSearch', error as Error);
         return { shouldSearch: false, reasoning: 'Analysis failed, defaulting to no search' };
     }
 }
