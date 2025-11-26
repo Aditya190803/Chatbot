@@ -4,6 +4,9 @@ import { AppwriteException } from 'node-appwrite';
 import { auth } from '@repo/common/auth/server';
 import { deleteThreadDocument, updateThreadDocument } from '@repo/common/appwrite/chat.server';
 import { ThreadPayload } from '@repo/shared/chat-serialization';
+import { logger } from '@repo/shared/logger';
+
+const apiLogger = logger.child({ module: 'api/threads/[threadId]' });
 
 export async function PATCH(
     request: NextRequest,
@@ -33,7 +36,7 @@ export async function PATCH(
         const parsedBody = JSON.parse(rawBody) as ThreadPayload;
         payload = parsedBody;
     } catch (error) {
-        console.error('Invalid payload for thread update', error);
+        apiLogger.error('Invalid payload for thread update', error, { threadId, userId });
         return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
@@ -52,7 +55,7 @@ export async function PATCH(
             jwt || sessionId ? { jwt, sessionId } : undefined
         );
     } catch (error: unknown) {
-        console.error(`Failed to update thread ${threadId} in Appwrite`, error);
+        apiLogger.error('Failed to update thread in Appwrite', error, { threadId, userId });
         if (error instanceof AppwriteException && error.code === 404) {
             return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
         }
@@ -88,7 +91,7 @@ export async function DELETE(
     try {
         await deleteThreadDocument(threadId, jwt || sessionId ? { jwt, sessionId } : undefined);
     } catch (error: unknown) {
-        console.error(`Failed to delete thread ${threadId} in Appwrite`, error);
+        apiLogger.error('Failed to delete thread in Appwrite', error, { threadId, userId });
         if (error instanceof AppwriteException && error.code === 404) {
             return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
         }

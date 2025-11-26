@@ -8,6 +8,9 @@ import {
     RemoteThreadDocument,
 } from '@repo/common/appwrite/chat.server';
 import { ThreadPayload } from '@repo/shared/chat-serialization';
+import { logger } from '@repo/shared/logger';
+
+const apiLogger = logger.child({ module: 'api/threads' });
 
 const buildRemotePayload = (payload: ThreadPayload): RemoteThreadDocument => {
     return {
@@ -30,7 +33,7 @@ export async function GET() {
         const threads = await listThreadDocuments(userId, jwt || sessionId ? { jwt, sessionId } : undefined);
         return NextResponse.json({ threads }, { status: 200 });
     } catch (error: unknown) {
-        console.error('Failed to load threads from Appwrite', error);
+        apiLogger.error('Failed to load threads from Appwrite', error, { userId });
         if (error instanceof AppwriteException && error.code === 401) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     try {
         payload = (await request.json()) as ThreadPayload;
     } catch (error) {
-        console.error('Invalid payload for thread creation', error);
+        apiLogger.error('Invalid payload for thread creation', error, { userId });
         return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
             jwt || sessionId ? { jwt, sessionId } : undefined
         );
     } catch (error: unknown) {
-        console.error('Failed to create thread in Appwrite', error);
+        apiLogger.error('Failed to create thread in Appwrite', error, { userId, threadId: payload.thread.id });
         if (error instanceof AppwriteException && error.code === 401) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

@@ -3,6 +3,9 @@ import { documentStore } from '@repo/ai/document-store';
 import { ModelEnum } from '@repo/ai/models';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@repo/shared/logger';
+
+const apiLogger = logger.child({ module: 'api/document/query' });
 
 const documentQuerySchema = z.object({
     query: z.string().min(1, 'Query cannot be empty'),
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Document query error:', error);
+        apiLogger.error('Document query error', error, { endpoint: 'POST' });
         return NextResponse.json(
             { error: 'Internal server error during document query' },
             { status: 500 }
@@ -95,7 +98,7 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Error retrieving documents:', error);
+        apiLogger.error('Error retrieving documents', error, { endpoint: 'GET' });
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

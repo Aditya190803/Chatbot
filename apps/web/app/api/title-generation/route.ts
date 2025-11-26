@@ -4,6 +4,9 @@ import { ModelEnum } from '@repo/ai/models';
 import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@repo/shared/logger';
+
+const apiLogger = logger.child({ module: 'api/title-generation' });
 
 const messageSchema = z.object({
     role: z.enum(['user', 'assistant']),
@@ -80,9 +83,10 @@ Title:`;
         });
 
     } catch (error) {
-        console.error('Error generating title:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        apiLogger.error('Error generating title', { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
         return NextResponse.json(
-            { error: 'Failed to generate title' },
+            { error: 'Failed to generate title', details: errorMessage },
             { status: 500 }
         );
     }

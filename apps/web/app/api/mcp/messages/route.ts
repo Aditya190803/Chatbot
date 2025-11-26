@@ -2,6 +2,9 @@
 import { Redis } from '@upstash/redis';
 import { NextRequest, NextResponse } from 'next/server';
 import fetch from 'node-fetch';
+import { logger } from '@repo/shared/logger';
+
+const apiLogger = logger.child({ module: 'api/mcp/messages' });
 
 const redis = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN 
     ? new Redis({
@@ -24,7 +27,7 @@ export async function POST(request: NextRequest) {
             serverHost = new URL(serverURL).host;
 
             if (!serverURL || !serverHost) {
-                console.error('POST request - Missing serverURL parameter');
+                apiLogger.error('POST request - Missing serverURL parameter');
                 return NextResponse.json(
                     {
                         jsonrpc: '2.0',
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
                 throw new Error('Invalid JSONRPC request');
             }
         } catch (err) {
-            console.error('Error parsing JSONRPC request:', err);
+            apiLogger.error('Error parsing JSONRPC request', err);
             return NextResponse.json(
                 {
                     jsonrpc: '2.0',
@@ -69,7 +72,7 @@ export async function POST(request: NextRequest) {
         try {
             jsonResponse = JSON.parse(responseText);
         } catch (err) {
-            console.error('Error parsing JSONRPC response:', err);
+            apiLogger.error('Error parsing JSONRPC response', err, { serverURL });
             jsonResponse = {
                 jsonrpc: '2.0',
                 error: {
@@ -88,7 +91,7 @@ export async function POST(request: NextRequest) {
             },
         });
     } catch (error) {
-        console.error(`Error in POST handler:`, error);
+        apiLogger.error('Error in POST handler', error);
         return NextResponse.json(
             {
                 jsonrpc: '2.0',
