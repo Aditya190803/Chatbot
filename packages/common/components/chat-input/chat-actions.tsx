@@ -89,29 +89,44 @@ export const modelOptions: ChatModeOption[] = [
         badgeClassName: 'border border-purple-200/70 bg-purple-100 text-purple-800 dark:border-purple-800/60 dark:bg-purple-950/40 dark:text-purple-200',
     },
     {
-        label: 'Gemini 2.5 Flash',
-        value: ChatMode.GEMINI_2_5_FLASH,
-    },
-    {
         label: 'Gemini 2.5 Pro',
         value: ChatMode.GEMINI_2_5_PRO,
+    },
+    {
+        label: 'Gemini 2.5 Flash',
+        value: ChatMode.GEMINI_2_5_FLASH,
     },
     {
         label: 'DeepSeek R1',
         value: ChatMode.DEEPSEEK_R1,
     },
     {
-        label: 'Grok 4 Fast',
-        value: ChatMode.GROK_4_FAST,
-
+        label: 'DeepSeek Chat v3.1',
+        value: ChatMode.DEEPSEEK_CHAT_V3_1,
+    },
+    {
+        label: 'Grok 4.1 Fast',
+        value: ChatMode.GROK_4_1_FAST,
+    },
+    {
+        label: 'Longcat Flash Chat',
+        value: ChatMode.LONGCAT_FLASH_CHAT,
     },
     {
         label: 'GLM 4.5 Air',
         value: ChatMode.GLM_4_5_AIR,
     },
     {
-        label: 'DeepSeek Chat v3.1',
-        value: ChatMode.DEEPSEEK_CHAT_V3_1,
+        label: 'Kat Coder Pro',
+        value: ChatMode.KAT_CODER_PRO,
+    },
+    {
+        label: 'Dolphin Mistral 24B Venice',
+        value: ChatMode.DOLPHIN_MISTRAL_24B_VENICE,
+    },
+    {
+        label: 'Bert Nebulon Alpha',
+        value: ChatMode.BERT_NEBULON_ALPHA,
     },
     {
         label: 'GPT-OSS 120B',
@@ -119,10 +134,6 @@ export const modelOptions: ChatModeOption[] = [
         badge: 'Temporarily unavailable',
         badgeClassName: 'border border-amber-200/70 bg-amber-100 text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200',
         disabled: true,
-    },
-    {
-        label: 'Dolphin Mistral 24B Venice',
-        value: ChatMode.DOLPHIN_MISTRAL_24B_VENICE,
     },
 ];
 
@@ -265,6 +276,7 @@ export const ChatModeOptions = ({
     const { isSignedIn } = useAuth();
     const isChatPage = usePathname().startsWith('/chat');
     const { push } = useRouter();
+    // In retry mode, hide guided workflows (Deep, Pro, Image Generation)
     const showGuidedWorkflows = isChatPage && !isRetry;
 
     const handleSelect = async (
@@ -283,7 +295,7 @@ export const ChatModeOptions = ({
     };
 
     const description = isRetry
-        ? 'Re-run this response with a different base model.'
+        ? 'Re-run this response with a different model.'
         : 'Pick the workflow or base model you want to use for upcoming messages.';
 
     const renderOption = (option: ChatModeOption) => {
@@ -354,7 +366,7 @@ export const ChatModeOptions = ({
         <DropdownMenuContent className="no-scrollbar w-[260px] max-w-[90vw] overflow-hidden border border-border/80 bg-background/95 p-0 shadow-xl backdrop-blur">
             <div className="border-border/70 border-b px-4 py-3">
                 <p className="text-muted-foreground/80 text-[11px] font-semibold uppercase tracking-wide">
-                    {isRetry ? 'Rewrite options' : 'Choose your mode'}
+                    {isRetry ? 'Rewrite with model' : 'Choose your mode'}
                 </p>
                 <p className="text-muted-foreground text-xs leading-snug">{description}</p>
             </div>

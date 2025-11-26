@@ -16,7 +16,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAgentStream } from '../../hooks/agent-provider';
 import { useChatEditor } from '../../hooks/use-editor';
 import { useChatStore } from '../../store';
-import { ExamplePrompts } from '../exmaple-prompts';
+import { ExamplePrompts } from '../example-prompts';
 import {
     ChatModeButton,
     GeneratingStatus,
@@ -151,7 +151,8 @@ export const ChatInput = ({
                                         <ChatEditor
                                             sendMessage={sendMessage}
                                             editor={editor}
-                                            sendOnEnter
+                                            sendOnEnter={!isMobile}
+                                            isMobile={isMobile}
                                             className="px-3 pt-3"
                                         />
                                     </Flex>

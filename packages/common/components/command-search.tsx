@@ -1,6 +1,7 @@
 'use client';
 import { useRootContext } from '@repo/common/context';
 import { useAppStore, useChatStore } from '@repo/common/store';
+import type { Thread } from '@repo/shared/types';
 import {
     cn,
     Dialog,
@@ -22,12 +23,16 @@ import {
 import moment from 'moment';
 import { useTheme } from 'next-themes';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export const CommandSearch = () => {
     const { threadId: currentThreadId } = useParams();
     const { isCommandSearchOpen, setIsCommandSearchOpen } = useRootContext();
     const threads = useChatStore(state => state.threads);
+    const persistentThreads = useMemo(
+        () => threads.filter((thread: Thread) => !thread.isTemporary),
+        [threads]
+    );
     const getThread = useChatStore(state => state.getThread);
     const removeThread = useChatStore(state => state.deleteThread);
     const switchThread = useChatStore(state => state.switchThread);
@@ -37,7 +42,7 @@ export const CommandSearch = () => {
     const setIsSettingsOpen = useAppStore(state => state.setIsSettingsOpen);
     const setSettingTab = useAppStore(state => state.setSettingTab);
     const [searchQuery, setSearchQuery] = useState('');
-    const groupedThreads: Record<string, typeof threads> = {
+    const groupedThreads: Record<string, Thread[]> = {
         today: [],
         yesterday: [],
         last7Days: [],
@@ -53,7 +58,7 @@ export const CommandSearch = () => {
         previousMonths: 'Previous Months',
     };
 
-    threads.forEach(thread => {
+    persistentThreads.forEach((thread: Thread) => {
         const createdAt = moment(thread.createdAt);
         const now = moment();
         if (createdAt.isSame(now, 'day')) {
@@ -71,7 +76,7 @@ export const CommandSearch = () => {
 
     useEffect(() => {
         router.prefetch('/chat');
-    }, [isCommandSearchOpen, threads, router]);
+    }, [isCommandSearchOpen, persistentThreads, router]);
 
     useEffect(() => {
         if (isCommandSearchOpen) {
@@ -82,19 +87,31 @@ export const CommandSearch = () => {
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
+            // Cmd/Ctrl+K to open search
             if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 setIsCommandSearchOpen(true);
             }
+            // Cmd/Ctrl+N for new thread
+            if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                router.push('/chat');
+            }
+            // Escape to close when open
+            if (e.key === 'Escape' && isCommandSearchOpen) {
+                e.preventDefault();
+                setIsCommandSearchOpen(false);
+            }
         };
         document.addEventListener('keydown', down);
         return () => document.removeEventListener('keydown', down);
-    }, []);
+    }, [isCommandSearchOpen, router, setIsCommandSearchOpen]);
 
     const actions = [
         {
             name: 'New Thread',
             icon: IconPlus,
+            shortcut: '⌘N',
             action: () => {
                 router.push('/chat');
                 onClose();
@@ -133,7 +150,7 @@ export const CommandSearch = () => {
     ];
 
     // Filter threads and actions based on search
-    const filteredThreads = threads.filter(thread =>
+    const filteredThreads = persistentThreads.filter((thread: Thread) =>
         thread.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -194,7 +211,12 @@ export const CommandSearch = () => {
                                                         strokeWidth="2"
                                                         className="text-muted-foreground flex-shrink-0"
                                                     />
-                                                    {action.name}
+                                                    <span className="flex-1 text-left">{action.name}</span>
+                                                    {'shortcut' in action && action.shortcut && (
+                                                        <span className="text-xs text-muted-foreground/60 ml-auto">
+                                                            {action.shortcut}
+                                                        </span>
+                                                    )}
                                                 </Button>
                                             ))}
                                         </div>
@@ -206,7 +228,7 @@ export const CommandSearch = () => {
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground mb-2">Threads</h3>
                                         <div className="space-y-1">
-                                            {filteredThreads.map(thread => (
+                                            {filteredThreads.map((thread: Thread) => (
                                                 <Button
                                                     key={thread.id}
                                                     variant="ghost"

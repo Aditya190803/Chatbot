@@ -22,6 +22,8 @@ interface DocumentUploadProps {
 const ACCEPTED_FILE_TYPES = {
     'application/pdf': ['.pdf'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
     'text/plain': ['.txt'],
     'text/markdown': ['.md'],
 };
@@ -68,7 +70,23 @@ export const DocumentUpload: FC<DocumentUploadProps> = ({
             });
 
             if (!response.ok) {
-                throw new Error(`Upload failed: ${response.statusText}`);
+                let errorMessage = response.statusText || 'Upload failed';
+                try {
+                    const errorBody = await response.json();
+                    if (typeof errorBody?.error === 'string') {
+                        errorMessage = errorBody.error;
+                    }
+                } catch (jsonError) {
+                    try {
+                        const text = await response.text();
+                        if (text) {
+                            errorMessage = text;
+                        }
+                    } catch {
+                        // ignore parsing errors
+                    }
+                }
+                throw new Error(errorMessage);
             }
 
             const result = await response.json();
@@ -160,7 +178,7 @@ export const DocumentUpload: FC<DocumentUploadProps> = ({
                         <span className="font-medium">Click to upload</span> or drag and drop
                     </div>
                     <div className="text-xs text-muted-foreground">
-                        PDF, DOCX, TXT, MD files up to 10MB
+                        PDF, DOCX, PPTX, XLSX, TXT, MD files up to 10MB
                     </div>
                 </div>
             </div>

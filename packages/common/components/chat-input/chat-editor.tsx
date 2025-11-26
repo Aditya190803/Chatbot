@@ -10,6 +10,7 @@ export type TChatEditor = {
     className?: string;
     placeholder?: string;
     sendOnEnter?: boolean;
+    isMobile?: boolean;
 };
 
 export const ChatEditor: FC<TChatEditor> = ({
@@ -19,6 +20,7 @@ export const ChatEditor: FC<TChatEditor> = ({
     maxHeight = '200px',
     className,
     sendOnEnter = true,
+    isMobile = false,
 }) => {
     const isGenerating = useChatStore(state => state.isGenerating);
 
@@ -29,20 +31,43 @@ export const ChatEditor: FC<TChatEditor> = ({
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
         if (isGenerating) return;
-        // Check if IME composition is in progress
+        
+        // Check if IME composition is in progress (for non-Latin keyboards)
         if (e.nativeEvent?.isComposing) {
             return;
         }
-        if (e.key === 'Enter' && !e.shiftKey) {
-            if (!sendOnEnter) {
+        
+        if (e.key === 'Enter') {
+            // Mobile behavior: Enter always adds newline, never sends
+            if (isMobile) {
+                // Let the TipTap HardBreak extension handle newlines
+                // Auto-scroll to show the new line
+                setTimeout(() => {
+                    const element = e.currentTarget;
+                    if (element) {
+                        element.scrollTop = element.scrollHeight;
+                    }
+                }, 0);
                 return;
             }
-            e.preventDefault();
-            sendMessage?.(editor.getText());
-        }
-        if (e.key === 'Enter' && e.shiftKey) {
-            e.preventDefault();
-            e.currentTarget.scrollTop = e.currentTarget.scrollHeight;
+            
+            // Desktop behavior: Enter sends, Shift+Enter adds newline
+            if (e.shiftKey) {
+                // Shift+Enter: Let default behavior handle newline, scroll to bottom
+                setTimeout(() => {
+                    const element = e.currentTarget;
+                    if (element) {
+                        element.scrollTop = element.scrollHeight;
+                    }
+                }, 0);
+                return;
+            }
+            
+            // Regular Enter on desktop: Send message
+            if (sendOnEnter) {
+                e.preventDefault();
+                sendMessage?.(editor.getText());
+            }
         }
     };
 
@@ -54,7 +79,7 @@ export const ChatEditor: FC<TChatEditor> = ({
                 style={{
                     maxHeight,
                 }}
-                enterKeyHint="send"
+                enterKeyHint={isMobile ? 'enter' : 'send'}
                 disabled={isGenerating}
                 onKeyDown={handleKeyDown}
                 className={cn(editorContainerClass, className)}
