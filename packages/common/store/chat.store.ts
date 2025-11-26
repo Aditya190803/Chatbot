@@ -2,6 +2,7 @@
 
 import { Model, models } from '@repo/ai/models';
 import { ChatMode } from '@repo/shared/config';
+import { logger } from '@repo/shared/logger';
 import { MessageGroup, Thread, ThreadItem } from '@repo/shared/types';
 import {
     fetchRemoteThreads,
@@ -209,14 +210,14 @@ const processBatchUpdate = async () => {
             lastItemUpdateTime[item.id] = Date.now();
         });
     } catch (error) {
-        console.error('Failed to batch update thread items:', error);
+        logger.error('Failed to batch update thread items', error);
         // If bulk update fails, try individual updates to salvage what we can
         for (const item of itemsToUpdate) {
             try {
                 await db.threadItems.put(item);
                 lastItemUpdateTime[item.id] = Date.now();
             } catch (innerError) {
-                console.error(`Failed to update item ${item.id}:`, innerError);
+                logger.error(`Failed to update item ${item.id}`, innerError);
             }
         }
     }
@@ -266,7 +267,7 @@ const initializeWorker = () => {
             // Handle different message types
             switch (message.type) {
                 case 'connected':
-                    console.log('Connected to SharedWorker');
+                    logger.debug('Connected to SharedWorker');
                     break;
 
                 case 'thread-update':
@@ -323,10 +324,10 @@ const initializeWorker = () => {
 
         // Handle worker errors
         dbWorker.onerror = err => {
-            console.error('SharedWorker error:', err);
+            logger.error('SharedWorker error', err);
         };
     } catch (error) {
-        console.error('Failed to initialize SharedWorker:', error);
+        logger.error('Failed to initialize SharedWorker', error);
         // Fallback to localStorage method if SharedWorker isn't supported
         initializeTabSync();
     }
@@ -398,7 +399,7 @@ const initializeTabSync = () => {
                     break;
             }
         } catch (error) {
-            console.error('Error processing sync data:', error);
+            logger.error('Error processing sync data', error);
         }
     });
 
@@ -418,7 +419,7 @@ const initializeTabSync = () => {
             // Trigger the storage event in other tabs
             localStorage.setItem(SYNC_EVENT_KEY, Date.now().toString());
         } catch (error) {
-            console.error('Error notifying other tabs:', error);
+            logger.error('Error notifying other tabs', error);
         }
     };
 
@@ -443,7 +444,7 @@ const notifyWorker = (type: string, data: any) => {
             timestamp: Date.now(),
         });
     } catch (error) {
-        console.error('Error notifying worker:', error);
+        logger.error('Error notifying worker', error);
     }
 };
 
@@ -490,7 +491,7 @@ export const useChatStore = create(
                     state.lastRemoteSyncError = null;
                 });
             } catch (error: any) {
-                console.error('Failed to sync thread to Appwrite', error);
+                logger.error('Failed to sync thread to Appwrite', error);
                 if (error?.message === 'unauthorized') {
                     set(state => {
                         state.syncMode = 'local';
@@ -718,7 +719,7 @@ export const useChatStore = create(
                             if (error?.message === 'unauthorized') {
                                 throw error;
                             }
-                            console.warn('Failed to upsert thread to Appwrite', error);
+                            logger.warn('Failed to upsert thread to Appwrite', { error });
                         }
                     }
                 }
@@ -742,7 +743,7 @@ export const useChatStore = create(
                     
                 });
             } catch (error: any) {
-                console.error('Failed to enable Appwrite sync', error);
+                logger.error('Failed to enable Appwrite sync', error);
                 set(state => {
                     state.syncMode = 'local';
                     state.isSyncingRemote = false;
@@ -1046,7 +1047,7 @@ export const useChatStore = create(
                     // Notify other tabs about the update
                     debouncedNotify('thread-update', { threadId: thread.id });
                 } catch (error) {
-                    console.error('Failed to update thread in database:', error);
+                    logger.error('Failed to update thread in database', error as Error);
                 }
             }
         },
@@ -1089,7 +1090,7 @@ export const useChatStore = create(
                     scheduleRemoteSync(threadId);
                 }
             } catch (error) {
-                console.error('Failed to create thread item:', error);
+                logger.error('Failed to create thread item', error as Error);
                 // Handle error appropriately
             }
         },
@@ -1139,7 +1140,7 @@ export const useChatStore = create(
                 }
 
             } catch (error) {
-                console.error('Error in updateThreadItem:', error);
+                logger.error('Error in updateThreadItem', error as Error);
 
                 // Safety fallback - try to persist directly in case of errors in the main logic
                 if (persistToDb) {
@@ -1157,9 +1158,9 @@ export const useChatStore = create(
                         await db.threadItems.put(fallbackItem);
                         scheduleRemoteSync(threadId);
                     } catch (fallbackError) {
-                        console.error(
-                            'Critical: Failed even fallback thread item update:',
-                            fallbackError
+                        logger.error(
+                            'Critical: Failed even fallback thread item update',
+                            fallbackError as Error
                         );
                     }
                 }

@@ -41,11 +41,6 @@ broadcastChannel.onmessage = event => {
 
 // Handle messages from tabs
 function handleMessage(message: any, sourcePort: MessagePort) {
-    // Log the action for debugging
-    if (message.type) {
-        console.log(`[SharedWorker] Received ${message.type} event`);
-    }
-
     // Broadcast message to all other connections (tabs)
     for (const port of Array.from(connections)) {
         if (port !== sourcePort) {
