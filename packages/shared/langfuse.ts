@@ -6,6 +6,7 @@
  */
 
 import { Langfuse } from 'langfuse';
+import { logger } from './logger';
 
 // Initialize Langfuse client
 export const langfuse = new Langfuse({
@@ -135,9 +136,9 @@ export const flushLangfuse = async () => {
   
   try {
     await langfuse.flushAsync();
-    console.log('Langfuse events flushed successfully');
+    logger.debug('Langfuse events flushed successfully');
   } catch (error) {
-    console.error('Failed to flush Langfuse events:', error);
+    logger.error('Failed to flush Langfuse events', error);
   }
 };
 
@@ -164,7 +165,7 @@ export const scoreGeneration = (params: {
 
 // Debug logging
 if (langfuseConfig.debug) {
-  console.log('Langfuse configuration:', {
+  logger.debug('Langfuse configuration', {
     enabled: langfuseConfig.enabled,
     environment: langfuseConfig.environment,
     host: process.env.LANGFUSE_HOST,
