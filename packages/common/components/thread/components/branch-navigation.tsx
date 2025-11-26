@@ -3,7 +3,7 @@ import { useChatStore } from '../../../store';
 import { ThreadItem } from '@repo/shared/types';
 import { Button, cn } from '@repo/ui';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
 
 interface BranchNavigationProps {
     threadItem: ThreadItem;
@@ -13,6 +13,7 @@ interface BranchNavigationProps {
 export function BranchNavigation({ threadItem, className }: BranchNavigationProps) {
     const threadItems = useChatStore(state => state.threadItems);
     const setCurrentThreadItem = useChatStore(state => state.setCurrentThreadItem);
+    const lastNavigatedIdRef = useRef<string | null>(null);
 
     // Get all items in the same branch group
     const branchGroup = useMemo(() => {
@@ -45,6 +46,23 @@ export function BranchNavigation({ threadItem, className }: BranchNavigationProp
 
     const totalBranches = branchGroup.length;
 
+    // Scroll to bottom after branch navigation
+    useEffect(() => {
+        if (lastNavigatedIdRef.current && lastNavigatedIdRef.current === threadItem.id) {
+            // Use requestAnimationFrame to ensure DOM has updated
+            requestAnimationFrame(() => {
+                const container = document.querySelector('.no-scrollbar');
+                if (container) {
+                    container.scrollTo({
+                        top: container.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+            lastNavigatedIdRef.current = null;
+        }
+    }, [threadItem.id]);
+
     const navigateToBranch = useCallback((direction: 'prev' | 'next') => {
         if (branchGroup.length <= 1) return;
 
@@ -53,7 +71,9 @@ export function BranchNavigation({ threadItem, className }: BranchNavigationProp
             : Math.min(branchGroup.length - 1, currentIndex + 1);
 
         if (newIndex !== currentIndex && branchGroup[newIndex]) {
-            setCurrentThreadItem(branchGroup[newIndex]);
+            const targetItem = branchGroup[newIndex];
+            lastNavigatedIdRef.current = targetItem.id;
+            setCurrentThreadItem(targetItem);
         }
     }, [branchGroup, currentIndex, setCurrentThreadItem]);
 

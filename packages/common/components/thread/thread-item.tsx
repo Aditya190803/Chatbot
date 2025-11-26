@@ -161,9 +161,15 @@ export const ThreadItem = memo(
             [rawAnswerText, threadItem.thinkingProcess]
         );
 
+        // Only animate if:
+        // 1. This is the last item AND currently generating
+        // 2. AND the item doesn't already have a final status (completed, error, aborted)
+        const isFinalStatus = ['COMPLETED', 'ERROR', 'ABORTED'].includes(threadItem?.status ?? '');
+        const shouldAnimate = isLast && isGenerating && !isFinalStatus;
+        
         const { isAnimationComplete, text: animatedText } = useAnimatedText(
             answerText,
-            isLast && isGenerating
+            shouldAnimate
         );
         const displayAnswer = isAnimationComplete ? answerText : animatedText;
         const setCurrentSources = useChatStore(state => state.setCurrentSources);
@@ -204,11 +210,6 @@ export const ThreadItem = memo(
                 threadItem?.status === 'ERROR'
             );
         }, [threadItem, answerText]);
-
-        const isFinalStatus = useMemo(
-            () => ['COMPLETED', 'ERROR', 'ABORTED'].includes(threadItem?.status ?? ''),
-            [threadItem?.status]
-        );
 
         const isAnswerReady = hasAnswer || isFinalStatus;
 
