@@ -367,6 +367,17 @@ Chatbot prioritizes user privacy by storing all data locally
 - **Bun**: JavaScript runtime and package manager
 - **ESLint & Prettier**: Code quality tools
 - **Husky**: Git hooks
+- **Vitest**: Unit and integration testing
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘/Ctrl + K` | Open command search |
+| `⌘/Ctrl + N` | New thread |
+| `Escape` | Close dialogs/modals |
+| `Enter` | Send message (desktop) |
+| `Shift + Enter` | New line in message |
 
 ## Getting Started
 
@@ -401,6 +412,38 @@ yarn dev
 
 4. Open your browser and navigate to `http://localhost:3000`
 
+## Environment Variables
+
+Create a `.env.local` file in `apps/web/` with the following variables:
+
+### Required for AI Chat
+| Variable | Description |
+|----------|-------------|
+| `GEMINI_API_KEY` | Google Gemini API key for primary AI capabilities |
+| `OPENROUTER_API_KEY` | OpenRouter API key for accessing multiple LLM providers |
+
+### Optional - Cloud Sync (Appwrite)
+| Variable | Description |
+|----------|-------------|
+| `APPWRITE_ENDPOINT` | Appwrite server endpoint |
+| `APPWRITE_PROJECT_ID` | Appwrite project ID |
+| `APPWRITE_API_KEY` | Appwrite API key for server operations |
+| `APPWRITE_DATABASE_ID` | Database ID for storing threads |
+| `APPWRITE_THREADS_COLLECTION_ID` | Collection ID for thread documents |
+
+### Optional - Web Search
+| Variable | Description |
+|----------|-------------|
+| `LANGSEARCH_API_KEY` | LangSearch API token for web search in research modes |
+| `SERPER_API_KEY` | Fallback search provider |
+
+### Optional - Analytics & Logging
+| Variable | Description |
+|----------|-------------|
+| `LOG_LEVEL` | Set to `debug`, `info`, `warn`, or `error` (default: `info`) |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse analytics public key |
+| `LANGFUSE_SECRET_KEY` | Langfuse analytics secret key |
+
 ### Web Search Configuration
 
 Chatbot ships with LangSearch as the default web search provider used by research workflows. Configure these environment variables (see `apps/web/.env.example`) to enable live search:
@@ -413,3 +456,20 @@ Chatbot ships with LangSearch as the default web search provider used by researc
 - `SERPER_API_KEY` (optional): API key for the Serper fallback provider.
 
 When running locally, set these variables in `apps/web/.env.local`, then restart the dev server to pick up the changes.
+
+## Testing
+
+Run the test suite using Vitest:
+
+```bash
+# Run tests in watch mode
+bun test
+
+# Run tests once
+bun test:run
+
+# Run tests with coverage
+bun test:coverage
+```
+
+Tests are located alongside source files with `.test.ts` or `.spec.ts` extensions.
