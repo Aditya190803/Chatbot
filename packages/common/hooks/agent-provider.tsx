@@ -3,6 +3,7 @@
 import { useAuth } from '@repo/common/context';
 import { useWorkflowWorker } from '@repo/ai/worker';
 import { ChatMode, ChatModeConfig } from '@repo/shared/config';
+import { logger } from '@repo/shared/logger';
 import { Answer, ThreadItem } from '@repo/shared/types';
 import { buildCoreMessagesFromThreadItems, plausible, selectModelForQuery } from '@repo/shared/utils';
 import { nanoid } from 'nanoid';
@@ -143,7 +144,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                     await updateThread({ id: threadId, title });
                 }
             } catch (error) {
-                console.error('Auto title generation failed:', error);
+                logger.error('Auto title generation failed', error);
                 const stages = pendingTitleStages.current.get(threadId);
                 if (stages) {
                     stages.delete(stage);
@@ -360,7 +361,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                         },
                         { persist: true }
                     );
-                    console.error('Error response:', errorText);
+                    logger.error('Error response', undefined, { errorText, status: response.status });
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -419,17 +420,16 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                                     } else if (currentEvent === 'done' && data.type === 'done') {
                                         setIsGenerating(false);
                                         const streamDuration = performance.now() - streamStartTime;
-                                        console.log(
-                                            'done event received',
+                                        logger.debug('Done event received', {
                                             eventCount,
-                                            `Stream duration: ${streamDuration.toFixed(2)}ms`
-                                        );
+                                            streamDuration: `${streamDuration.toFixed(2)}ms`
+                                        });
                                         if (data.threadItemId) {
                                             threadItemMap.delete(data.threadItemId);
                                         }
 
                                         if (data.status === 'error') {
-                                            console.error('Stream error:', data.error);
+                                            logger.error('Stream error', undefined, { error: data.error });
                                             if (data.threadId && data.threadItemId) {
                                                 updateThreadItem(
                                                     data.threadId,
@@ -469,27 +469,24 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                                         }
                                     }
                                 } catch (jsonError) {
-                                    console.warn(
-                                        'JSON parse error for data:',
-                                        dataMatch[1],
-                                        jsonError
-                                    );
+                                    logger.warn('JSON parse error for data', {
+                                        data: dataMatch[1],
+                                        error: jsonError
+                                    });
                                 }
                             }
                         }
                     } catch (readError) {
-                        console.error('Error reading from stream:', readError);
+                        logger.error('Error reading from stream', readError);
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         continue;
                     }
                 }
             } catch (streamError: any) {
                 const totalTime = performance.now() - startTime;
-                console.error(
-                    'Fatal stream error:',
-                    streamError,
-                    `Total time: ${totalTime.toFixed(2)}ms`
-                );
+                logger.error('Fatal stream error', streamError, {
+                    totalTime: `${totalTime.toFixed(2)}ms`
+                });
                 setIsGenerating(false);
                 if (streamError.name === 'AbortError') {
                     updateThreadItem(
