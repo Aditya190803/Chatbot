@@ -4,6 +4,54 @@ import { LanguageModelV1 } from '@ai-sdk/provider';
 import { LanguageModelV1Middleware, wrapLanguageModel } from 'ai';
 import { ModelEnum, models } from './models';
 
+// Simple in-memory caches to avoid recreating provider/model instances repeatedly.
+const providerInstanceCache: Map<ProviderEnumType, any> = new Map();
+const modelInstanceCache: Map<string, any> = new Map();
+
+// Track cached API key signatures to detect changes
+let cachedKeySignature: string | null = null;
+
+// Clear all provider and model caches (useful when API keys change)
+export const clearProviderCaches = () => {
+  providerInstanceCache.clear();
+  modelInstanceCache.clear();
+  cachedKeySignature = null;
+};
+
+// Check if API keys have changed and clear caches if needed
+const invalidateCachesIfKeysChanged = () => {
+  const currentSignature = computeKeySignature();
+  if (cachedKeySignature !== null && cachedKeySignature !== currentSignature) {
+    clearProviderCaches();
+  }
+  cachedKeySignature = currentSignature;
+};
+
+// Compute a signature based on current API keys
+const computeKeySignature = (): string => {
+  const parts: string[] = [];
+  
+  // Check process.env
+  if (typeof process !== 'undefined' && process.env) {
+    parts.push(process.env.GEMINI_API_KEY || '');
+    parts.push(process.env.OPENROUTER_API_KEY || '');
+  }
+  
+  // Check self.AI_API_KEYS (worker environment)
+  if (typeof self !== 'undefined' && (self as any).AI_API_KEYS) {
+    parts.push((self as any).AI_API_KEYS.google || '');
+    parts.push((self as any).AI_API_KEYS.openrouter || '');
+  }
+  
+  // Check window.AI_API_KEYS (browser environment)
+  if (typeof window !== 'undefined' && window.AI_API_KEYS) {
+    parts.push(window.AI_API_KEYS.google || '');
+    parts.push(window.AI_API_KEYS.openrouter || '');
+  }
+  
+  return parts.join('|');
+};
+
 export const Providers = {
   GOOGLE: 'google',
   OPENROUTER: 'openrouter',
@@ -116,48 +164,70 @@ const getOpenRouterHeaders = () => {
 };
 
 export const getProviderInstance = (provider: ProviderEnumType) => {
+  // Check if API keys have changed and invalidate caches if needed
+  invalidateCachesIfKeysChanged();
+  
+  // Return cached provider instance if available
+  if (providerInstanceCache.has(provider)) {
+    return providerInstanceCache.get(provider);
+  }
+
+  let created: any;
   switch (provider) {
-    case 'google':
-      {
-  const apiKey = getProviderApiKey(Providers.GOOGLE);
-        if (!apiKey) {
-          throw new MissingProviderKeyError(Providers.GOOGLE);
-        }
-      return createGoogleGenerativeAI({
+    case Providers.GOOGLE: {
+      const apiKey = getProviderApiKey(Providers.GOOGLE);
+      if (!apiKey) {
+        throw new MissingProviderKeyError(Providers.GOOGLE);
+      }
+      created = createGoogleGenerativeAI({
         apiKey,
       });
+      break;
+    }
+    case Providers.OPENROUTER: {
+      const apiKey = getProviderApiKey(Providers.OPENROUTER);
+      if (!apiKey) {
+        throw new MissingProviderKeyError(Providers.OPENROUTER);
       }
-    case Providers.OPENROUTER:
-      {
-  const apiKey = getProviderApiKey(Providers.OPENROUTER);
-        if (!apiKey) {
-          throw new MissingProviderKeyError(Providers.OPENROUTER);
-        }
-      return createOpenAI({
+      created = createOpenAI({
         apiKey,
         baseURL: 'https://openrouter.ai/api/v1',
         headers: getOpenRouterHeaders(),
       });
+      break;
+    }
+    default: {
+      const apiKey = getProviderApiKey(Providers.OPENROUTER);
+      if (!apiKey) {
+        throw new MissingProviderKeyError(Providers.OPENROUTER);
       }
-    default:
-      {
-  const apiKey = getProviderApiKey(Providers.OPENROUTER);
-        if (!apiKey) {
-          throw new MissingProviderKeyError(Providers.OPENROUTER);
-        }
-        return createOpenAI({
-          apiKey,
-        });
-      }
+      created = createOpenAI({
+        apiKey,
+      });
+      break;
+    }
   }
+
+  // Cache and return
+  providerInstanceCache.set(provider, created);
+  return created;
 };
 
 export const getLanguageModel = (m: ModelEnum, middleware?: LanguageModelV1Middleware): any => {
   const model = models.find(model => model.id === m);
   const instance = getProviderInstance(model?.provider as ProviderEnumType);
-  const selectedModel = instance(model?.id || 'gpt-4o-mini')
-  if(middleware) {
-    return wrapLanguageModel({model: selectedModel, middleware });
+
+  // Try to reuse a created model instance for this model id
+  const modelKey = String(model?.id || 'unknown-model');
+  let baseModel = modelInstanceCache.get(modelKey);
+  if (!baseModel) {
+    baseModel = instance(model?.id || 'gpt-4o-mini');
+    modelInstanceCache.set(modelKey, baseModel);
   }
-  return selectedModel;
+
+  // If middleware is provided, wrap on-the-fly (do not cache wrapped instances as middleware can vary)
+  if (middleware) {
+    return wrapLanguageModel({ model: baseModel, middleware });
+  }
+  return baseModel;
 };

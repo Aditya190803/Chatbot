@@ -91,85 +91,165 @@ export const generateText = async ({
     usage?: LanguageModelUsage;
     durationMs: number;
 }> => {
-    try {
+    // Retry + fallback config (configurable via env when available)
+    const MAX_ATTEMPTS = (typeof process !== 'undefined' && process.env?.LLM_MAX_ATTEMPTS)
+        ? Math.max(1, parseInt(process.env.LLM_MAX_ATTEMPTS, 10))
+        : 3;
+    const BASE_TIMEOUT_MS = (typeof process !== 'undefined' && process.env?.LLM_PER_ATTEMPT_TIMEOUT_MS)
+        ? Math.max(5000, parseInt(process.env.LLM_PER_ATTEMPT_TIMEOUT_MS, 10))
+        : 20000; // per-attempt timeout
+    const BACKOFF_BASE = (typeof process !== 'undefined' && process.env?.LLM_BACKOFF_BASE_MS)
+        ? Math.max(100, parseInt(process.env.LLM_BACKOFF_BASE_MS, 10))
+        : 500; // ms
+
+    // Determine fallback candidates: prefer fast/free models when falling back
+    const fallbackOrder = [
+        ModelEnum.GEMINI_2_5_FLASH,
+        ModelEnum.GEMINI_2_5_PRO,
+        ModelEnum.GROK_4_FAST,
+        ModelEnum.GLM_4_5_AIR,
+    ];
+
+    const attemptWithModel = async (attemptModel: ModelEnum, attemptIndex: number) => {
         if (signal?.aborted) {
             throw new Error('Operation aborted');
         }
 
-        const middleware = extractReasoningMiddleware({
-            tagName: 'think',
-            separator: '\n',
-        });
+        const middleware = extractReasoningMiddleware({ tagName: 'think', separator: '\n' });
+        const selectedModel = getLanguageModel(attemptModel, middleware);
 
-        const selectedModel = getLanguageModel(model, middleware);
-        const { fullStream } = !!messages?.length
-            ? streamText({
-                  system: prompt,
-                  model: selectedModel,
-                  messages,
-                  tools,
-                  maxSteps,
-                  toolChoice: toolChoice as any,
-                  abortSignal: signal,
-              })
-            : streamText({
-                  prompt,
-                  model: selectedModel,
-                  tools,
-                  maxSteps,
-                  toolChoice: toolChoice as any,
-                  abortSignal: signal,
-              });
-        let fullText = '';
-        let reasoning = '';
-        let usage: LanguageModelUsage | undefined;
-        const startTime = Date.now();
+        // Helper to stream with a timeout
+        const streamWithTimeout = async () => {
+            const controller = new AbortController();
+            const timeoutMs = BASE_TIMEOUT_MS + attemptIndex * 5000; // increase timeout slightly per attempt
 
-        for await (const chunk of fullStream) {
-            if (signal?.aborted) {
-                throw new Error('Operation aborted');
-            }
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            const abortSignal = controller.signal;
 
-            if (chunk.type === 'text-delta') {
-                const textDelta = chunk.text || '';
-                fullText += textDelta;
-                if (textDelta) {
-                    onChunk?.(textDelta, fullText);
+            try {
+                const { fullStream } = !!messages?.length
+                    ? streamText({
+                          system: prompt,
+                          model: selectedModel,
+                          messages,
+                          tools,
+                          maxSteps,
+                          toolChoice: toolChoice as any,
+                          abortSignal,
+                      })
+                    : streamText({
+                          prompt,
+                          model: selectedModel,
+                          tools,
+                          maxSteps,
+                          toolChoice: toolChoice as any,
+                          abortSignal,
+                      });
+
+                let fullText = '';
+                let reasoning = '';
+                let usage: LanguageModelUsage | undefined;
+                const startTime = Date.now();
+
+                for await (const chunk of fullStream) {
+                    if (signal?.aborted) {
+                        clearTimeout(timeoutId);
+                        throw new Error('Operation aborted');
+                    }
+
+                    if (chunk.type === 'text-delta') {
+                        const textDelta = chunk.text || '';
+                        fullText += textDelta;
+                        if (textDelta) {
+                            onChunk?.(textDelta, fullText);
+                        }
+                    }
+                    if (chunk.type === 'reasoning-delta') {
+                        const reasoningDelta = chunk.text || '';
+                        reasoning += reasoningDelta;
+                        if (reasoningDelta) {
+                            onReasoning?.(reasoningDelta, reasoning);
+                        }
+                    }
+                    if (chunk.type === 'tool-call') {
+                        onToolCall?.(chunk);
+                    }
+                    if (chunk.type === ('tool-result' as any)) {
+                        onToolResult?.(chunk);
+                    }
+
+                    if (chunk.type === 'finish') {
+                        usage = chunk.totalUsage as LanguageModelUsage | undefined;
+                    }
+
+                    if (chunk.type === 'error') {
+                        console.error('LLM chunk error:', chunk.error);
+                        clearTimeout(timeoutId);
+                        throw chunk.error;
+                    }
                 }
+
+                clearTimeout(timeoutId);
+                const durationMs = Date.now() - startTime;
+                return { text: fullText, usage, durationMs };
+            } finally {
+                clearTimeout(timeoutId);
             }
-            if (chunk.type === 'reasoning-delta') {
-                const reasoningDelta = chunk.text || '';
-                reasoning += reasoningDelta;
-                if (reasoningDelta) {
-                    onReasoning?.(reasoningDelta, reasoning);
-                }
-            }
-            if (chunk.type === 'tool-call') {
-                onToolCall?.(chunk);
-            }
-            if (chunk.type === ('tool-result' as any)) {
-                onToolResult?.(chunk);
+        };
+
+        return await streamWithTimeout();
+    };
+
+    let lastError: any = null;
+
+    const MAX_ATTEMPTS_FALLBACK = (typeof process !== 'undefined' && process.env?.LLM_MAX_ATTEMPTS_FALLBACK)
+        ? Math.max(1, parseInt(process.env.LLM_MAX_ATTEMPTS_FALLBACK, 10))
+        : 2;
+
+    // Phase 1: retry the selected model up to MAX_ATTEMPTS
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        try {
+            // exponential backoff before attempt (skip on first)
+            if (attempt > 0) {
+                const backoff = BACKOFF_BASE * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
+                await new Promise(r => setTimeout(r, backoff));
             }
 
-            if (chunk.type === 'finish') {
-                usage = chunk.totalUsage as LanguageModelUsage | undefined;
-            }
-
-            if (chunk.type === 'error') {
-                console.error(chunk.error);
-                return Promise.reject(chunk.error);
+            const result = await attemptWithModel(model, attempt);
+            return result;
+        } catch (err) {
+            lastError = err;
+            console.warn(`generateText attempt ${attempt + 1} failed for model ${model}:`, err);
+            if (String(err).toLowerCase().includes('aborted') || String(err).toLowerCase().includes('operation aborted')) {
+                throw err;
             }
         }
-        const durationMs = Date.now() - startTime;
-        return Promise.resolve({
-            text: fullText,
-            usage,
-            durationMs,
-        });
-    } catch (error) {
-        console.error(error);
-        return Promise.reject(error);
     }
+
+    // Phase 2: after exhausting attempts for the primary model, try fallback models
+    for (const fallbackModel of fallbackOrder.filter(m => m !== model)) {
+        for (let attempt = 0; attempt < MAX_ATTEMPTS_FALLBACK; attempt++) {
+            try {
+                if (attempt > 0) {
+                    const backoff = BACKOFF_BASE * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
+                    await new Promise(r => setTimeout(r, backoff));
+                }
+
+                const result = await attemptWithModel(fallbackModel, attempt);
+                console.info(`generateText succeeded with fallback model ${fallbackModel}`);
+                return result;
+            } catch (err) {
+                lastError = err;
+                console.warn(`generateText fallback attempt ${attempt + 1} failed for model ${fallbackModel}:`, err);
+                if (String(err).toLowerCase().includes('aborted') || String(err).toLowerCase().includes('operation aborted')) {
+                    throw err;
+                }
+            }
+        }
+    }
+
+    console.error('All generateText attempts failed:', lastError);
+    return Promise.reject(lastError ?? new Error('LLM request failed after retries'));
 };
 
 export const generateObject = async ({

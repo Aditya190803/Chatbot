@@ -1,5 +1,7 @@
 import { ChatMode } from '@repo/shared/config';
 import { runWorkflow } from '../workflow/flow';
+import { clearProviderCaches } from '../providers';
+
 // Create context for the worker
 const ctx: Worker = self as any;
 
@@ -43,6 +45,9 @@ ctx.addEventListener('message', async (event: MessageEvent) => {
             // Set API keys if provided
             if (newApiKeys) {
                 apiKeys = newApiKeys;
+
+                // Clear provider caches before updating keys to ensure fresh instances
+                clearProviderCaches();
 
                 self.AI_API_KEYS = {
                     google: apiKeys.GEMINI_API_KEY,
