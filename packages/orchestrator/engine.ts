@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { LangfuseTraceClient } from 'langfuse';
+import { logger } from '@repo/shared/logger';
 import { Context, ContextSchemaDefinition } from './context';
 import { EventSchemaDefinition, TypedEventEmitter } from './events';
 import { ExecutionContext } from './execution-context';
@@ -113,13 +114,13 @@ export class WorkflowEngine<
 
     async executeTask(taskName: string, data?: any) {
         if (this.executionContext.isAborted() && !this.executionContext.isGracefulShutdown()) {
-            console.log(`⚠️ Task "${taskName}" skipped due to workflow abortion.`);
+            logger.debug(`Task "${taskName}" skipped due to workflow abortion`, { taskName });
             return;
         }
 
         const config = this.tasks.get(taskName);
         if (!config) {
-            console.error(`❌ Task "${taskName}" not found.`);
+            logger.error(`Task "${taskName}" not found`, undefined, { taskName });
             this.executionContext.endTaskTiming(
                 taskName,
                 new Error(`Task "${taskName}" not found.`)
@@ -133,9 +134,10 @@ export class WorkflowEngine<
             config.dependencies &&
             !config.dependencies.every(dep => this.executionContext.isTaskComplete(dep))
         ) {
-            console.log(
-                `⏳ Task "${taskName}" is waiting for dependencies: ${config.dependencies.join(', ')}`
-            );
+            logger.debug(`Task "${taskName}" is waiting for dependencies`, {
+                taskName,
+                dependencies: config.dependencies.join(', ')
+            });
             return;
         }
 
@@ -153,7 +155,7 @@ export class WorkflowEngine<
             ...state,
             runningTasks: state.runningTasks.add(taskName),
         }));
-        console.log(`🚀 Executing task "${taskName}" (Run #${executionCount + 1})`);
+        logger.debug(`Executing task "${taskName}"`, { taskName, runNumber: executionCount + 1 });
 
         this.executionContext.startTaskTiming(taskName);
 
@@ -214,7 +216,7 @@ export class WorkflowEngine<
                     this.executionContext.isAborted() &&
                     !this.executionContext.isGracefulShutdown()
                 ) {
-                    console.log(`⚠️ Workflow stopped after task "${taskName}".`);
+                    logger.info(`Workflow stopped after task "${taskName}"`, { taskName });
                     return result;
                 }
 
@@ -243,7 +245,7 @@ export class WorkflowEngine<
 
                 // Check for special "end" route value
                 if (nextTasks === 'end') {
-                    console.log(`🏁 Workflow ended after task "${taskName}".`);
+                    logger.info(`Workflow ended after task "${taskName}"`, { taskName });
                     if (this.persistence) {
                         await this.persistence.saveWorkflow(this.id, this);
                     }
@@ -285,7 +287,7 @@ export class WorkflowEngine<
             } catch (error) {
                 this.executionContext.endTaskTiming(taskName, error as Error);
                 attempt++;
-                console.error(`❌ Error in task "${taskName}" (Attempt ${attempt}):`, error);
+                logger.error(`Error in task "${taskName}"`, error, { taskName, attempt });
 
                 if (config.onError) {
                     try {
@@ -343,15 +345,12 @@ export class WorkflowEngine<
                             return errorResult.result;
                         }
                     } catch (errorHandlerError) {
-                        console.error(
-                            `❌ Error handler failed for task "${taskName}":`,
-                            errorHandlerError
-                        );
+                        logger.error(`Error handler failed for task "${taskName}"`, errorHandlerError, { taskName });
                     }
                 }
 
                 if (attempt > (config.retryCount || 0)) {
-                    console.error(`⛔ Task "${taskName}" failed after ${attempt} attempts.`);
+                    logger.error(`Task "${taskName}" failed after ${attempt} attempts`, undefined, { taskName, attempt });
                     throw error;
                 }
             }
