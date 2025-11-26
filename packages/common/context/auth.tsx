@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { AuthUser } from '@repo/common/auth';
 import { mapAccountToAuthUser } from '@repo/common/auth';
 import { useChatStore } from '@repo/common/store';
+import { logger } from '@repo/shared/logger';
 
 const API_SESSION_ENDPOINT = '/api/auth/session';
 const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
@@ -48,7 +49,7 @@ const getClient = () => {
     const project = getPublicEnv('NEXT_PUBLIC_APPWRITE_PROJECT_ID');
 
     if (!endpoint || !project) {
-        console.error('Appwrite environment variables are missing. Please configure NEXT_PUBLIC_APPWRITE_ENDPOINT and NEXT_PUBLIC_APPWRITE_PROJECT_ID.');
+        logger.error('Appwrite environment variables are missing. Please configure NEXT_PUBLIC_APPWRITE_ENDPOINT and NEXT_PUBLIC_APPWRITE_PROJECT_ID.');
         return null;
     }
 
@@ -85,7 +86,7 @@ const createSessionCookie = async (account: Account) => {
         });
         return true;
     } catch (error) {
-        console.warn('Failed to create Appwrite JWT; falling back to session refresh endpoint.', error);
+        logger.warn('Failed to create Appwrite JWT; falling back to session refresh endpoint.', { error });
 
         const response = await fetch(API_SESSION_ENDPOINT, {
             method: 'GET',
@@ -159,11 +160,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (state.user) {
             enableAppwriteSync().catch((error: unknown) => {
-                console.error('Failed to enable Appwrite sync after sign-in', error);
+                logger.error('Failed to enable Appwrite sync after sign-in', error as Error);
             });
         } else if (syncMode === 'appwrite') {
             disableAppwriteSync().catch((error: unknown) => {
-                console.error('Failed to disable Appwrite sync after sign-out', error);
+                logger.error('Failed to disable Appwrite sync after sign-out', error as Error);
             });
         }
     }, [state.user?.id, state.isLoaded, enableAppwriteSync, disableAppwriteSync, syncMode]);
@@ -177,7 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             try {
                 await createSessionCookie(account);
             } catch (error) {
-                console.error('Failed to refresh Appwrite JWT', error);
+                logger.error('Failed to refresh Appwrite JWT', error as Error);
             }
         }, REFRESH_INTERVAL_MS);
 
@@ -255,7 +256,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 await account.deleteSessions();
             }
         } catch (error) {
-            console.warn('Failed to delete Appwrite sessions', error);
+            logger.warn('Failed to delete Appwrite sessions', { error });
         }
 
         await fetch(API_SESSION_ENDPOINT, {

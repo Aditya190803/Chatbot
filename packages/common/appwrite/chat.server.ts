@@ -1,4 +1,5 @@
 import { AppwriteException, Client, Databases, Permission, Query, Role } from 'node-appwrite';
+import { logger } from '@repo/shared/logger';
 import { ThreadPayload } from '@repo/shared/chat-serialization';
 
 type ChatConfig = {
@@ -22,7 +23,7 @@ const serializePayload = (payload: ThreadPayload): string => {
     try {
         return JSON.stringify(payload);
     } catch (error) {
-        console.error('Failed to serialize thread payload for Appwrite:', error);
+        logger.error('Failed to serialize thread payload for Appwrite', error as Error);
         throw new Error('Unable to serialize chat thread payload for persistence.');
     }
 };
@@ -36,7 +37,7 @@ const deserializePayload = (rawPayload: unknown): ThreadPayload => {
         try {
             return JSON.parse(rawPayload) as ThreadPayload;
         } catch (error) {
-            console.error('Failed to parse stored thread payload from Appwrite:', error);
+            logger.error('Failed to parse stored thread payload from Appwrite', error as Error);
             throw new Error('Corrupted chat payload received from Appwrite.');
         }
     }

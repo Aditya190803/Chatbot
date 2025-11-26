@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { Account, Client } from 'node-appwrite';
+import { logger } from '@repo/shared/logger';
 
 import { AUTH_COOKIE_NAME, AuthUser, mapAccountToAuthUser } from './user';
 
@@ -35,7 +36,7 @@ const getAppwriteConfig = (): AppwriteConfig | null => {
         }
 
         if (!hasLoggedMissingConfigWarning) {
-            console.warn(message);
+            logger.warn(message);
             hasLoggedMissingConfigWarning = true;
         }
 
@@ -86,7 +87,7 @@ export const getUserFromJWT = async (jwt: string): Promise<AuthUser | null> => {
         const user = await account.get();
         return mapAccountToAuthUser(user as any);
     } catch (error) {
-        console.warn('Failed to fetch user from Appwrite JWT', error);
+        logger.warn('Failed to fetch user from Appwrite JWT', { error });
         return null;
     }
 };
@@ -127,7 +128,7 @@ export const auth = async (): Promise<{
             const mapped = mapAccountToAuthUser(user as any);
             return { userId: mapped.id, user: mapped, jwt: null, sessionId: sessionCookie };
         } catch (error) {
-            console.warn('Failed to hydrate auth session from Appwrite session cookie', error);
+            logger.warn('Failed to hydrate auth session from Appwrite session cookie', { error });
             return { userId: null, user: null, jwt: null, sessionId: null };
         }
     }
