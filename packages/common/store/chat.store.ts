@@ -178,10 +178,13 @@ const throttle = <T extends (...args: any[]) => any>(
 
 // Add batch update functionality
 const DB_UPDATE_THROTTLE = 1000; // 1 second between updates for the same item
-const BATCH_PROCESS_INTERVAL = 500; // Process batches every 500ms
+const BATCH_PROCESS_INTERVAL = 100; // Reduced from 500ms to 100ms for better perceived latency
 
 // Track the last time each item was updated
 const lastItemUpdateTime: Record<string, number> = {};
+
+// Request deduplication: Track item hashes to prevent redundant updates
+const itemUpdateHashes: Map<string, string> = new Map();
 
 // Enhanced batch update queue
 type BatchUpdateQueue = {

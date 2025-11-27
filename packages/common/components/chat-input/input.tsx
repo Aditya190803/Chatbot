@@ -4,6 +4,7 @@ import {
     ImageAttachment,
     ImageDropzoneRoot,
     MessagesRemainingBadge,
+    TemporaryChatGreeting,
 } from '@repo/common/components';
 import { useImageAttachment, useIsMobile } from '@repo/common/hooks';
 import { ChatModeConfig } from '@repo/shared/config';
@@ -72,6 +73,8 @@ export const ChatInput = ({
     const { dropzonProps, handleImageUpload } = useImageAttachment();
     const { push } = useRouter();
     const chatMode = useChatStore(state => state.chatMode);
+    const temporaryThreadId = useChatStore(state => state.temporaryThreadId);
+    const isTemporaryChat = temporaryThreadId !== null && currentThreadId === temporaryThreadId;
     const sendMessage = async () => {
         if (
             !isSignedIn &&
@@ -224,19 +227,22 @@ export const ChatInput = ({
         editor?.commands.focus('end');
     }, [currentThreadId]);
 
+    // Show centered layout when there are no messages (either no thread or empty thread)
+    const showCenteredLayout = !currentThreadId || threadItemsLength === 0;
+
     return (
         <div
             className={cn(
                 'bg-secondary w-full',
-                currentThreadId
-                    ? 'absolute bottom-0'
-                    : 'absolute inset-0 flex h-full w-full flex-col items-center justify-center'
+                showCenteredLayout
+                    ? 'absolute inset-0 flex h-full w-full flex-col items-center justify-center'
+                    : 'absolute bottom-0'
             )}
         >
             <div
                 className={cn(
                     'mx-auto flex w-full max-w-3xl flex-col items-start',
-                    !threadItemsLength && 'justify-start',
+                    showCenteredLayout && 'justify-start',
                     size === 'sm' && 'px-4 sm:px-8' // Mobile-first padding
                 )}
             >
@@ -244,21 +250,24 @@ export const ChatInput = ({
                     items="start"
                     justify="start"
                     direction="col"
-                    className={cn('w-full pb-4', threadItemsLength > 0 ? 'mb-0' : 'h-full')}
+                    className={cn('w-full pb-4', !showCenteredLayout ? 'mb-0' : 'h-full')}
                 >
-                    {!currentThreadId && showGreeting && (
+                    {(showCenteredLayout && showGreeting) && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="mb-4 flex w-full flex-col items-center gap-1"
+                            className="mb-4 flex w-full flex-col items-center gap-2"
                         >
                             <AnimatedTitles />
+                            {isTemporaryChat && (
+                                <TemporaryChatGreeting />
+                            )}
                         </motion.div>
                     )}
 
                     {renderChatBottom()}
-                    {!currentThreadId && showGreeting && <ExamplePrompts />}
+                    {(showCenteredLayout && showGreeting) && <ExamplePrompts />}
 
                     {/* <ChatFooter /> */}
                 </Flex>

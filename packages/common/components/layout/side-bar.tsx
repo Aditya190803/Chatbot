@@ -105,7 +105,13 @@ export const Sidebar = () => {
                         tooltip={isSidebarOpen ? undefined : 'New Thread'}
                         tooltipSide="right"
                         className={cn('relative w-full shadow-sm', 'justify-center')}
-                        onClick={() => !isChatPage && push('/chat')}
+                        onClick={() => {
+                            // Exit temporary chat if active
+                            if (temporaryThreadId) {
+                                endTemporaryThread();
+                            }
+                            push('/chat');
+                        }}
                     >
                         <IconPlus
                             size={16}
@@ -132,20 +138,23 @@ export const Sidebar = () => {
                     </Button>
                     <Button
                         size={isSidebarOpen ? 'sm' : 'icon'}
-                        variant={temporaryThreadId ? 'ghost' : 'bordered'}
+                        variant={temporaryThreadId && currentThreadId === temporaryThreadId ? 'secondary' : 'ghost'}
                         rounded="full"
                         tooltip={
                             temporaryThreadId
-                                ? 'Temporary chat already active'
+                                ? 'Temporary chat active'
                                 : isSidebarOpen
                                     ? undefined
                                     : 'Temporary Chat'
                         }
                         tooltipSide="right"
-                        className={cn('relative w-full shadow-sm', 'justify-center')}
-                        disabled={!!temporaryThreadId}
+                        className={cn('relative w-full', 'justify-center')}
                         onClick={() => {
-                            if (temporaryThreadId) return;
+                            if (temporaryThreadId) {
+                                // If temp chat exists, navigate to it
+                                push(`/chat/${temporaryThreadId}`);
+                                return;
+                            }
                             void startTemporaryThread('Temporary Chat').then((thread: Thread) => {
                                 if (!thread) return;
                                 push(`/chat/${thread.id}`);
@@ -176,16 +185,16 @@ export const Sidebar = () => {
                             <Flex
                                 direction="col"
                                 gap="xs"
-                                className="border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/5 w-full rounded-md border p-3 text-xs"
+                                className="border-slate-300/60 bg-slate-100/50 dark:border-slate-600/40 dark:bg-slate-800/30 w-full rounded-md border p-3 text-xs"
                             >
                                 <Flex items="center" justify="between">
-                                    <p className="font-semibold text-amber-700 dark:text-amber-300">
+                                    <p className="font-semibold text-slate-700 dark:text-slate-300">
                                         Temporary session
                                     </p>
                                     <Button
                                         size="icon-xs"
                                         variant="ghost"
-                                        className="text-amber-700 dark:text-amber-300"
+                                        className="text-slate-600 dark:text-slate-400"
                                         tooltip="End temporary chat"
                                         onClick={() => {
                                             endTemporaryThread();

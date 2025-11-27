@@ -67,6 +67,19 @@ const CHANGE_TYPE_META: Record<ChangeType, { label: string; icon: IconComponent;
 // Define the changelog features with organized structure
 const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        id: 'temporary-chat-redesign',
+        title: 'Temporary Chat Visual Redesign',
+        type: 'improvement',
+        description: 'Updated temporary chat styling to match project UI consistency.',
+        items: [
+            'Simplified indicator to a single-line centered text (no card/border)',
+            'Greeting now matches normal chat greeting style with same typography',
+            'Removed complex gradients, shadows, and decorative elements',
+            'Chat input stays centered like normal chat mode',
+            'Added subtle "End session" and "Switch to normal" links'
+        ]
+    },
+    {
         id: 'image-generation-reliability',
         title: 'Image Generation Reliability',
         type: 'fix',
