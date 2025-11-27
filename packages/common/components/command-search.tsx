@@ -92,8 +92,8 @@ export const CommandSearch = () => {
                 e.preventDefault();
                 setIsCommandSearchOpen(true);
             }
-            // Cmd/Ctrl+N for new thread
-            if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
+            // Alt+N for new thread (avoid browser's Ctrl+N new window)
+            if (e.key === 'n' && e.altKey) {
                 e.preventDefault();
                 router.push('/chat');
             }
@@ -111,7 +111,7 @@ export const CommandSearch = () => {
         {
             name: 'New Thread',
             icon: IconPlus,
-            shortcut: '⌘N',
+            shortcut: 'Alt+N',
             action: () => {
                 router.push('/chat');
                 onClose();

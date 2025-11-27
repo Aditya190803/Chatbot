@@ -131,7 +131,7 @@ export function useClipboard() {
 
     const copy: CopyFn = useCallback(async text => {
         if (!navigator?.clipboard) {
-            console.warn('Clipboard not supported');
+            // Clipboard not supported - silently fail
             return false;
         }
         try {
@@ -143,7 +143,7 @@ export function useClipboard() {
             }, 2000);
             return true;
         } catch (error) {
-            console.warn('Copy failed', error);
+            // Copy failed - silently fail
             setCopiedText(null);
             return false;
         }

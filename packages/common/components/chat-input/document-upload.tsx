@@ -1,5 +1,6 @@
 'use client';
 import { useChatStore } from '@repo/common/store';
+import { logger } from '@repo/shared/logger';
 import { Button, cn, Tooltip } from '@repo/ui';
 import { IconFile, IconFileCheck, IconFileX, IconLoader, IconUpload } from '@tabler/icons-react';
 import { FC, useCallback, useState } from 'react';
@@ -98,7 +99,7 @@ export const DocumentUpload: FC<DocumentUploadProps> = ({
             });
 
         } catch (error) {
-            console.error('Document processing error:', error);
+            logger.error('Document processing error', error);
             onDocumentUpload?.({
                 ...document,
                 status: 'error',

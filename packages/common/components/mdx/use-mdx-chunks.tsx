@@ -1,4 +1,5 @@
 import { createProcessor } from '@mdx-js/mdx';
+import { logger } from '@repo/shared/logger';
 import { useCallback } from 'react';
 
 //
@@ -135,7 +136,7 @@ export const useMdxChunker = () => {
 
             return { chunks };
         } catch (error) {
-            console.error('Failed to parse and chunk MDX:', error);
+            logger.error('Failed to parse and chunk MDX', error);
             return { chunks: [] };
         }
     }, []);

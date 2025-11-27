@@ -25,8 +25,8 @@ export type Model = {
     provider: ProviderEnumType;
     maxTokens: number;
     contextWindow: number;
-    costPer1MInput?: number;  // Cost per 1M input tokens (USD)
-    costPer1MOutput?: number; // Cost per 1M output tokens (USD)
+    costPer1MInput?: number;  
+    costPer1MOutput?: number;  
     isFree?: boolean;
 };
 

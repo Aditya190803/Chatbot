@@ -63,7 +63,7 @@ export function ThinkingProcess({
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
         } catch (err) {
-            console.error('Failed to copy:', err);
+            // Silently fail - user can try again
         }
     };
 

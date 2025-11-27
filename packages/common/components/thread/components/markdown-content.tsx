@@ -4,6 +4,7 @@ import {
     mdxComponents,
     useMdxChunker,
 } from '@repo/common/components';
+import { logger } from '@repo/shared/logger';
 import { cn } from '@repo/ui';
 import { MDXRemote } from 'next-mdx-remote';
 import { MDXRemoteSerializeResult } from 'next-mdx-remote/rsc';
@@ -134,7 +135,7 @@ export const MarkdownContent = memo(
                         }
                     }
                 } catch (error) {
-                    console.error('Error processing MDX chunks:', error);
+                    logger.error('Error processing MDX chunks', error);
                 }
             })();
         }, [content, isCompleted, chunkMdx]);
@@ -190,7 +191,7 @@ export const MemoizedMdxChunk = memo(({ chunk }: { chunk: string }) => {
                     setMdx(serialized);
                 }
             } catch (error) {
-                console.error('Error serializing MDX chunk:', error);
+                logger.error('Error serializing MDX chunk', error);
             }
         })();
 

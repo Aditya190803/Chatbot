@@ -5,6 +5,7 @@ import { IconCircleCheckFilled, IconHelpSmall, IconX } from '@tabler/icons-react
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRef, useState } from 'react';
 import { useAuth } from '@repo/common/context';
+import { logger } from '@repo/shared/logger';
 
 export const FeedbackWidget = () => {
     const { userId } = useAuth();
@@ -32,7 +33,7 @@ export const FeedbackWidget = () => {
                 setIsOpen(false);
             }, 2000);
         } catch (error) {
-            console.error('Failed to submit feedback:', error);
+            logger.error('Failed to submit feedback', error);
         } finally {
             setIsSubmitting(false);
         }

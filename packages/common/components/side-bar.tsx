@@ -21,6 +21,7 @@ import {
     IconArrowBarLeft,
     IconArrowBarRight,
     IconCommand,
+    IconGhost,
     IconLogout,
     IconPinned,
     IconPlus,
@@ -140,6 +141,8 @@ export const Sidebar = () => {
     const threads = useChatStore(state => state.threads);
     const pinThread = useChatStore(state => state.pinThread);
     const unpinThread = useChatStore(state => state.unpinThread);
+    const startTemporaryThread = useChatStore(state => state.startTemporaryThread);
+    const temporaryThreadId = useChatStore(state => state.temporaryThreadId);
     const sortThreads = (threads: Thread[], sortBy: 'createdAt') => {
         return [...threads].sort((a, b) => moment(b[sortBy]).diff(moment(a[sortBy])));
     };
@@ -157,7 +160,10 @@ export const Sidebar = () => {
         previousMonths: [],
     };
 
-    sortThreads(threads, 'createdAt')?.forEach(thread => {
+    // Filter out temporary threads from date groups
+    const persistentThreads = threads.filter((thread: Thread) => !thread.isTemporary);
+
+    sortThreads(persistentThreads, 'createdAt')?.forEach(thread => {
         const createdAt = moment(thread.createdAt);
         const now = moment();
 
@@ -275,30 +281,29 @@ export const Sidebar = () => {
                         </Button>
                     )}
                 </div>
+                {/* New Thread + Temp Chat in same row */}
                 <Flex
-                    direction="col"
                     className={cn(
                         'w-full gap-2',
-                        isSidebarOpen ? 'items-stretch' : 'items-center justify-center'
+                        isSidebarOpen ? 'items-stretch' : 'flex-col items-center justify-center'
                     )}
                 >
                     {!isChatPage ? (
-                        <Link href="/chat" className={isSidebarOpen ? 'w-full' : ''}>
+                        <Link href="/chat" className={isSidebarOpen ? 'flex-1' : ''}>
                             <Button
                                 size={isSidebarOpen ? 'sm' : 'icon-sm'}
                                 variant="bordered"
                                 rounded="lg"
                                 tooltip={isSidebarOpen ? undefined : 'New Thread'}
                                 tooltipSide="right"
-                                className={cn(isSidebarOpen && 'relative w-full', 'justify-center')}
+                                className={cn(isSidebarOpen && 'w-full', 'justify-center')}
                                 onClick={() => {
-                                    // Close mobile sidebar when creating new thread
                                     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
                                         setIsMobileSidebarOpen(false);
                                     }
                                 }}
                             >
-                                <IconPlus size={16} strokeWidth={2} className={cn(isSidebarOpen)} />
+                                <IconPlus size={16} strokeWidth={2} />
                                 {isSidebarOpen && 'New'}
                             </Button>
                         </Link>
@@ -309,82 +314,102 @@ export const Sidebar = () => {
                             rounded="lg"
                             tooltip={isSidebarOpen ? undefined : 'New Thread'}
                             tooltipSide="right"
-                            className={cn(isSidebarOpen && 'relative w-full', 'justify-center')}
+                            className={cn(isSidebarOpen && 'flex-1', 'justify-center')}
                             onClick={() => {
-                                // Close mobile sidebar when creating new thread
                                 if (typeof window !== 'undefined' && window.innerWidth < 1024) {
                                     setIsMobileSidebarOpen(false);
                                 }
                             }}
                         >
-                            <IconPlus size={16} strokeWidth={2} className={cn(isSidebarOpen)} />
-                            {isSidebarOpen && 'New Thread'}
+                            <IconPlus size={16} strokeWidth={2} />
+                            {isSidebarOpen && 'New'}
                         </Button>
                     )}
                     <Button
                         size={isSidebarOpen ? 'sm' : 'icon-sm'}
-                        variant="bordered"
+                        variant={temporaryThreadId ? 'secondary' : 'ghost'}
+                        rounded="lg"
+                        tooltip={
+                            temporaryThreadId
+                                ? 'Go to temporary chat'
+                                : isSidebarOpen
+                                    ? 'Start a temporary chat'
+                                    : 'Temp Chat'
+                        }
+                        tooltipSide="right"
+                        className={cn(
+                            isSidebarOpen && 'flex-1',
+                            'justify-center',
+                            temporaryThreadId 
+                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-800/70' 
+                                : 'text-muted-foreground'
+                        )}
+                        onClick={() => {
+                            if (temporaryThreadId) {
+                                push(`/chat/${temporaryThreadId}`);
+                                if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                    setIsMobileSidebarOpen(false);
+                                }
+                                return;
+                            }
+                            void startTemporaryThread('Temporary Chat').then((thread: Thread) => {
+                                if (!thread) return;
+                                push(`/chat/${thread.id}`);
+                                if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                    setIsMobileSidebarOpen(false);
+                                }
+                            });
+                        }}
+                    >
+                        <IconGhost size={16} strokeWidth={2} />
+                        {isSidebarOpen && 'Temp'}
+                    </Button>
+                </Flex>
+                {/* Search below */}
+                <Flex
+                    className={cn(
+                        'w-full',
+                        isSidebarOpen ? 'items-stretch' : 'items-center justify-center'
+                    )}
+                >
+                    <Button
+                        size={isSidebarOpen ? 'sm' : 'icon-sm'}
+                        variant="ghost"
                         rounded="lg"
                         tooltip={isSidebarOpen ? undefined : 'Search'}
                         tooltipSide="right"
                         className={cn(
-                            isSidebarOpen && 'relative w-full justify-between',
+                            isSidebarOpen && 'w-full justify-between',
                             'text-muted-foreground px-2'
                         )}
                         onClick={() => {
                             setIsCommandSearchOpen(true);
-                            // Close mobile sidebar when opening search
                             if (typeof window !== 'undefined' && window.innerWidth < 1024) {
                                 setIsMobileSidebarOpen(false);
                             }
                         }}
                     >
-                        <IconSearch size={14} strokeWidth={2} className={cn(isSidebarOpen)} />
-                        {isSidebarOpen && <span className="text-sm font-medium">Search</span>}
+                        <Flex items="center" gap="xs">
+                            <IconSearch size={14} strokeWidth={2} />
+                            {isSidebarOpen && <span className="text-sm">Search</span>}
+                        </Flex>
                         {isSidebarOpen && (
-                            <div className="flex flex-row items-center gap-1 pr-1">
+                            <div className="flex flex-row items-center gap-0.5">
                                 <Badge
                                     variant="secondary"
-                                    className="bg-muted-foreground/10 text-muted-foreground flex size-5 items-center justify-center rounded-md p-0"
+                                    className="bg-muted-foreground/10 text-muted-foreground flex size-5 items-center justify-center rounded p-0 text-[10px]"
                                 >
-                                    <IconCommand size={12} strokeWidth={2} className="shrink-0" />
+                                    <IconCommand size={10} strokeWidth={2} className="shrink-0" />
                                 </Badge>
                                 <Badge
                                     variant="secondary"
-                                    className="bg-muted-foreground/10 text-muted-foreground flex size-5 items-center justify-center rounded-md p-0"
+                                    className="bg-muted-foreground/10 text-muted-foreground flex size-5 items-center justify-center rounded p-0 text-[10px]"
                                 >
                                     K
                                 </Badge>
                             </div>
                         )}
                     </Button>
-                </Flex>
-                <Flex
-                    direction="col"
-                    gap="xs"
-                    className={cn(
-                        'border-hard mt-2 w-full justify-center border-t border-dashed pt-3',
-                        !isSidebarOpen && 'items-center justify-center'
-                    )}
-                >
-                    {/* <Link href="/recent" className={isSidebarOpen ? 'w-full' : ''}>
-                        <Button
-                            size={isSidebarOpen ? 'xs' : 'icon-sm'}
-                            variant="bordered"
-                            rounded="lg"
-                            tooltip={isSidebarOpen ? undefined : 'Recent'}
-                            tooltipSide="right"
-                            className={cn(
-                                'text-muted-foreground w-full justify-start',
-                                !isSidebarOpen && 'w-auto justify-center'
-                            )}
-                        >
-                            <IconHistory size={14} strokeWidth={2} />
-                            {isSidebarOpen && 'Recent'}
-                            {isSidebarOpen && <span className="inline-flex flex-1" />}
-                            {isSidebarOpen && <IconChevronRight size={14} strokeWidth={2} />}
-                        </Button>
-                    </Link> */}
                 </Flex>
 
                 {false ? (
@@ -394,14 +419,14 @@ export const Sidebar = () => {
                         direction="col"
                         gap="lg"
                         className={cn(
-                            'no-scrollbar w-full flex-1 overflow-y-auto pb-[110px] pr-0.5',
+                            'no-scrollbar w-full flex-1 overflow-y-auto pb-[110px] pr-0.5 mt-2',
                             isSidebarOpen ? 'flex' : 'hidden'
                         )}
                     >
                         {renderGroup({
                             title: 'Pinned',
                             threads: threads
-                                .filter(thread => thread.pinned)
+                                .filter(thread => thread.pinned && !thread.isTemporary)
                                 .sort((a, b) => b.pinnedAt.getTime() - a.pinnedAt.getTime()),
                             groupIcon: <IconPinned size={14} strokeWidth={2} />,
                             renderEmptyState: () => (
