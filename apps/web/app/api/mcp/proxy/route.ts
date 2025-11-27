@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import fetch from 'node-fetch';
 import { Readable } from 'stream';
 import { ReadableStream } from 'stream/web';
+import { logger } from '@repo/shared/logger';
+
+const mcpLogger = logger.child({ module: 'api/mcp/proxy' });
 
 const redis = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN 
   ? new Redis({
@@ -32,7 +35,7 @@ export async function GET(request: NextRequest) {
   // Check if this is a message endpoint request with a sessionId
   const server = request.nextUrl.searchParams.get('server');
   if (!server) {
-    console.log(`GET request with server ${server} - should be a POST request`);
+    mcpLogger.debug('GET request without server param - should be POST', { server });
     return NextResponse.json({ error: 'Messages should be sent using POST method' }, { status: 405 });
   }
   
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest) {
   
   // Store the session for later reference
   global._mcpSessions[newSessionId] = serverName;
-  console.log(`Created session ${newSessionId} for server ${serverName}`);
+  mcpLogger.debug('Created MCP session', { sessionId: newSessionId, serverName });
   
   try {
     const targetUrl = `${server}`;
@@ -74,7 +77,7 @@ export async function GET(request: NextRequest) {
           const chunkString = chunk.toString('utf-8');
           const sessionId = chunkString.match(/sessionId=([^&]+)/)?.[1];
 
-          console.log(`Setting session ${sessionId} for server ${serverName}`);
+          mcpLogger.debug('Setting MCP session', { sessionId, serverName });
           if (redis) {
             await redis.set(`mcp:session:${sessionId}`, server);
           }
@@ -84,11 +87,11 @@ export async function GET(request: NextRequest) {
         nodeReadable.on('end', () => {
           controller.close();
           delete global._mcpSessions[newSessionId];
-          console.log(`Session ${newSessionId} closed normally`);
+          mcpLogger.debug('MCP session closed normally', { sessionId: newSessionId });
         });
         
         nodeReadable.on('error', (err) => {
-          console.error(`Stream error for session ${newSessionId}:`, err);
+          mcpLogger.error('MCP stream error', err, { sessionId: newSessionId });
           controller.error(err);
           delete global._mcpSessions[newSessionId];
         });
@@ -96,7 +99,7 @@ export async function GET(request: NextRequest) {
       cancel() {
         nodeReadable.destroy();
         delete global._mcpSessions[newSessionId];
-        console.log(`Session ${newSessionId} canceled`);
+        mcpLogger.debug('MCP session canceled', { sessionId: newSessionId });
       }
     });
 
@@ -114,19 +117,19 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error proxying SSE request:', error);
+    mcpLogger.error('Error proxying SSE request', error);
     delete global._mcpSessions[newSessionId];
     return NextResponse.json({ error: 'Failed to connect to MCP server' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-        console.log("request", request);
+        mcpLogger.debug('POST request received');
         
   const server = request.nextUrl.searchParams.get('server');
   
   if (!server) {
-    console.error('POST request - Missing server parameter');
+    mcpLogger.warn('POST request - Missing server parameter');
     return NextResponse.json(
       {
         jsonrpc: "2.0",
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
   // Get the server name from the stored session
   const serverName = 'hackernews'
 
-  console.log("serverName", serverName);
+  mcpLogger.debug('Processing MCP request', { serverName });
   
   // Since MCP_SERVERS is commented out, we'll skip this validation for now
   // if (!serverName || !MCP_SERVERS[serverName]) {
@@ -156,21 +159,21 @@ export async function POST(request: NextRequest) {
   // }
 
   const targetUrl = `${server}`;
-  console.log(`Forwarding JSONRPC POST to: ${targetUrl}`);
+  mcpLogger.debug('Forwarding JSONRPC POST', { targetUrl });
   
   try {
     let jsonRpcRequest;
     try {
       const body = await request.text();
       jsonRpcRequest = JSON.parse(body);
-      console.log(`JSONRPC Request:`, jsonRpcRequest);
+      mcpLogger.debug('JSONRPC Request', { method: jsonRpcRequest.method, id: jsonRpcRequest.id });
       
       // Validate basic JSONRPC structure
       if (!jsonRpcRequest.jsonrpc || jsonRpcRequest.jsonrpc !== "2.0" || !jsonRpcRequest.method) {
         throw new Error("Invalid JSONRPC request");
       }
     } catch (err) {
-      console.error("Error parsing JSONRPC request:", err);
+      mcpLogger.error('Error parsing JSONRPC request', err);
       return NextResponse.json(
         {
           jsonrpc: "2.0",
@@ -191,13 +194,13 @@ export async function POST(request: NextRequest) {
     });
 
     const responseText = await response.text();
-    console.log(`JSONRPC response status: ${response.status}, body: ${responseText}`);
+    mcpLogger.debug('JSONRPC response received', { status: response.status });
     
     let jsonResponse;
     try {
       jsonResponse = JSON.parse(responseText);
     } catch (err) {
-      console.error("Error parsing JSONRPC response:", err);
+      mcpLogger.error('Error parsing JSONRPC response', err);
       jsonResponse = {
         jsonrpc: "2.0",
         error: { code: -32603, message: "Internal error: Invalid JSON response from server" },
@@ -213,7 +216,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error(`Error in POST handler:`, error);
+    mcpLogger.error('Error in POST handler', error);
     return NextResponse.json(
       {
         jsonrpc: "2.0",

@@ -1,5 +1,6 @@
 import { auth } from '@repo/common/auth/server';
 import { ChatModeConfig } from '@repo/shared/config';
+import { logger } from '@repo/shared/logger';
 import { Geo, geolocation } from '@vercel/functions';
 import { NextRequest } from 'next/server';
 import { executeStream, sendMessage } from './stream-handlers';
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
 
         const gl = geolocation(request);
 
-        console.log('gl', gl);
+        // Geolocation available for analytics
 
         const stream = createCompletionStream({
             data,
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
 
         return new Response(stream, { headers: enhancedHeaders });
     } catch (error) {
-        console.error('Error in POST handler:', error);
+        logger.error('Error in POST handler', error);
         return new Response(
             JSON.stringify({ error: 'Internal server error', details: String(error) }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -135,7 +136,7 @@ function createCompletionStream({
                 });
             } catch (error) {
                 if (abortController.signal.aborted) {
-                    console.log('abortController.signal.aborted');
+                    logger.debug('Stream aborted by client');
                     sendMessage(guardedController, encoder, {
                         type: 'done',
                         status: 'aborted',
@@ -144,7 +145,7 @@ function createCompletionStream({
                         parentThreadItemId: data.parentThreadItemId,
                     });
                 } else {
-                    console.log('sending error message');
+                    logger.debug('Sending error message to client');
                     sendMessage(guardedController, encoder, {
                         type: 'done',
                         status: 'error',
@@ -162,7 +163,7 @@ function createCompletionStream({
             }
         },
         cancel() {
-            console.log('cancelling stream');
+            logger.debug('Stream cancelled by client');
             abortController.abort();
             if (guardedControllerRef) {
                 markControllerClosed(guardedControllerRef);

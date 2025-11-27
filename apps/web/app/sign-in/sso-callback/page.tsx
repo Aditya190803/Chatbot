@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@repo/shared/logger';
 
 import { useAuthActions } from '@repo/common/context';
 
@@ -16,7 +17,7 @@ export default function Page() {
                 await completeOAuthSession();
                 router.replace('/chat');
             } catch (error) {
-                console.error('OAuth completion error:', error);
+                logger.error('OAuth completion error', error);
                 setStatus('error');
                 router.replace('/sign-in?error=oauth_failed');
             }

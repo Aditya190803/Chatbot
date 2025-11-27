@@ -111,11 +111,9 @@ export async function executeStream({
         });
 
         workflow.onAll((event, payload) => {
-            if (event === 'answer') {
-                console.log('📤 Sending answer event:', {
-                    text: payload?.text?.substring(0, 100),
-                    fullText: payload?.fullText?.substring(0, 100),
-                    finalText: payload?.finalText?.substring(0, 100),
+            if (process.env.NODE_ENV === 'development' && event === 'answer') {
+                logger.debug('Sending answer event', {
+                    textPreview: payload?.text?.substring(0, 50),
                     status: payload?.status
                 });
             }
@@ -144,7 +142,9 @@ export async function executeStream({
             logger.debug('Workflow completed', { threadId: data.threadId });
         }
 
-        console.log('[WORKFLOW SUMMARY]', workflow.getTimingSummary());
+        if (process.env.NODE_ENV === 'development') {
+            logger.debug('[WORKFLOW SUMMARY]', workflow.getTimingSummary());
+        }
 
         sendMessage(controller, encoder, {
             type: 'done',
