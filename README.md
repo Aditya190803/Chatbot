@@ -374,7 +374,7 @@ Chatbot prioritizes user privacy by storing all data locally
 | Shortcut | Action |
 |----------|--------|
 | `⌘/Ctrl + K` | Open command search |
-| `⌘/Ctrl + N` | New thread |
+| `Alt + N` | New thread |
 | `Escape` | Close dialogs/modals |
 | `Enter` | Send message (desktop) |
 | `Shift + Enter` | New line in message |

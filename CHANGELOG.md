@@ -1,6 +1,105 @@
 # Changelog
 
-## [Unreleased] - 2025-10-01
+## [Unreleased] - 2025-11-27
+
+### Added
+- **Temporary Chat Mode**: Private conversations that aren't saved to history
+  - Ghost icon toggle in sidebar for quick access to temp chats
+  - Visual indicators (subtle slate/gray styling) for temporary chat state
+  - `TemporaryChatGreeting` component for temp chat welcome screen
+  - Automatic cleanup when browser closes or session ends
+  
+- **Rate Limiting System**: Server-side request throttling
+  - Tiered rate limits (anonymous, free, pro) for different endpoints
+  - In-memory rate limit store with automatic cleanup
+  - `RateLimitExceeded` and `RateLimitBanner` UI components
+  - Comprehensive test coverage for rate limiting logic
+
+- **Keyboard Shortcuts Framework**
+  - `useKeyboardShortcuts` hook for registering shortcuts
+  - `KeyboardShortcutsHelp` component showing all available shortcuts
+  - Changed new thread shortcut from `Cmd+N` to `Alt+N` (avoids browser conflict)
+  - Platform-aware shortcut display (⌘ on Mac, Ctrl on Windows)
+
+- **Export/Import Conversations**
+  - Export current thread as JSON or Markdown
+  - Bulk export all conversations
+  - Import conversations from JSON backup files
+  - `ExportImportMenu` component in settings
+
+- **Enhanced Mobile UX**
+  - `useMobileSidebar` hook with swipe gestures
+  - Edge swipe to open sidebar
+  - Touch target size optimization
+  - Reduced motion preference support
+
+- **Thread Pagination**
+  - `usePaginatedThreads` hook for large thread lists
+  - Infinite scroll with `useInfiniteScroll` hook
+  - `LoadMoreButton` and `InfiniteScrollSentinel` components
+
+- **Streaming Skeleton Components**
+  - `StreamingSkeleton` for AI response loading state
+  - `LoadingDots` and `TypingIndicator` animations
+  - `ResponseSkeleton` with animated gradient overlay
+
+- **Centralized Error Handling**
+  - `ErrorCategory` enum for error classification
+  - `withRetry` function with exponential backoff
+  - `safeAsync` wrapper for graceful error handling
+  - User-friendly error messages and toast formatting
+
+- **Theme Utilities**
+  - `useEnhancedTheme` hook with toggle/cycle functions
+  - `useSystemTheme` for OS preference detection
+  - `useThemeTransition` for smooth theme switching
+  - `useContrastColors` for accessibility-compliant colors
+
+### Changed
+- **Sidebar Layout Improvements**
+  - New Thread and Temp Chat buttons now in same row
+  - Search button moved below action buttons
+  - Temporary threads filtered from date groups
+  - Pinned threads exclude temporary chats
+
+- **Logging Standardization**
+  - Replaced `console.error/warn/log` with structured `logger` calls
+  - Silent failures for non-critical operations (clipboard, speech)
+  - Debug-level logging for stream completion and abort events
+
+- **Performance Optimizations**
+  - Reduced batch process interval from 500ms to 100ms
+  - Request deduplication with hash tracking
+  - Improved perceived latency for thread updates
+
+- **ESLint Configuration**
+  - Migrated to flat config format (`eslint.config.js`)
+  - Added TypeScript, React, and React Hooks plugins
+  - Configured proper rule sets for different file types
+
+### Technical Details
+**New Components**:
+- `TemporaryChatToggle`, `TemporaryChatBadge`, `TemporaryChatBanner`
+- `RateLimitExceeded`, `RateLimitBanner`
+- `KeyboardShortcutsHelp`, `ShortcutBadge`, `ShortcutHint`
+- `ExportImportMenu`
+- `LoadMoreButton`, `InfiniteScrollSentinel`, `PaginationInfo`
+- `StreamingSkeleton`, `LoadingDots`, `TypingIndicator`, `ResponseSkeleton`
+
+**New Hooks**:
+- `useKeyboardShortcuts`, `useMobileSidebar`, `useSwipeGesture`
+- `usePaginatedThreads`, `useInfiniteScroll`
+- `useEnhancedTheme`, `useSystemTheme`, `useThemeTransition`
+- `useTouchTargetSize`, `usePrefersReducedMotion`
+
+**New Utilities**:
+- Rate limiting: `checkRateLimit`, `createRateLimitMiddleware`
+- Error handling: `categorizeError`, `createAppError`, `withRetry`
+- Export: `downloadThreadAsJson`, `downloadThreadAsMarkdown`
+
+---
+
+## [Previous Release] - 2025-10-01
 
 ### Added
 - **Appwrite Cloud Persistence**: Full chat synchronization for logged-in users
