@@ -210,7 +210,7 @@ export const useSpeechToText = (
         try {
             recognition.stop();
         } catch (err) {
-            console.warn('Error stopping speech recognition', err);
+            // Silently fail - recognition may already be stopped
         }
         setListening(false);
         setInterimTranscript('');

@@ -10,7 +10,7 @@ export function useClipboard() {
 
   const copy: CopyFn = useCallback(async text => {
     if (!navigator?.clipboard) {
-      console.warn('Clipboard not supported');
+      // Silently fail - clipboard not supported
       return false;
     }
     try {
@@ -22,7 +22,7 @@ export function useClipboard() {
       }, 2000);
       return true;
     } catch (error) {
-      console.warn('Copy failed', error);
+      // Silently fail - copy operation failed
       setCopiedText(null);
       return false;
     }

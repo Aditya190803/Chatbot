@@ -316,7 +316,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             const startTime = performance.now();
 
             abortController.signal.addEventListener('abort', () => {
-                console.info('Abort controller triggered');
+                logger.debug('Abort controller triggered');
                 setIsGenerating(false);
                 updateThreadItem(
                     body.threadId,
@@ -523,7 +523,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 setIsGenerating(false);
 
                 const totalTime = performance.now() - startTime;
-                console.info(`Stream completed in ${totalTime.toFixed(2)}ms`);
+                logger.debug(`Stream completed in ${totalTime.toFixed(2)}ms`);
             }
         },
         [
@@ -585,7 +585,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
             let actualMode = mode;
             if (mode === ChatMode.Auto) {
                 actualMode = selectModelForQuery(query, !!imageAttachment);
-                console.info('[AutoModel] Selected model:', actualMode, 'for query:', query.substring(0, 50));
+                logger.debug('[AutoModel] Selected model', { model: actualMode, queryPreview: query.substring(0, 50) });
             }
 
             const existingThread = chatState.threads.find(thread => thread.id === threadId);
@@ -679,7 +679,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
                 setIsGenerating(true);
 
                 abortController.signal.addEventListener('abort', () => {
-                    console.info('Abort signal received');
+                    logger.debug('Abort signal received');
                     setIsGenerating(false);
                     abortWorkflow();
                     updateThreadItem(threadId, { id: optimisticAiThreadItemId, status: 'ABORTED' });
@@ -734,7 +734,7 @@ export const AgentProvider = ({ children }: { children: ReactNode }) => {
 
     const updateContext = useCallback(
         (threadId: string, data: any) => {
-            console.info('Updating context', data);
+            logger.debug('Updating context', { threadId, data });
             updateThreadItem(threadId, {
                 id: data.threadItemId,
                 parentId: data.parentThreadItemId,

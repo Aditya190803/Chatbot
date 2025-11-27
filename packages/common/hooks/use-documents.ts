@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { logger } from '@repo/shared/logger';
 import { DocumentUpload } from '../components/chat-input/document-upload';
 
 export interface DocumentInfo {
@@ -36,7 +37,7 @@ export const useDocuments = () => {
                 setUploadedDocuments(data.documents || []);
             }
         } catch (error) {
-            console.error('Error fetching documents:', error);
+            logger.error('Error fetching documents', error);
         }
     }, []);
 
@@ -89,7 +90,7 @@ export const useDocuments = () => {
             const result = await response.json();
             return result;
         } catch (error) {
-            console.error('Error querying documents:', error);
+            logger.error('Error querying documents', error);
             return null;
         } finally {
             setIsLoading(false);
